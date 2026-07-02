@@ -15,6 +15,19 @@
           }
         }
       },
+      "EFCore.NamingConventions/10.0.1": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore": "[10.0.1, 11.0.0)",
+          "Microsoft.EntityFrameworkCore.Relational": "[10.0.1, 11.0.0)"
+        },
+        "compile": {
+          "lib/net10.0/EFCore.NamingConventions.dll": {}
+        },
+        "runtime": {
+          "lib/net10.0/EFCore.NamingConventions.dll": {}
+        }
+      },
       "Google.Protobuf/3.32.0": {
         "type": "package",
         "compile": {
@@ -1072,6 +1085,18 @@
         "lib/netstandard2.0/BouncyCastle.Cryptography.dll",
         "lib/netstandard2.0/BouncyCastle.Cryptography.xml",
         "packageIcon.png"
+      ]
+    },
+    "EFCore.NamingConventions/10.0.1": {
+      "sha512": "Xs5k8XfNKPkkQSkGmZkmDI1je0prLTdxse+s8PgTFZxyBrlrTLzTBUTVJtQKSsbvu4y+luAv8DdtO5SALJE++A==",
+      "type": "package",
+      "path": "efcore.namingconventions/10.0.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "efcore.namingconventions.10.0.1.nupkg.sha512",
+        "efcore.namingconventions.nuspec",
+        "lib/net10.0/EFCore.NamingConventions.dll"
       ]
     },
     "Google.Protobuf/3.32.0": {
@@ -3363,6 +3388,7 @@
   },
   "projectFileDependencyGroups": {
     "net10.0": [
+      "EFCore.NamingConventions >= 10.0.1",
       "Microsoft.AspNetCore.Authentication.JwtBearer >= 10.0.9",
       "Microsoft.AspNetCore.Identity.EntityFrameworkCore >= 10.0.9",
       "Microsoft.EntityFrameworkCore.Design >= 10.0.9",
@@ -3371,17 +3397,17 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\srekh\\AppData\\Local\\Temp\\cursor-sandbox-cache\\a760f65acff7b7a968c2b412fc461c03\\nuget": {},
+    "C:\\Users\\srekh\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Code\\itransition\\camp\\project\\backend\\src\\Backend.Api\\Backend.Api.csproj",
+      "projectUniqueName": "C:\\Code\\itransition\\camp\\project\\backend\\Backend.Api.csproj",
       "projectName": "Backend.Api",
-      "projectPath": "C:\\Code\\itransition\\camp\\project\\backend\\src\\Backend.Api\\Backend.Api.csproj",
-      "packagesPath": "C:\\Users\\srekh\\AppData\\Local\\Temp\\cursor-sandbox-cache\\a760f65acff7b7a968c2b412fc461c03\\nuget",
-      "outputPath": "C:\\Code\\itransition\\camp\\project\\backend\\src\\Backend.Api\\obj\\",
+      "projectPath": "C:\\Code\\itransition\\camp\\project\\backend\\Backend.Api.csproj",
+      "packagesPath": "C:\\Users\\srekh\\.nuget\\packages\\",
+      "outputPath": "C:\\Code\\itransition\\camp\\project\\backend\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -3423,6 +3449,10 @@
         "framework": "net10.0",
         "targetAlias": "net10.0",
         "dependencies": {
+          "EFCore.NamingConventions": {
+            "target": "Package",
+            "version": "[10.0.1, )"
+          },
           "Microsoft.AspNetCore.Authentication.JwtBearer": {
             "target": "Package",
             "version": "[10.0.9, )"

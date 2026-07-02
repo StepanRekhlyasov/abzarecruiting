@@ -1,3 +1,7 @@
+using Backend.Api.Data.Entities;
+using Backend.Api.Data.Enums;
+using Backend.Api.Data.Relations;
+using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -11,8 +15,204 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
     }
 
+    public DbSet<AttributeEntity> Attributes => Set<AttributeEntity>();
+    public DbSet<ProfileAttribute> ProfileAttributes => Set<ProfileAttribute>();
+    public DbSet<Position> Positions => Set<Position>();
+    public DbSet<PositionRestriction> PositionRestrictions => Set<PositionRestriction>();
+    public DbSet<Resume> Resumes => Set<Resume>();
+    public DbSet<Project> Projects => Set<Project>();
+    public DbSet<Tag> Tags => Set<Tag>();
+    public DbSet<ProjectTag> ProjectTags => Set<ProjectTag>();
+    public DbSet<PositionTag> PositionTags => Set<PositionTag>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        builder.Entity<ApplicationUser>(entity =>
+        {
+            entity.Property(user => user.CreatedAt)
+                .HasColumnType("datetime(6)");
+
+            entity.Property(user => user.Role)
+                .HasConversion<string>()
+                .HasMaxLength(32)
+                .IsRequired();
+        });
+
+        builder.Entity<AttributeEntity>(entity =>
+        {
+            entity.Property(attribute => attribute.Name)
+                .HasMaxLength(256)
+                .IsRequired();
+
+            entity.Property(attribute => attribute.ValueType)
+                .HasMaxLength(64)
+                .IsRequired();
+
+            entity.Property(attribute => attribute.InputType)
+                .HasMaxLength(64)
+                .IsRequired();
+
+            entity.Property(attribute => attribute.CreatedAt)
+                .HasColumnType("datetime(6)");
+
+            entity.HasOne(attribute => attribute.CreatedBy)
+                .WithMany()
+                .HasForeignKey(attribute => attribute.CreatedById)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ProfileAttribute>(entity =>
+        {
+            entity.HasKey(profileAttribute => new { profileAttribute.CandidateId, profileAttribute.AttributeId });
+
+            entity.Property(profileAttribute => profileAttribute.ValueDate)
+                .HasColumnType("datetime(6)");
+
+            entity.Property(profileAttribute => profileAttribute.ValueDateFrom)
+                .HasColumnType("datetime(6)");
+
+            entity.Property(profileAttribute => profileAttribute.ValueDateTo)
+                .HasColumnType("datetime(6)");
+
+            entity.HasOne(profileAttribute => profileAttribute.Candidate)
+                .WithMany(user => user.ProfileAttributes)
+                .HasForeignKey(profileAttribute => profileAttribute.CandidateId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(profileAttribute => profileAttribute.Attribute)
+                .WithMany(attribute => attribute.ProfileAttributes)
+                .HasForeignKey(profileAttribute => profileAttribute.AttributeId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Position>(entity =>
+        {
+            entity.Property(position => position.Name)
+                .HasMaxLength(256)
+                .IsRequired();
+
+            entity.Property(position => position.CreatedAt)
+                .HasColumnType("datetime(6)");
+
+            entity.HasOne(position => position.CreatedBy)
+                .WithMany()
+                .HasForeignKey(position => position.CreatedById)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<PositionRestriction>(entity =>
+        {
+            entity.HasKey(restriction => new { restriction.PositionId, restriction.AttributeId });
+
+            entity.Property(restriction => restriction.Condition)
+                .HasConversion<string>()
+                .HasMaxLength(32)
+                .IsRequired();
+
+            entity.Property(restriction => restriction.CreatedAt)
+                .HasColumnType("datetime(6)");
+
+            entity.HasOne(restriction => restriction.Position)
+                .WithMany(position => position.PositionRestrictions)
+                .HasForeignKey(restriction => restriction.PositionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(restriction => restriction.Attribute)
+                .WithMany(attribute => attribute.PositionRestrictions)
+                .HasForeignKey(restriction => restriction.AttributeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(restriction => restriction.CreatedBy)
+                .WithMany()
+                .HasForeignKey(restriction => restriction.CreatedById)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Resume>(entity =>
+        {
+            entity.Property(resume => resume.Published)
+                .HasColumnType("tinyint(1)");
+
+            entity.Property(resume => resume.CreatedAt)
+                .HasColumnType("datetime(6)");
+
+            entity.HasOne(resume => resume.Candidate)
+                .WithMany(user => user.Resumes)
+                .HasForeignKey(resume => resume.CandidateId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(resume => resume.Position)
+                .WithMany(position => position.Resumes)
+                .HasForeignKey(resume => resume.PositionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Project>(entity =>
+        {
+            entity.Property(project => project.Name)
+                .HasMaxLength(256)
+                .IsRequired();
+
+            entity.Property(project => project.StartAt)
+                .HasColumnType("datetime(6)");
+
+            entity.Property(project => project.EndAt)
+                .HasColumnType("datetime(6)");
+
+            entity.Property(project => project.CreatedAt)
+                .HasColumnType("datetime(6)");
+
+            entity.HasOne(project => project.Candidate)
+                .WithMany(user => user.Projects)
+                .HasForeignKey(project => project.CandidateId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Tag>(entity =>
+        {
+            entity.Property(tag => tag.Name)
+                .HasMaxLength(256)
+                .IsRequired();
+
+            entity.Property(tag => tag.CreatedAt)
+                .HasColumnType("datetime(6)");
+
+            entity.HasOne(tag => tag.CreatedBy)
+                .WithMany()
+                .HasForeignKey(tag => tag.CreatedById)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ProjectTag>(entity =>
+        {
+            entity.HasKey(projectTag => new { projectTag.ProjectId, projectTag.TagId });
+
+            entity.HasOne(projectTag => projectTag.Project)
+                .WithMany(project => project.ProjectTags)
+                .HasForeignKey(projectTag => projectTag.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(projectTag => projectTag.Tag)
+                .WithMany(tag => tag.ProjectTags)
+                .HasForeignKey(projectTag => projectTag.TagId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<PositionTag>(entity =>
+        {
+            entity.HasKey(positionTag => new { positionTag.PositionId, positionTag.TagId });
+
+            entity.HasOne(positionTag => positionTag.Position)
+                .WithMany(position => position.PositionTags)
+                .HasForeignKey(positionTag => positionTag.PositionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(positionTag => positionTag.Tag)
+                .WithMany(tag => tag.PositionTags)
+                .HasForeignKey(positionTag => positionTag.TagId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }
