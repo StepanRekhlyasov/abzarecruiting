@@ -1,0 +1,15 @@
+{
+  "common": {
+    "appName": "Abzarecruiting",
+    "language": "Язык"
+  },
+  "home": {
+    "title": "Главная",
+    "description": "React + TypeScript + MUI + Effector + i18n с FSD архитектурой"
+  },
+  "counter": {
+    "title": "Счётчик",
+    "increment": "Увеличить",
+    "decrement": "Уменьшить"
+  }
+}
