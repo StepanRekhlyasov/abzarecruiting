@@ -1,0 +1,25 @@
+@AuthController.http
+
+@host = http://localhost:5000
+
+### Health check
+GET {{host}}/api/health
+
+### Register
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "Password1",
+  "displayName": "Test User"
+}
+
+### Login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "Password1"
+}
