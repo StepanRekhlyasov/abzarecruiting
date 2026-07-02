@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: camp_project
+      MYSQL_USER: app
+      MYSQL_PASSWORD: app
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uapp", "-papp"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      target: ${APP_MODE:-dev-stage}
+    develop:
+      watch:
+        - action: rebuild
+          path: ./backend
+          ignore:
+            - ./backend/obj/
+            - ./backend/bin/
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=camp_project;User=app;Password=app;
+      - Cors__AllowedOrigins__0=http://localhost:8000
+      - Jwt__SecretKey=CHANGE_ME_TO_A_LONG_RANDOM_SECRET_KEY_AT_LEAST_32_CHARS
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      target: ${APP_MODE:-dev-stage}
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+    develop:
+      watch:
+        - path: ./frontend/src
+          target: /app/src
+          action: sync
+        - path: ./frontend/index.html
+          target: /app/index.html
+          action: sync
+        - path: ./frontend/package.json
+          target: /app/package.json
+          action: restart
+        - path: ./frontend/vite.config.ts
+          target: /app/vite.config.ts
+          action: restart
+    ports:
+      - "8000:80"
+    depends_on:
+      - backend
+      - phpmyadmin
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: app
+      PMA_PASSWORD: app
+      PMA_ABSOLUTE_URI: http://localhost:8000/phpmyadmin/
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
+  frontend_node_modules:
