@@ -1,19 +1,23 @@
 using System.Security.Claims;
+using System.Text;
 using Backend.Api.Configuration;
 using Backend.Api.Data;
 using Backend.Api.Data.Seeders;
 using Backend.Api.Services.Auth;
+using Backend.Api.Services.Profile;
 using Backend.Api.WebSockets;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using System.Text;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
+builder.Services.Configure<DefaultAttributesSettings>(
+    builder.Configuration.GetSection(DefaultAttributesSettings.SectionName));
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
@@ -62,6 +66,7 @@ builder.Services
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IProfileAttributeService, ProfileAttributeService>();
 builder.Services.AddSingleton<NotificationWebSocketHandler>();
 
 builder.Services.AddControllers();
@@ -110,6 +115,13 @@ using (var scope = app.Services.CreateScope())
 
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     await IdentitySeeder.SeedRolesAsync(roleManager);
+
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
+        .CreateLogger("Startup");
+    var defaultAttributesSettings = scope.ServiceProvider
+        .GetRequiredService<IOptions<DefaultAttributesSettings>>();
+    await AttributeSeeder.SeedAsync(db, userManager, defaultAttributesSettings, logger);
 }
 
 if (app.Environment.IsDevelopment())

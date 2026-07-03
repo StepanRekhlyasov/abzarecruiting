@@ -35,8 +35,6 @@ namespace Backend.Api.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "varchar(255)", nullable: false),
-                    FirstName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
-                    LastName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     UserName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
@@ -177,6 +175,7 @@ namespace Backend.Api.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     Name = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
+                    Description = table.Column<string>(type: "varchar(1024)", maxLength: 1024, nullable: true),
                     ValueType = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
                     InputType = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),

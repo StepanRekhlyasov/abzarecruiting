@@ -30,14 +30,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<ApplicationUser>(entity =>
         {
-            entity.Property(user => user.FirstName)
-                .HasMaxLength(256)
-                .IsRequired();
-
-            entity.Property(user => user.LastName)
-                .HasMaxLength(256)
-                .IsRequired();
-
             entity.Property(user => user.CreatedAt)
                 .HasColumnType("datetime(6)");
         });
@@ -47,6 +39,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(attribute => attribute.Name)
                 .HasMaxLength(256)
                 .IsRequired();
+
+            entity.Property(attribute => attribute.Description)
+                .HasMaxLength(1024);
 
             entity.Property(attribute => attribute.ValueType)
                 .HasMaxLength(64)

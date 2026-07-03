@@ -1,6 +1,7 @@
 using Backend.Api.Data;
 using Backend.Api.Models.Auth;
 using Backend.Api.Services.Auth;
+using Backend.Api.Services.Profile;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,7 +12,8 @@ namespace Backend.Api.Controllers;
 public class AuthController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
-    IJwtTokenService jwtTokenService) : ControllerBase
+    IJwtTokenService jwtTokenService,
+    IProfileAttributeService profileAttributeService) : ControllerBase
 {
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request)
@@ -20,8 +22,7 @@ public class AuthController(
         {
             UserName = request.Email,
             Email = request.Email,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
+            CreatedAt = DateTime.UtcNow,
         };
 
         var result = await userManager.CreateAsync(user, request.Password);
@@ -33,15 +34,33 @@ public class AuthController(
 
         await userManager.AddToRoleAsync(user, Roles.Candidate);
 
+        try
+        {
+            await profileAttributeService.SetStringValuesAsync(user.Id, new Dictionary<string, string>
+            {
+                [DefaultAttributes.FirstName] = request.FirstName,
+                [DefaultAttributes.LastName] = request.LastName,
+            });
+        }
+        catch (InvalidOperationException exception)
+        {
+            await userManager.DeleteAsync(user);
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new { message = exception.Message });
+        }
+
         var token = await jwtTokenService.CreateTokenAsync(user);
+        var roles = await userManager.GetRolesAsync(user);
 
         return Ok(new AuthResponse
         {
             AccessToken = token.AccessToken,
             ExpiresAt = token.ExpiresAt,
             Email = user.Email ?? string.Empty,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Roles = roles,
         });
     }
 
@@ -64,14 +83,18 @@ public class AuthController(
 
         var token = await jwtTokenService.CreateTokenAsync(user);
         var roles = await userManager.GetRolesAsync(user);
+        var profileValues = await profileAttributeService.GetStringValuesAsync(
+            user.Id,
+            DefaultAttributes.FirstName,
+            DefaultAttributes.LastName);
 
         return Ok(new AuthResponse
         {
             AccessToken = token.AccessToken,
             ExpiresAt = token.ExpiresAt,
             Email = user.Email ?? string.Empty,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
+            FirstName = profileValues.GetValueOrDefault(DefaultAttributes.FirstName) ?? string.Empty,
+            LastName = profileValues.GetValueOrDefault(DefaultAttributes.LastName) ?? string.Empty,
             Roles = roles,
         });
     }
