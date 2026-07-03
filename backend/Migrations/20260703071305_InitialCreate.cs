@@ -7,7 +7,7 @@ using MySql.EntityFrameworkCore.Metadata;
 namespace Backend.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class init : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -38,7 +38,6 @@ namespace Backend.Api.Migrations
                     FirstName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
                     LastName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Role = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
                     UserName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
@@ -110,7 +109,7 @@ namespace Backend.Api.Migrations
                 {
                     LoginProvider = table.Column<string>(type: "varchar(255)", nullable: false),
                     ProviderKey = table.Column<string>(type: "varchar(255)", nullable: false),
-                    ProviderDisplayName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
+                    ProviderDisplayName = table.Column<string>(type: "longtext", nullable: true),
                     UserId = table.Column<string>(type: "varchar(255)", nullable: false)
                 },
                 constraints: table =>
