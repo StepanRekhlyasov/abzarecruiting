@@ -18,9 +18,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Position> Positions => Set<Position>();
     public DbSet<PositionRestriction> PositionRestrictions => Set<PositionRestriction>();
     public DbSet<Resume> Resumes => Set<Resume>();
-    public DbSet<Project> Projects => Set<Project>();
+    public DbSet<ProfileProject> ProfileProjects => Set<ProfileProject>();
     public DbSet<Tag> Tags => Set<Tag>();
-    public DbSet<ProjectTag> ProjectTags => Set<ProjectTag>();
+    public DbSet<ProfileProjectTag> ProfileProjectTags => Set<ProfileProjectTag>();
     public DbSet<PositionTag> PositionTags => Set<PositionTag>();
     public DbSet<PositionAttribute> PositionAttributes => Set<PositionAttribute>();
 
@@ -124,8 +124,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<PositionRestriction>(entity =>
         {
-            entity.HasKey(restriction => new { restriction.PositionId, restriction.AttributeId });
-
             entity.Property(restriction => restriction.Condition)
                 .HasConversion<string>()
                 .HasMaxLength(32)
@@ -142,12 +140,17 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(restriction => restriction.Attribute)
                 .WithMany(attribute => attribute.PositionRestrictions)
                 .HasForeignKey(restriction => restriction.AttributeId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(restriction => restriction.CreatedBy)
                 .WithMany()
                 .HasForeignKey(restriction => restriction.CreatedById)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(restriction => restriction.Tag)
+                .WithMany(tag => tag.PositionRestrictions)
+                .HasForeignKey(restriction => restriction.TagId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<Resume>(entity =>
@@ -169,24 +172,24 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        builder.Entity<Project>(entity =>
+        builder.Entity<ProfileProject>(entity =>
         {
-            entity.Property(project => project.Name)
+            entity.Property(profileProject => profileProject.Name)
                 .HasMaxLength(256)
                 .IsRequired();
 
-            entity.Property(project => project.StartAt)
+            entity.Property(profileProject => profileProject.StartAt)
                 .HasColumnType("datetime(6)");
 
-            entity.Property(project => project.EndAt)
+            entity.Property(profileProject => profileProject.EndAt)
                 .HasColumnType("datetime(6)");
 
-            entity.Property(project => project.CreatedAt)
+            entity.Property(profileProject => profileProject.CreatedAt)
                 .HasColumnType("datetime(6)");
 
-            entity.HasOne(project => project.Candidate)
-                .WithMany(user => user.Projects)
-                .HasForeignKey(project => project.CandidateId)
+            entity.HasOne(profileProject => profileProject.Candidate)
+                .WithMany(user => user.ProfileProjects)
+                .HasForeignKey(profileProject => profileProject.CandidateId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -205,18 +208,18 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        builder.Entity<ProjectTag>(entity =>
+        builder.Entity<ProfileProjectTag>(entity =>
         {
-            entity.HasKey(projectTag => new { projectTag.ProjectId, projectTag.TagId });
+            entity.HasKey(profileProjectTag => new { profileProjectTag.ProfileProjectId, profileProjectTag.TagId });
 
-            entity.HasOne(projectTag => projectTag.Project)
-                .WithMany(project => project.ProjectTags)
-                .HasForeignKey(projectTag => projectTag.ProjectId)
+            entity.HasOne(profileProjectTag => profileProjectTag.ProfileProject)
+                .WithMany(profileProject => profileProject.ProfileProjectTags)
+                .HasForeignKey(profileProjectTag => profileProjectTag.ProfileProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(projectTag => projectTag.Tag)
-                .WithMany(tag => tag.ProjectTags)
-                .HasForeignKey(projectTag => projectTag.TagId)
+            entity.HasOne(profileProjectTag => profileProjectTag.Tag)
+                .WithMany(tag => tag.ProfileProjectTags)
+                .HasForeignKey(profileProjectTag => profileProjectTag.TagId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

@@ -7,13 +7,27 @@ namespace Backend.Api.Data.Relations;
 
 public class PositionRestriction
 {
+    public int Id { get; set; }
+
     public int PositionId { get; set; }
-    public int AttributeId { get; set; }
+
+    public int? AttributeId { get; set; }
+
     public string? TargetValue { get; set; }
+
     public RestrictionCondition Condition { get; set; }
+
     public DateTime CreatedAt { get; set; }
+
     public string CreatedById { get; set; } = string.Empty;
+
+    public int? TagId { get; set; }
+
     public Position Position { get; set; } = null!;
-    public AttributeEntity Attribute { get; set; } = null!;
+
+    public AttributeEntity? Attribute { get; set; }
+
+    public Tag? Tag { get; set; }
+
     public ApplicationUser CreatedBy { get; set; } = null!;
 }

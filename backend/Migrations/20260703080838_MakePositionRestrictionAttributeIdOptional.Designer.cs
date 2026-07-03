@@ -3,6 +3,7 @@ using System;
 using Backend.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260703080838_MakePositionRestrictionAttributeIdOptional")]
+    partial class MakePositionRestrictionAttributeIdOptional
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -180,7 +183,7 @@ namespace Backend.Api.Migrations
                     b.ToTable("Positions");
                 });
 
-            modelBuilder.Entity("Backend.Api.Data.Entities.ProfileProject", b =>
+            modelBuilder.Entity("Backend.Api.Data.Entities.Project", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -212,7 +215,7 @@ namespace Backend.Api.Migrations
 
                     b.HasIndex("CandidateId");
 
-                    b.ToTable("ProfileProjects");
+                    b.ToTable("Projects");
                 });
 
             modelBuilder.Entity("Backend.Api.Data.Entities.Resume", b =>
@@ -383,19 +386,19 @@ namespace Backend.Api.Migrations
                     b.ToTable("ProfileAttributes");
                 });
 
-            modelBuilder.Entity("Backend.Api.Data.Relations.ProfileProjectTag", b =>
+            modelBuilder.Entity("Backend.Api.Data.Relations.ProjectTag", b =>
                 {
-                    b.Property<int>("ProfileProjectId")
+                    b.Property<int>("ProjectId")
                         .HasColumnType("int");
 
                     b.Property<int>("TagId")
                         .HasColumnType("int");
 
-                    b.HasKey("ProfileProjectId", "TagId");
+                    b.HasKey("ProjectId", "TagId");
 
                     b.HasIndex("TagId");
 
-                    b.ToTable("ProfileProjectTags");
+                    b.ToTable("ProjectTags");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -548,10 +551,10 @@ namespace Backend.Api.Migrations
                     b.Navigation("CreatedBy");
                 });
 
-            modelBuilder.Entity("Backend.Api.Data.Entities.ProfileProject", b =>
+            modelBuilder.Entity("Backend.Api.Data.Entities.Project", b =>
                 {
                     b.HasOne("Backend.Api.Data.ApplicationUser", "Candidate")
-                        .WithMany("ProfileProjects")
+                        .WithMany("Projects")
                         .HasForeignKey("CandidateId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -679,21 +682,21 @@ namespace Backend.Api.Migrations
                     b.Navigation("Candidate");
                 });
 
-            modelBuilder.Entity("Backend.Api.Data.Relations.ProfileProjectTag", b =>
+            modelBuilder.Entity("Backend.Api.Data.Relations.ProjectTag", b =>
                 {
-                    b.HasOne("Backend.Api.Data.Entities.ProfileProject", "ProfileProject")
-                        .WithMany("ProfileProjectTags")
-                        .HasForeignKey("ProfileProjectId")
+                    b.HasOne("Backend.Api.Data.Entities.Project", "Project")
+                        .WithMany("ProjectTags")
+                        .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Backend.Api.Data.Entities.Tag", "Tag")
-                        .WithMany("ProfileProjectTags")
+                        .WithMany("ProjectTags")
                         .HasForeignKey("TagId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ProfileProject");
+                    b.Navigation("Project");
 
                     b.Navigation("Tag");
                 });
@@ -753,7 +756,7 @@ namespace Backend.Api.Migrations
                 {
                     b.Navigation("ProfileAttributes");
 
-                    b.Navigation("ProfileProjects");
+                    b.Navigation("Projects");
 
                     b.Navigation("Resumes");
                 });
@@ -778,9 +781,9 @@ namespace Backend.Api.Migrations
                     b.Navigation("Resumes");
                 });
 
-            modelBuilder.Entity("Backend.Api.Data.Entities.ProfileProject", b =>
+            modelBuilder.Entity("Backend.Api.Data.Entities.Project", b =>
                 {
-                    b.Navigation("ProfileProjectTags");
+                    b.Navigation("ProjectTags");
                 });
 
             modelBuilder.Entity("Backend.Api.Data.Entities.Tag", b =>
@@ -789,7 +792,7 @@ namespace Backend.Api.Migrations
 
                     b.Navigation("PositionTags");
 
-                    b.Navigation("ProfileProjectTags");
+                    b.Navigation("ProjectTags");
                 });
 #pragma warning restore 612, 618
         }

@@ -2,13 +2,13 @@ using Backend.Api.Data.Entities;
 
 namespace Backend.Api.Data.Relations;
 
-public class ProjectTag
+public class ProfileProjectTag
 {
-    public int ProjectId { get; set; }
+    public int ProfileProjectId { get; set; }
 
     public int TagId { get; set; }
 
-    public Project Project { get; set; } = null!;
+    public ProfileProject ProfileProject { get; set; } = null!;
 
     public Tag Tag { get; set; } = null!;
 }

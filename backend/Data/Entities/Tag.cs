@@ -9,6 +9,7 @@ public class Tag
     public DateTime CreatedAt { get; set; }
     public string CreatedById { get; set; } = string.Empty;
     public ApplicationUser CreatedBy { get; set; } = null!;
-    public ICollection<ProjectTag> ProjectTags { get; set; } = [];
+    public ICollection<ProfileProjectTag> ProfileProjectTags { get; set; } = [];
     public ICollection<PositionTag> PositionTags { get; set; } = [];
+    public ICollection<PositionRestriction> PositionRestrictions { get; set; } = [];
 }
