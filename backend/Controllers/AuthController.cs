@@ -8,22 +8,11 @@ namespace Backend.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController : ControllerBase
+public class AuthController(
+    UserManager<ApplicationUser> userManager,
+    SignInManager<ApplicationUser> signInManager,
+    IJwtTokenService jwtTokenService) : ControllerBase
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly SignInManager<ApplicationUser> _signInManager;
-    private readonly IJwtTokenService _jwtTokenService;
-
-    public AuthController(
-        UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager,
-        IJwtTokenService jwtTokenService)
-    {
-        _userManager = userManager;
-        _signInManager = signInManager;
-        _jwtTokenService = jwtTokenService;
-    }
-
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request)
     {
@@ -35,16 +24,16 @@ public class AuthController : ControllerBase
             LastName = request.LastName,
         };
 
-        var result = await _userManager.CreateAsync(user, request.Password);
+        var result = await userManager.CreateAsync(user, request.Password);
 
         if (!result.Succeeded)
         {
             return BadRequest(new { errors = result.Errors.Select(error => error.Description) });
         }
 
-        await _userManager.AddToRoleAsync(user, Roles.Candidate);
+        await userManager.AddToRoleAsync(user, Roles.Candidate);
 
-        var token = await _jwtTokenService.CreateTokenAsync(user);
+        var token = await jwtTokenService.CreateTokenAsync(user);
 
         return Ok(new AuthResponse
         {
@@ -59,22 +48,22 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
     {
-        var user = await _userManager.FindByEmailAsync(request.Email);
+        var user = await userManager.FindByEmailAsync(request.Email);
 
         if (user is null)
         {
             return Unauthorized(new { message = "Invalid email or password." });
         }
 
-        var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+        var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
 
         if (!result.Succeeded)
         {
             return Unauthorized(new { message = "Invalid email or password." });
         }
 
-        var token = await _jwtTokenService.CreateTokenAsync(user);
-        var roles = await _userManager.GetRolesAsync(user);
+        var token = await jwtTokenService.CreateTokenAsync(user);
+        var roles = await userManager.GetRolesAsync(user);
 
         return Ok(new AuthResponse
         {
