@@ -22,6 +22,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<ProjectTag> ProjectTags => Set<ProjectTag>();
     public DbSet<PositionTag> PositionTags => Set<PositionTag>();
+    public DbSet<PositionAttribute> PositionAttributes => Set<PositionAttribute>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -92,6 +93,24 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             entity.Property(position => position.Name)
                 .HasMaxLength(256)
+                .IsRequired();
+
+            entity.Property(position => position.Company)
+                .HasMaxLength(256)
+                .IsRequired();
+
+            entity.Property(position => position.Country)
+                .HasMaxLength(256)
+                .IsRequired();
+
+            entity.Property(position => position.Level)
+                .HasConversion<string>()
+                .HasMaxLength(32)
+                .IsRequired();
+
+            entity.Property(position => position.Format)
+                .HasConversion<string>()
+                .HasMaxLength(32)
                 .IsRequired();
 
             entity.Property(position => position.CreatedAt)
@@ -205,6 +224,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             entity.HasKey(positionTag => new { positionTag.PositionId, positionTag.TagId });
 
+            entity.Property(positionTag => positionTag.IsKey)
+                .HasColumnType("tinyint(1)");
+
             entity.HasOne(positionTag => positionTag.Position)
                 .WithMany(position => position.PositionTags)
                 .HasForeignKey(positionTag => positionTag.PositionId)
@@ -213,6 +235,24 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(positionTag => positionTag.Tag)
                 .WithMany(tag => tag.PositionTags)
                 .HasForeignKey(positionTag => positionTag.TagId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<PositionAttribute>(entity =>
+        {
+            entity.HasKey(positionAttribute => new { positionAttribute.PositionId, positionAttribute.AttributeId });
+
+            entity.Property(positionAttribute => positionAttribute.IsKey)
+                .HasColumnType("tinyint(1)");
+
+            entity.HasOne(positionAttribute => positionAttribute.Position)
+                .WithMany(position => position.PositionAttributes)
+                .HasForeignKey(positionAttribute => positionAttribute.PositionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(positionAttribute => positionAttribute.Attribute)
+                .WithMany(attribute => attribute.PositionAttributes)
+                .HasForeignKey(positionAttribute => positionAttribute.AttributeId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

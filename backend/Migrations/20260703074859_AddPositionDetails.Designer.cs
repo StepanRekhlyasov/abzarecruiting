@@ -3,6 +3,7 @@ using System;
 using Backend.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260703074859_AddPositionDetails")]
+    partial class AddPositionDetails
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -268,24 +271,6 @@ namespace Backend.Api.Migrations
                     b.ToTable("Tags");
                 });
 
-            modelBuilder.Entity("Backend.Api.Data.Relations.PositionAttribute", b =>
-                {
-                    b.Property<int>("PositionId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("AttributeId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsKey")
-                        .HasColumnType("tinyint(1)");
-
-                    b.HasKey("PositionId", "AttributeId");
-
-                    b.HasIndex("AttributeId");
-
-                    b.ToTable("PositionAttributes");
-                });
-
             modelBuilder.Entity("Backend.Api.Data.Relations.PositionRestriction", b =>
                 {
                     b.Property<int>("PositionId")
@@ -325,9 +310,6 @@ namespace Backend.Api.Migrations
 
                     b.Property<int>("TagId")
                         .HasColumnType("int");
-
-                    b.Property<bool>("IsKey")
-                        .HasColumnType("tinyint(1)");
 
                     b.HasKey("PositionId", "TagId");
 
@@ -578,25 +560,6 @@ namespace Backend.Api.Migrations
                     b.Navigation("CreatedBy");
                 });
 
-            modelBuilder.Entity("Backend.Api.Data.Relations.PositionAttribute", b =>
-                {
-                    b.HasOne("Backend.Api.Data.Entities.Attribute", "Attribute")
-                        .WithMany("PositionAttributes")
-                        .HasForeignKey("AttributeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Backend.Api.Data.Entities.Position", "Position")
-                        .WithMany("PositionAttributes")
-                        .HasForeignKey("PositionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Attribute");
-
-                    b.Navigation("Position");
-                });
-
             modelBuilder.Entity("Backend.Api.Data.Relations.PositionRestriction", b =>
                 {
                     b.HasOne("Backend.Api.Data.Entities.Attribute", "Attribute")
@@ -743,8 +706,6 @@ namespace Backend.Api.Migrations
 
             modelBuilder.Entity("Backend.Api.Data.Entities.Attribute", b =>
                 {
-                    b.Navigation("PositionAttributes");
-
                     b.Navigation("PositionRestrictions");
 
                     b.Navigation("ProfileAttributes");
@@ -752,8 +713,6 @@ namespace Backend.Api.Migrations
 
             modelBuilder.Entity("Backend.Api.Data.Entities.Position", b =>
                 {
-                    b.Navigation("PositionAttributes");
-
                     b.Navigation("PositionRestrictions");
 
                     b.Navigation("PositionTags");

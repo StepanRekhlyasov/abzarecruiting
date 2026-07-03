@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "IlDo4OXscTs=",
+  "dgSpecHash": "wi36T3jVEIE=",
   "success": true,
-  "projectFilePath": "c:\\Code\\itransition\\camp\\project\\backend\\Backend.Api.csproj",
+  "projectFilePath": "C:\\Code\\itransition\\camp\\project\\backend\\Backend.Api.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\srekh\\AppData\\Local\\Temp\\cursor-sandbox-cache\\218080579a247813965c2875a3dd635f\\nuget\\bouncycastle.cryptography\\2.6.2\\bouncycastle.cryptography.2.6.2.nupkg.sha512",
     "C:\\Users\\srekh\\AppData\\Local\\Temp\\cursor-sandbox-cache\\218080579a247813965c2875a3dd635f\\nuget\\efcore.namingconventions\\10.0.1\\efcore.namingconventions.10.0.1.nupkg.sha512",
