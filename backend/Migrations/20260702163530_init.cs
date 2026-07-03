@@ -35,7 +35,8 @@ namespace Backend.Api.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "varchar(255)", nullable: false),
-                    DisplayName = table.Column<string>(type: "longtext", nullable: true),
+                    FirstName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
+                    LastName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Role = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
                     UserName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
@@ -109,7 +110,7 @@ namespace Backend.Api.Migrations
                 {
                     LoginProvider = table.Column<string>(type: "varchar(255)", nullable: false),
                     ProviderKey = table.Column<string>(type: "varchar(255)", nullable: false),
-                    ProviderDisplayName = table.Column<string>(type: "longtext", nullable: true),
+                    ProviderDisplayName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
                     UserId = table.Column<string>(type: "varchar(255)", nullable: false)
                 },
                 constraints: table =>

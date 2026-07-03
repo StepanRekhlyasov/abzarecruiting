@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Code\\itransition\\camp\\project\\backend\\Backend.Api.csproj": {}
+    "c:\\Code\\itransition\\camp\\project\\backend\\Backend.Api.csproj": {}
   },
   "projects": {
-    "C:\\Code\\itransition\\camp\\project\\backend\\Backend.Api.csproj": {
+    "c:\\Code\\itransition\\camp\\project\\backend\\Backend.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Code\\itransition\\camp\\project\\backend\\Backend.Api.csproj",
+        "projectUniqueName": "c:\\Code\\itransition\\camp\\project\\backend\\Backend.Api.csproj",
         "projectName": "Backend.Api",
-        "projectPath": "C:\\Code\\itransition\\camp\\project\\backend\\Backend.Api.csproj",
-        "packagesPath": "C:\\Users\\srekh\\.nuget\\packages\\",
-        "outputPath": "C:\\Code\\itransition\\camp\\project\\backend\\obj\\",
+        "projectPath": "c:\\Code\\itransition\\camp\\project\\backend\\Backend.Api.csproj",
+        "packagesPath": "C:\\Users\\srekh\\AppData\\Local\\Temp\\cursor-sandbox-cache\\218080579a247813965c2875a3dd635f\\nuget",
+        "outputPath": "c:\\Code\\itransition\\camp\\project\\backend\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

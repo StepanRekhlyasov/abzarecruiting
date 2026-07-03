@@ -31,7 +31,8 @@ public class AuthController : ControllerBase
         {
             UserName = request.Email,
             Email = request.Email,
-            DisplayName = request.DisplayName,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);
@@ -41,6 +42,8 @@ public class AuthController : ControllerBase
             return BadRequest(new { errors = result.Errors.Select(error => error.Description) });
         }
 
+        await _userManager.AddToRoleAsync(user, Roles.Candidate);
+
         var token = await _jwtTokenService.CreateTokenAsync(user);
 
         return Ok(new AuthResponse
@@ -48,7 +51,8 @@ public class AuthController : ControllerBase
             AccessToken = token.AccessToken,
             ExpiresAt = token.ExpiresAt,
             Email = user.Email ?? string.Empty,
-            DisplayName = user.DisplayName,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
         });
     }
 
@@ -70,13 +74,16 @@ public class AuthController : ControllerBase
         }
 
         var token = await _jwtTokenService.CreateTokenAsync(user);
+        var roles = await _userManager.GetRolesAsync(user);
 
         return Ok(new AuthResponse
         {
             AccessToken = token.AccessToken,
             ExpiresAt = token.ExpiresAt,
             Email = user.Email ?? string.Empty,
-            DisplayName = user.DisplayName,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Roles = roles,
         });
     }
 }

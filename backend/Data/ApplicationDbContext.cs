@@ -1,8 +1,6 @@
 using Backend.Api.Data.Entities;
-using Backend.Api.Data.Enums;
 using Backend.Api.Data.Relations;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,13 +29,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<ApplicationUser>(entity =>
         {
+            entity.Property(user => user.FirstName)
+                .HasMaxLength(256)
+                .IsRequired();
+
+            entity.Property(user => user.LastName)
+                .HasMaxLength(256)
+                .IsRequired();
+
             entity.Property(user => user.CreatedAt)
                 .HasColumnType("datetime(6)");
-
-            entity.Property(user => user.Role)
-                .HasConversion<string>()
-                .HasMaxLength(32)
-                .IsRequired();
         });
 
         builder.Entity<AttributeEntity>(entity =>
