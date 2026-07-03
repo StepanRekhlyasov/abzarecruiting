@@ -202,6 +202,10 @@ namespace Backend.Api.Migrations
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     Name = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
                     Description = table.Column<string>(type: "longtext", nullable: false),
+                    Company = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
+                    Country = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
+                    Level = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
+                    Format = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatedById = table.Column<string>(type: "varchar(255)", nullable: false)
                 },
@@ -218,7 +222,7 @@ namespace Backend.Api.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "Projects",
+                name: "ProfileProjects",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -232,9 +236,9 @@ namespace Backend.Api.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Projects", x => x.Id);
+                    table.PrimaryKey("PK_ProfileProjects", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Projects_AspNetUsers_CandidateId",
+                        name: "FK_ProfileProjects_AspNetUsers_CandidateId",
                         column: x => x.CandidateId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
@@ -297,33 +301,24 @@ namespace Backend.Api.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "PositionRestrictions",
+                name: "PositionAttributes",
                 columns: table => new
                 {
                     PositionId = table.Column<int>(type: "int", nullable: false),
                     AttributeId = table.Column<int>(type: "int", nullable: false),
-                    TargetValue = table.Column<string>(type: "longtext", nullable: true),
-                    Condition = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    CreatedById = table.Column<string>(type: "varchar(255)", nullable: false)
+                    IsKey = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PositionRestrictions", x => new { x.PositionId, x.AttributeId });
+                    table.PrimaryKey("PK_PositionAttributes", x => new { x.PositionId, x.AttributeId });
                     table.ForeignKey(
-                        name: "FK_PositionRestrictions_AspNetUsers_CreatedById",
-                        column: x => x.CreatedById,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PositionRestrictions_Attributes_AttributeId",
+                        name: "FK_PositionAttributes_Attributes_AttributeId",
                         column: x => x.AttributeId,
                         principalTable: "Attributes",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_PositionRestrictions_Positions_PositionId",
+                        name: "FK_PositionAttributes_Positions_PositionId",
                         column: x => x.PositionId,
                         principalTable: "Positions",
                         principalColumn: "Id",
@@ -361,11 +356,56 @@ namespace Backend.Api.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "PositionRestrictions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    PositionId = table.Column<int>(type: "int", nullable: false),
+                    AttributeId = table.Column<int>(type: "int", nullable: true),
+                    TargetValue = table.Column<string>(type: "longtext", nullable: true),
+                    Condition = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    CreatedById = table.Column<string>(type: "varchar(255)", nullable: false),
+                    TagId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PositionRestrictions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PositionRestrictions_AspNetUsers_CreatedById",
+                        column: x => x.CreatedById,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PositionRestrictions_Attributes_AttributeId",
+                        column: x => x.AttributeId,
+                        principalTable: "Attributes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_PositionRestrictions_Positions_PositionId",
+                        column: x => x.PositionId,
+                        principalTable: "Positions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PositionRestrictions_Tags_TagId",
+                        column: x => x.TagId,
+                        principalTable: "Tags",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "PositionTags",
                 columns: table => new
                 {
                     PositionId = table.Column<int>(type: "int", nullable: false),
-                    TagId = table.Column<int>(type: "int", nullable: false)
+                    TagId = table.Column<int>(type: "int", nullable: false),
+                    IsKey = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -386,23 +426,23 @@ namespace Backend.Api.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "ProjectTags",
+                name: "ProfileProjectTags",
                 columns: table => new
                 {
-                    ProjectId = table.Column<int>(type: "int", nullable: false),
+                    ProfileProjectId = table.Column<int>(type: "int", nullable: false),
                     TagId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ProjectTags", x => new { x.ProjectId, x.TagId });
+                    table.PrimaryKey("PK_ProfileProjectTags", x => new { x.ProfileProjectId, x.TagId });
                     table.ForeignKey(
-                        name: "FK_ProjectTags_Projects_ProjectId",
-                        column: x => x.ProjectId,
-                        principalTable: "Projects",
+                        name: "FK_ProfileProjectTags_ProfileProjects_ProfileProjectId",
+                        column: x => x.ProfileProjectId,
+                        principalTable: "ProfileProjects",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_ProjectTags_Tags_TagId",
+                        name: "FK_ProfileProjectTags_Tags_TagId",
                         column: x => x.TagId,
                         principalTable: "Tags",
                         principalColumn: "Id",
@@ -453,6 +493,11 @@ namespace Backend.Api.Migrations
                 column: "CreatedById");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PositionAttributes_AttributeId",
+                table: "PositionAttributes",
+                column: "AttributeId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PositionRestrictions_AttributeId",
                 table: "PositionRestrictions",
                 column: "AttributeId");
@@ -461,6 +506,16 @@ namespace Backend.Api.Migrations
                 name: "IX_PositionRestrictions_CreatedById",
                 table: "PositionRestrictions",
                 column: "CreatedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PositionRestrictions_PositionId",
+                table: "PositionRestrictions",
+                column: "PositionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PositionRestrictions_TagId",
+                table: "PositionRestrictions",
+                column: "TagId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Positions_CreatedById",
@@ -478,13 +533,13 @@ namespace Backend.Api.Migrations
                 column: "AttributeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Projects_CandidateId",
-                table: "Projects",
+                name: "IX_ProfileProjects_CandidateId",
+                table: "ProfileProjects",
                 column: "CandidateId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProjectTags_TagId",
-                table: "ProjectTags",
+                name: "IX_ProfileProjectTags_TagId",
+                table: "ProfileProjectTags",
                 column: "TagId");
 
             migrationBuilder.CreateIndex(
@@ -522,6 +577,9 @@ namespace Backend.Api.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "PositionAttributes");
+
+            migrationBuilder.DropTable(
                 name: "PositionRestrictions");
 
             migrationBuilder.DropTable(
@@ -531,7 +589,7 @@ namespace Backend.Api.Migrations
                 name: "ProfileAttributes");
 
             migrationBuilder.DropTable(
-                name: "ProjectTags");
+                name: "ProfileProjectTags");
 
             migrationBuilder.DropTable(
                 name: "Resumes");
@@ -543,7 +601,7 @@ namespace Backend.Api.Migrations
                 name: "Attributes");
 
             migrationBuilder.DropTable(
-                name: "Projects");
+                name: "ProfileProjects");
 
             migrationBuilder.DropTable(
                 name: "Tags");
