@@ -1,7 +1,9 @@
 {
   "common": {
     "appName": "Abzarecruiting",
-    "language": "Язык"
+    "language": "Язык",
+    "login": "Войти",
+    "register": "Регистрация"
   },
   "home": {
     "title": "Главная",
@@ -11,5 +13,44 @@
     "title": "Счётчик",
     "increment": "Увеличить",
     "decrement": "Уменьшить"
+  },
+  "form": {
+    "errors": {
+      "required": "Обязательное поле",
+      "minLength": "Минимум {{min}} символов",
+      "maxLength": "Максимум {{max}} символов",
+      "email": "Введите корректный email",
+      "pattern": "Некорректное значение"
+    }
+  },
+  "auth": {
+    "fields": {
+      "email": "Email",
+      "password": "Пароль",
+      "firstName": "Имя",
+      "lastName": "Фамилия",
+      "role": "Роль"
+    },
+    "roles": {
+      "candidate": "Кандидат",
+      "recruiter": "Рекрутер"
+    },
+    "login": {
+      "title": "Вход",
+      "subtitle": "Войдите в свой аккаунт",
+      "submit": "Войти",
+      "noAccount": "Нет аккаунта?",
+      "registerLink": "Зарегистрироваться"
+    },
+    "register": {
+      "title": "Регистрация",
+      "subtitle": "Создайте новый аккаунт",
+      "submit": "Зарегистрироваться",
+      "hasAccount": "Уже есть аккаунт?",
+      "loginLink": "Войти"
+    },
+    "errors": {
+      "unknown": "Произошла ошибка. Попробуйте снова."
+    }
   }
 }

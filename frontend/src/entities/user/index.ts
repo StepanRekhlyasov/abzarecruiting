@@ -1,1 +1,7 @@
-export type { User } from './model/types'
+export type {
+  AuthResponse,
+  LoginRequest,
+  RegisterRequest,
+  User,
+  UserRole,
+} from './model/types'

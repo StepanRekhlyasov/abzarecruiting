@@ -1,7 +1,9 @@
 {
   "common": {
     "appName": "Abzarecruiting",
-    "language": "Language"
+    "language": "Language",
+    "login": "Log in",
+    "register": "Sign up"
   },
   "home": {
     "title": "Home",
@@ -11,5 +13,44 @@
     "title": "Counter",
     "increment": "Increment",
     "decrement": "Decrement"
+  },
+  "form": {
+    "errors": {
+      "required": "This field is required",
+      "minLength": "Minimum {{min}} characters",
+      "maxLength": "Maximum {{max}} characters",
+      "email": "Enter a valid email",
+      "pattern": "Invalid value"
+    }
+  },
+  "auth": {
+    "fields": {
+      "email": "Email",
+      "password": "Password",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "role": "Role"
+    },
+    "roles": {
+      "candidate": "Candidate",
+      "recruiter": "Recruiter"
+    },
+    "login": {
+      "title": "Log in",
+      "subtitle": "Sign in to your account",
+      "submit": "Log in",
+      "noAccount": "Don't have an account?",
+      "registerLink": "Sign up"
+    },
+    "register": {
+      "title": "Sign up",
+      "subtitle": "Create a new account",
+      "submit": "Sign up",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Log in"
+    },
+    "errors": {
+      "unknown": "Something went wrong. Please try again."
+    }
   }
 }
