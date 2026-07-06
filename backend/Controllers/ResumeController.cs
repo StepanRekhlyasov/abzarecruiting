@@ -37,19 +37,24 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ResumeDto>> GetById(int id, CancellationToken cancellationToken)
     {
-        var resume = await db.Resumes.AsNoTracking().FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
-        if (resume is null)
+        var result = await resumeService.GetByIdForViewerAsync(
+            id,
+            User.GetUserId(),
+            User.IsAdmin(),
+            User.IsRecruiter(),
+            cancellationToken);
+
+        if (result.NotFound)
         {
             return NotFound();
         }
 
-        if (!resumeService.CanView(resume, User.GetUserId(), User.IsAdmin(), User.IsRecruiter()))
+        if (result.Forbidden)
         {
             return Forbid();
         }
 
-        var dto = await resumeService.GetByIdAsync(id, cancellationToken);
-        return dto is null ? NotFound() : Ok(dto);
+        return Ok(result.Dto);
     }
 
     [Authorize]

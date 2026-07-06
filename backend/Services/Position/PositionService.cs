@@ -281,19 +281,15 @@ public class PositionService(
             return positionIds.ToList();
         }
 
-        var withRestrictions = await restrictionEvaluator.GetPositionIdsWithRestrictionsAsync(positionIds, cancellationToken);
-
         if (user?.IsCandidate() == true)
         {
-            var candidateId = user.GetUserId()!;
-            var restrictedIds = withRestrictions.Intersect(positionIds).ToList();
-            var visibleForCandidate = await restrictionEvaluator
-                .GetVisiblePositionIdsForCandidateAsync(candidateId, restrictedIds, cancellationToken);
+            var visible = await restrictionEvaluator
+                .GetVisiblePositionIdsForCandidateAsync(user.GetUserId()!, positionIds, cancellationToken);
 
-            return positionIds
-                .Where(id => !withRestrictions.Contains(id) || visibleForCandidate.Contains(id))
-                .ToList();
+            return positionIds.Where(id => visible.Contains(id)).ToList();
         }
+
+        var withRestrictions = await restrictionEvaluator.GetPositionIdsWithRestrictionsAsync(positionIds, cancellationToken);
 
         return positionIds.Where(id => !withRestrictions.Contains(id)).ToList();
     }
@@ -303,25 +299,28 @@ public class PositionService(
         ClaimsPrincipal? user,
         CancellationToken cancellationToken)
     {
-        if (user?.IsRecruiterOrAdmin() == true)
+        if (!await db.Positions.AnyAsync(position => position.Id == positionId, cancellationToken))
         {
-            return await db.Positions.AnyAsync(position => position.Id == positionId, cancellationToken);
-        }
-
-        if (await restrictionEvaluator.HasAnyRestrictionsAsync(positionId, cancellationToken))
-        {
-            if (user?.IsCandidate() == true)
-            {
-                return await restrictionEvaluator.CandidateMeetsAllRestrictionsAsync(
-                    user.GetUserId()!,
-                    positionId,
-                    cancellationToken);
-            }
-
             return false;
         }
 
-        return await db.Positions.AnyAsync(position => position.Id == positionId, cancellationToken);
+        if (user?.IsRecruiterOrAdmin() == true)
+        {
+            return true;
+        }
+
+        if (user?.IsCandidate() == true)
+        {
+            var visible = await restrictionEvaluator.GetVisiblePositionIdsForCandidateAsync(
+                user.GetUserId()!,
+                [positionId],
+                cancellationToken);
+
+            return visible.Contains(positionId);
+        }
+
+        var withRestrictions = await restrictionEvaluator.GetPositionIdsWithRestrictionsAsync([positionId], cancellationToken);
+        return !withRestrictions.Contains(positionId);
     }
 
     private async Task<IReadOnlyList<PositionListItemDto>> LoadListItemsAsync(

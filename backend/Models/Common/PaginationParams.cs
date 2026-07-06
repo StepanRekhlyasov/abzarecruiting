@@ -1,5 +1,7 @@
 namespace Backend.Api.Models.Common;
 
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+
 public class PaginationParams
 {
     private const int DefaultPage = 1;
@@ -10,8 +12,10 @@ public class PaginationParams
 
     public int Size { get; init; } = DefaultSize;
 
+    [BindNever]
     public int NormalizedPage => Page < 1 ? DefaultPage : Page;
 
+    [BindNever]
     public int NormalizedSize
     {
         get
@@ -25,5 +29,6 @@ public class PaginationParams
         }
     }
 
+    [BindNever]
     public int Skip => (NormalizedPage - 1) * NormalizedSize;
 }

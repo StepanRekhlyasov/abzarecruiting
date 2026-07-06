@@ -1,11 +1,11 @@
 using Backend.Api.Data;
-using Backend.Api.Data.Entities;
-using Backend.Api.Extensions;
+using Backend.Api.Data.Relations;
 using Backend.Api.Models.Common;
 using Backend.Api.Models.Resume;
 using Backend.Api.Services.Attributes;
 using Backend.Api.Services.Position;
 using Microsoft.EntityFrameworkCore;
+using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 using ResumeEntity = Backend.Api.Data.Entities.Resume;
 
 namespace Backend.Api.Services.Resume;
@@ -20,6 +20,13 @@ public interface IResumeService
         CancellationToken cancellationToken = default);
 
     Task<ResumeDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+
+    Task<ResumeGetResult> GetByIdForViewerAsync(
+        int id,
+        string? userId,
+        bool isAdmin,
+        bool isRecruiter,
+        CancellationToken cancellationToken = default);
 
     Task<ResumeDto?> UpdateAsync(int id, UpdateResumeRequest request, CancellationToken cancellationToken = default);
 
@@ -65,17 +72,46 @@ public class ResumeService(
             .Where(resume => resume.PositionId == positionId && resume.Published)
             .ToListAsync(cancellationToken);
 
-        var restrictions = await restrictionEvaluator.GetRestrictionsForPositionAsync(positionId, cancellationToken);
-        var filtered = await restrictionEvaluator.FilterByRestrictionsAsync(
-            restrictions,
-            resumes,
-            resume => resume.CandidateId,
-            cancellationToken);
+        if (resumes.Count == 0)
+        {
+            return new PagedResult<ResumeListItemDto>
+            {
+                Items = [],
+                TotalCount = 0,
+                Page = pagination.NormalizedPage,
+                Size = pagination.NormalizedSize,
+            };
+        }
 
-        var ordered = await OrderByCandidateNameAsync(filtered, cancellationToken);
+        var restrictions = await restrictionEvaluator.GetRestrictionsForPositionAsync(positionId, cancellationToken);
+        var candidateIds = resumes.Select(resume => resume.CandidateId).Distinct().ToList();
+        var defaultAttributes = await LoadDefaultAttributesAsync(cancellationToken);
+
+        IReadOnlyList<ProfileAttribute> profileAttributes;
+        IReadOnlyList<ResumeEntity> filtered;
+
+        if (restrictions.Count == 0)
+        {
+            profileAttributes = await LoadProfileAttributesAsync(candidateIds, cancellationToken);
+            filtered = resumes;
+        }
+        else
+        {
+            var contexts = await restrictionEvaluator.LoadCandidateContextsAsync(candidateIds, cancellationToken);
+            filtered = restrictionEvaluator.FilterByRestrictions(
+                restrictions,
+                resumes,
+                resume => resume.CandidateId,
+                contexts);
+            profileAttributes = candidateIds
+                .SelectMany(candidateId => contexts[candidateId].ProfileAttributes)
+                .ToList();
+        }
+
+        var ordered = OrderByCandidateName(filtered, defaultAttributes, profileAttributes);
         var totalCount = ordered.Count;
         var pageItems = ordered.Skip(pagination.Skip).Take(pagination.NormalizedSize).ToList();
-        var items = await MapListAsync(pageItems, cancellationToken);
+        var items = MapList(pageItems, defaultAttributes, profileAttributes);
 
         return new PagedResult<ResumeListItemDto>
         {
@@ -94,8 +130,29 @@ public class ResumeService(
             return null;
         }
 
-        var items = await MapListAsync([resume], cancellationToken);
-        return items.FirstOrDefault();
+        return await MapSingleAsync(resume, cancellationToken);
+    }
+
+    public async Task<ResumeGetResult> GetByIdForViewerAsync(
+        int id,
+        string? userId,
+        bool isAdmin,
+        bool isRecruiter,
+        CancellationToken cancellationToken = default)
+    {
+        var resume = await db.Resumes.AsNoTracking().FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+        if (resume is null)
+        {
+            return ResumeGetResult.NotFoundResult();
+        }
+
+        if (!CanView(resume, userId, isAdmin, isRecruiter))
+        {
+            return ResumeGetResult.ForbiddenResult();
+        }
+
+        var dto = await MapSingleAsync(resume, cancellationToken);
+        return dto is null ? ResumeGetResult.NotFoundResult() : ResumeGetResult.Ok(dto);
     }
 
     public async Task<ResumeDto?> UpdateAsync(
@@ -111,7 +168,7 @@ public class ResumeService(
 
         resume.Published = request.Published;
         await db.SaveChangesAsync(cancellationToken);
-        return await GetByIdAsync(id, cancellationToken);
+        return await MapSingleAsync(resume, cancellationToken);
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
@@ -133,25 +190,45 @@ public class ResumeService(
     public bool CanModify(ResumeEntity resume, string? userId, bool isAdmin) =>
         isAdmin || resume.CandidateId == userId;
 
-    private async Task<List<ResumeEntity>> OrderByCandidateNameAsync(
+    private async Task<ResumeDto?> MapSingleAsync(ResumeEntity resume, CancellationToken cancellationToken)
+    {
+        var defaultAttributes = await LoadDefaultAttributesAsync(cancellationToken);
+        var profileAttributes = await LoadProfileAttributesAsync([resume.CandidateId], cancellationToken);
+        return MapList([resume], defaultAttributes, profileAttributes).FirstOrDefault();
+    }
+
+    private Task<List<AttributeEntity>> LoadDefaultAttributesAsync(CancellationToken cancellationToken)
+    {
+        var defaultAttributeNames = DefaultAttributes.All.Select(item => item.Name).ToList();
+        return db.Attributes
+            .AsNoTracking()
+            .Where(attribute => defaultAttributeNames.Contains(attribute.Name))
+            .ToListAsync(cancellationToken);
+    }
+
+    private Task<List<ProfileAttribute>> LoadProfileAttributesAsync(
+        IReadOnlyList<string> candidateIds,
+        CancellationToken cancellationToken) =>
+        db.ProfileAttributes
+            .AsNoTracking()
+            .Include(profileAttribute => profileAttribute.Attribute)
+            .Where(profileAttribute => candidateIds.Contains(profileAttribute.CandidateId))
+            .ToListAsync(cancellationToken);
+
+    private static List<ResumeEntity> OrderByCandidateName(
         IReadOnlyList<ResumeEntity> resumes,
-        CancellationToken cancellationToken)
+        IReadOnlyList<AttributeEntity> defaultAttributes,
+        IReadOnlyList<ProfileAttribute> profileAttributes)
     {
         if (resumes.Count == 0)
         {
             return [];
         }
 
-        var candidateIds = resumes.Select(resume => resume.CandidateId).Distinct().ToList();
-        var firstNameAttribute = await db.Attributes.AsNoTracking()
-            .FirstOrDefaultAsync(attribute => attribute.Name == DefaultAttributes.FirstName, cancellationToken);
-        var lastNameAttribute = await db.Attributes.AsNoTracking()
-            .FirstOrDefaultAsync(attribute => attribute.Name == DefaultAttributes.LastName, cancellationToken);
-
-        var profileAttributes = await db.ProfileAttributes
-            .AsNoTracking()
-            .Where(item => candidateIds.Contains(item.CandidateId))
-            .ToListAsync(cancellationToken);
+        var firstNameId = defaultAttributes
+            .FirstOrDefault(attribute => attribute.Name == DefaultAttributes.FirstName)?.Id;
+        var lastNameId = defaultAttributes
+            .FirstOrDefault(attribute => attribute.Name == DefaultAttributes.LastName)?.Id;
 
         string GetName(string candidateId, int? attributeId)
         {
@@ -167,50 +244,38 @@ public class ResumeService(
         }
 
         return resumes
-            .OrderBy(resume => GetName(resume.CandidateId, firstNameAttribute?.Id))
-            .ThenBy(resume => GetName(resume.CandidateId, lastNameAttribute?.Id))
+            .OrderBy(resume => GetName(resume.CandidateId, firstNameId))
+            .ThenBy(resume => GetName(resume.CandidateId, lastNameId))
             .ToList();
     }
 
-    private async Task<IReadOnlyList<ResumeListItemDto>> MapListAsync(
+    private IReadOnlyList<ResumeListItemDto> MapList(
         IReadOnlyList<ResumeEntity> resumes,
-        CancellationToken cancellationToken)
-    {
-        if (resumes.Count == 0)
-        {
-            return [];
-        }
-
-        var defaultAttributeNames = DefaultAttributes.All.Select(item => item.Name).ToList();
-        var defaultAttributes = await db.Attributes
-            .AsNoTracking()
-            .Where(attribute => defaultAttributeNames.Contains(attribute.Name))
-            .ToListAsync(cancellationToken);
-
-        var candidateIds = resumes.Select(resume => resume.CandidateId).Distinct().ToList();
-        var profileAttributes = await db.ProfileAttributes
-            .AsNoTracking()
-            .Where(item => candidateIds.Contains(item.CandidateId))
-            .ToListAsync(cancellationToken);
-
-        return resumes.Select(resume => new ResumeListItemDto
+        IReadOnlyList<AttributeEntity> defaultAttributes,
+        IReadOnlyList<ProfileAttribute> profileAttributes) =>
+        [.. resumes.Select(resume => new ResumeListItemDto
         {
             Id = resume.Id,
             CandidateId = resume.CandidateId,
             PositionId = resume.PositionId,
             Published = resume.Published,
             CreatedAt = resume.CreatedAt,
-            CandidateAttributes = defaultAttributes.Select(attribute =>
-            {
-                var profileAttribute = profileAttributes
-                    .FirstOrDefault(item => item.CandidateId == resume.CandidateId && item.AttributeId == attribute.Id);
-
-                return new ResumeCandidateAttributeDto
+            CandidateAttributes =
+            [
+                .. defaultAttributes.Select(attribute =>
                 {
-                    Name = attribute.Name,
-                    Value = profileAttribute is null ? null : valueMapper.GetComparableValue(profileAttribute, attribute),
-                };
-            }).ToList(),
-        }).ToList();
-    }
+                    var profileAttribute = profileAttributes
+                        .FirstOrDefault(item =>
+                            item.CandidateId == resume.CandidateId && item.AttributeId == attribute.Id);
+
+                    return new ResumeCandidateAttributeDto
+                    {
+                        Name = attribute.Name,
+                        Value = profileAttribute is null
+                            ? null
+                            : valueMapper.GetComparableValue(profileAttribute, attribute),
+                    };
+                }),
+            ],
+        })];
 }

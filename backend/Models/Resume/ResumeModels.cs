@@ -31,3 +31,25 @@ public class ResumeDto
 }
 
 public class ResumeListItemDto : ResumeDto;
+
+public sealed class ResumeGetResult
+{
+    private ResumeGetResult(ResumeDto? dto, bool notFound, bool forbidden)
+    {
+        Dto = dto;
+        NotFound = notFound;
+        Forbidden = forbidden;
+    }
+
+    public ResumeDto? Dto { get; }
+
+    public bool NotFound { get; }
+
+    public bool Forbidden { get; }
+
+    public static ResumeGetResult NotFoundResult() => new(null, true, false);
+
+    public static ResumeGetResult ForbiddenResult() => new(null, false, true);
+
+    public static ResumeGetResult Ok(ResumeDto dto) => new(dto, false, false);
+}
