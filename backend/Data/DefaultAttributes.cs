@@ -9,6 +9,16 @@ public static class DefaultAttributes
     public const string Location = "Location";
     public const string Photo = "Profile photo";
 
+    public static readonly string[] Names =
+    [
+        FirstName,
+        LastName,
+        Phone,
+        Bio,
+        Location,
+        Photo,
+    ];
+
     public static readonly DefaultAttributeDefinition[] All =
     [
         new(FirstName, "string", "text", "First name"),
@@ -32,7 +42,7 @@ public static class DefaultAttributes
     public static IReadOnlyDictionary<string, string> LegacyNameMap => LegacyNames;
 
     public static bool IsDefaultName(string name) =>
-        All.Any(definition => definition.Name == name);
+        Names.Contains(name);
 }
 
 public record DefaultAttributeDefinition(
