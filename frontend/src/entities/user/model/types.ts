@@ -22,7 +22,20 @@ export type RegisterRequest = {
   role: UserRole
 }
 
+export type SessionUser = {
+  email: string
+  firstName: string
+  lastName: string
+  roles: string[]
+}
+
 export type User = {
   id: string
   name: string
+}
+
+export function getSessionDisplayName(user: SessionUser): string {
+  const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim()
+
+  return fullName || user.email
 }

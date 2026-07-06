@@ -6,9 +6,8 @@ import Container from '@mui/material/Container'
 import Link from '@mui/material/Link'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
-import { createLoginFormConfig, login } from '@features/auth'
+import { createLoginFormConfig, login, authSucceeded } from '@features/auth'
 import { ROUTES } from '@shared/config/routes'
-import { saveAccessToken } from '@shared/lib/auth/accessToken'
 import { AppHeader } from '@widgets/app-header'
 import { AbzaForm, type AbzaFormValues } from '@widgets/abza-form'
 
@@ -30,7 +29,7 @@ export function LoginPage() {
         password: values.password,
       })
 
-      saveAccessToken(response.accessToken)
+      authSucceeded(response)
       navigate(ROUTES.home)
     } catch (error) {
       setServerError(error instanceof Error ? error.message : t('auth.errors.unknown'))

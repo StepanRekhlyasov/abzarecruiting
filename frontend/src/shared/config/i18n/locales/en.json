@@ -3,7 +3,9 @@
     "appName": "Abzarecruiting",
     "language": "Language",
     "login": "Log in",
-    "register": "Sign up"
+    "register": "Sign up",
+    "logout": "Log out",
+    "greeting": "Hello, {{name}}!"
   },
   "home": {
     "title": "Home",

@@ -1,49 +1,48 @@
+import { isAxiosError } from 'axios'
 import type { AuthResponse, LoginRequest, RegisterRequest } from '@entities/user'
-import { API_BASE_URL } from '@shared/api'
+import { apiClient } from '@shared/api'
 
 type ApiErrorBody = {
   message?: string
   errors?: string[]
 }
 
-async function parseErrorMessage(response: Response): Promise<string> {
-  const body = (await response.json().catch(() => null)) as ApiErrorBody | null
+function parseErrorMessage(error: unknown): string {
+  if (isAxiosError(error)) {
+    const body = error.response?.data as ApiErrorBody | undefined
 
-  if (body?.errors?.length) {
-    return body.errors.join(' ')
+    if (body?.errors?.length) {
+      return body.errors.join(' ')
+    }
+
+    if (body?.message) {
+      return body.message
+    }
+
+    return error.message
   }
 
-  if (body?.message) {
-    return body.message
+  if (error instanceof Error) {
+    return error.message
   }
 
-  return response.statusText || 'Request failed'
+  return 'Request failed'
 }
 
 export async function login(request: LoginRequest): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/Auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  })
-
-  if (!response.ok) {
-    throw new Error(await parseErrorMessage(response))
+  try {
+    const { data } = await apiClient.post<AuthResponse>('/Auth/login', request)
+    return data
+  } catch (error) {
+    throw new Error(parseErrorMessage(error))
   }
-
-  return response.json() as Promise<AuthResponse>
 }
 
 export async function register(request: RegisterRequest): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/Auth/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  })
-
-  if (!response.ok) {
-    throw new Error(await parseErrorMessage(response))
+  try {
+    const { data } = await apiClient.post<AuthResponse>('/Auth/register', request)
+    return data
+  } catch (error) {
+    throw new Error(parseErrorMessage(error))
   }
-
-  return response.json() as Promise<AuthResponse>
 }

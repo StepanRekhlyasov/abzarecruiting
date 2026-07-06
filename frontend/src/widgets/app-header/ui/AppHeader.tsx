@@ -1,15 +1,25 @@
 import { useTranslation } from 'react-i18next'
-import { Link as RouterLink } from 'react-router-dom'
+import { Link as RouterLink, useNavigate } from 'react-router-dom'
+import { useUnit } from 'effector-react'
 import AppBar from '@mui/material/AppBar'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
+import { $session, logout } from '@features/auth'
+import { getSessionDisplayName } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
 import { LanguageSwitcher } from '@shared/ui'
 
 export function AppHeader() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [session, onLogout] = useUnit([$session, logout])
+
+  const handleLogout = () => {
+    onLogout()
+    navigate(ROUTES.home)
+  }
 
   return (
     <AppBar position="static">
@@ -18,12 +28,25 @@ export function AppHeader() {
           {t('common.appName')}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Button color="inherit" component={RouterLink} to={ROUTES.login}>
-            {t('common.login')}
-          </Button>
-          <Button color="inherit" variant="outlined" component={RouterLink} to={ROUTES.register} sx={{ borderColor: 'rgba(255,255,255,0.5)' }}>
-            {t('common.register')}
-          </Button>
+          {session ? (
+            <>
+              <Typography variant="body1" sx={{ mr: 1 }}>
+                {t('common.greeting', { name: getSessionDisplayName(session) })}
+              </Typography>
+              <Button color="inherit" variant="outlined" onClick={handleLogout} sx={{ borderColor: 'rgba(255,255,255,0.5)' }}>
+                {t('common.logout')}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button color="inherit" component={RouterLink} to={ROUTES.login}>
+                {t('common.login')}
+              </Button>
+              <Button color="inherit" variant="outlined" component={RouterLink} to={ROUTES.register} sx={{ borderColor: 'rgba(255,255,255,0.5)' }}>
+                {t('common.register')}
+              </Button>
+            </>
+          )}
           <LanguageSwitcher
             sx={{
               '& .MuiInputLabel-root': { color: 'inherit' },

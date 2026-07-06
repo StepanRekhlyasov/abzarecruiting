@@ -6,10 +6,9 @@ import Container from '@mui/material/Container'
 import Link from '@mui/material/Link'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
-import { createRegisterFormConfig, register } from '@features/auth'
+import { createRegisterFormConfig, register, authSucceeded } from '@features/auth'
 import type { UserRole } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
-import { saveAccessToken } from '@shared/lib/auth/accessToken'
 import { AppHeader } from '@widgets/app-header'
 import { AbzaForm, type AbzaFormValues } from '@widgets/abza-form'
 
@@ -34,7 +33,7 @@ export function RegisterPage() {
         role: values.role as UserRole,
       })
 
-      saveAccessToken(response.accessToken)
+      authSucceeded(response)
       navigate(ROUTES.home)
     } catch (error) {
       setServerError(error instanceof Error ? error.message : t('auth.errors.unknown'))

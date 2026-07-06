@@ -3,7 +3,9 @@
     "appName": "Abzarecruiting",
     "language": "Язык",
     "login": "Войти",
-    "register": "Регистрация"
+    "register": "Регистрация",
+    "logout": "Выйти",
+    "greeting": "Привет, {{name}}!"
   },
   "home": {
     "title": "Главная",
