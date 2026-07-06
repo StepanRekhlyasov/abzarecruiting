@@ -1,26 +1,263 @@
-@AuthController.http
-
 @host = http://localhost:5000
+@token = {{login.response.body.accessToken}}
 
 ### Health check
 GET {{host}}/api/health
 
 ### Register
+# @name register
 POST {{host}}/api/auth/register
 Content-Type: application/json
 
 {
-  "email": "user@example.com",
+  "email": "candidate@example.com",
   "password": "Password1",
   "firstName": "Test",
   "lastName": "User"
 }
 
 ### Login
+# @name login
 POST {{host}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "user@example.com",
+  "email": "candidate@example.com",
   "password": "Password1"
 }
+
+### Positions - list
+GET {{host}}/api/position?page=1&size=20
+
+### Positions - get by id
+GET {{host}}/api/position/1
+
+### Positions - create (Recruiter/Admin)
+POST {{host}}/api/position
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Backend Developer",
+  "description": "API development",
+  "company": "Acme",
+  "country": "Georgia",
+  "level": "Middle",
+  "format": "Remote"
+}
+
+### Positions - update (Recruiter/Admin)
+POST {{host}}/api/position/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Senior Backend Developer",
+  "description": "API development",
+  "company": "Acme",
+  "country": "Georgia",
+  "level": "Senior",
+  "format": "Hybrid"
+}
+
+### Positions - upsert attribute
+POST {{host}}/api/position/1/attributes/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isKey": true
+}
+
+### Positions - delete attribute
+DELETE {{host}}/api/position/1/attributes/1
+Authorization: Bearer {{token}}
+
+### Positions - upsert tag
+POST {{host}}/api/position/1/tags/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isKey": false
+}
+
+### Positions - delete tag
+DELETE {{host}}/api/position/1/tags/1
+Authorization: Bearer {{token}}
+
+### Positions - delete
+DELETE {{host}}/api/position/1
+Authorization: Bearer {{token}}
+
+### Restrictions - create
+POST {{host}}/api/restrictions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "positionId": 1,
+  "attributeId": 1,
+  "tagId": null,
+  "targetValue": "5",
+  "condition": "More"
+}
+
+### Restrictions - update
+POST {{host}}/api/restrictions/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "positionId": 1,
+  "attributeId": 1,
+  "tagId": null,
+  "targetValue": "10",
+  "condition": "More"
+}
+
+### Restrictions - delete
+DELETE {{host}}/api/restrictions/1
+Authorization: Bearer {{token}}
+
+### Attributes - list
+GET {{host}}/api/attribute?page=1&size=20
+
+### Attributes - create
+POST {{host}}/api/attribute
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "experienceYears",
+  "description": "Years of experience",
+  "valueType": "number",
+  "inputType": "text"
+}
+
+### Attributes - update
+POST {{host}}/api/attribute/7
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "experienceYears",
+  "description": "Years of experience",
+  "valueType": "number",
+  "inputType": "text"
+}
+
+### Attributes - set candidate value
+POST {{host}}/api/attribute/1/candidate/user-id
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "value": "John"
+}
+
+### Attributes - delete candidate value
+DELETE {{host}}/api/attribute/3/candidate/user-id
+Authorization: Bearer {{token}}
+
+### Attributes - delete
+DELETE {{host}}/api/attribute/7
+Authorization: Bearer {{token}}
+
+### Profile - get
+GET {{host}}/api/profile/user-id
+Authorization: Bearer {{token}}
+
+### Projects - get
+GET {{host}}/api/project/1
+Authorization: Bearer {{token}}
+
+### Projects - create
+POST {{host}}/api/project
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Portfolio API",
+  "description": "REST API project",
+  "startAt": "2024-01-01T00:00:00Z",
+  "endAt": null
+}
+
+### Projects - create (admin for candidate)
+POST {{host}}/api/project
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "candidateId": "user-id",
+  "name": "Portfolio API",
+  "description": "REST API project",
+  "startAt": "2024-01-01T00:00:00Z",
+  "endAt": null
+}
+
+### Projects - update
+POST {{host}}/api/project/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Portfolio API v2",
+  "description": "Updated project",
+  "startAt": "2024-01-01T00:00:00Z",
+  "endAt": "2025-01-01T00:00:00Z"
+}
+
+### Projects - upsert tag
+POST {{host}}/api/project/1/tags/1
+Authorization: Bearer {{token}}
+
+### Projects - delete tag
+DELETE {{host}}/api/project/1/tags/1
+Authorization: Bearer {{token}}
+
+### Projects - delete
+DELETE {{host}}/api/project/1
+Authorization: Bearer {{token}}
+
+### Tags - list
+GET {{host}}/api/tag?page=1&size=20
+
+### Tags - create
+POST {{host}}/api/tag
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "csharp"
+}
+
+### Tags - delete (Admin)
+DELETE {{host}}/api/tag/1
+Authorization: Bearer {{token}}
+
+### Resume - create (Candidate)
+POST {{host}}/api/resume/position/1
+Authorization: Bearer {{token}}
+
+### Resume - list by position (Recruiter/Admin)
+GET {{host}}/api/resume?positionId=1&page=1&size=20
+Authorization: Bearer {{token}}
+
+### Resume - get by id
+GET {{host}}/api/resume/1
+Authorization: Bearer {{token}}
+
+### Resume - update
+POST {{host}}/api/resume/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "published": true
+}
+
+### Resume - delete
+DELETE {{host}}/api/resume/1
+Authorization: Bearer {{token}}
