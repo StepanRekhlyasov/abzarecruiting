@@ -35,7 +35,10 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         PaginationParams pagination,
         CancellationToken cancellationToken = default)
     {
-        IQueryable<AttributeEntity> query = db.Attributes.AsNoTracking();
+        var defaultNames = DefaultAttributes.All.Select(item => item.Name).ToList();
+        IQueryable<AttributeEntity> query = db.Attributes
+            .AsNoTracking()
+            .Where(attribute => !defaultNames.Contains(attribute.Name));
 
         if (!string.IsNullOrWhiteSpace(pagination.Name))
         {
