@@ -22,9 +22,15 @@ public class ProfileAttributeService(ApplicationDbContext db) : IProfileAttribut
             return;
         }
 
-        var attributes = await db.Attributes
-            .Where(attribute => values.Keys.Contains(attribute.Name))
-            .ToDictionaryAsync(attribute => attribute.Name, attribute => attribute.Id);
+        var attributeNames = values.Keys.ToHashSet(StringComparer.Ordinal);
+
+        var attributeRows = await db.Attributes
+            .Select(attribute => new { attribute.Id, attribute.Name })
+            .ToListAsync();
+
+        var attributes = attributeRows
+            .Where(attribute => attributeNames.Contains(attribute.Name))
+            .ToDictionary(attribute => attribute.Name, attribute => attribute.Id);
 
         var existing = await db.ProfileAttributes
             .Where(profileAttribute => profileAttribute.CandidateId == candidateId)
@@ -60,17 +66,19 @@ public class ProfileAttributeService(ApplicationDbContext db) : IProfileAttribut
         string candidateId,
         params string[] attributeNames)
     {
-        return await db.ProfileAttributes
-            .Where(profileAttribute =>
-                profileAttribute.CandidateId == candidateId
-                && attributeNames.Contains(profileAttribute.Attribute.Name))
+        var names = attributeNames.ToHashSet(StringComparer.Ordinal);
+
+        var rows = await db.ProfileAttributes
+            .Where(profileAttribute => profileAttribute.CandidateId == candidateId)
             .Select(profileAttribute => new
             {
                 profileAttribute.Attribute.Name,
                 profileAttribute.ValueString,
             })
-            .ToDictionaryAsync(
-                item => item.Name,
-                item => item.ValueString);
+            .ToListAsync();
+
+        return rows
+            .Where(item => names.Contains(item.Name))
+            .ToDictionary(item => item.Name, item => item.ValueString);
     }
 }
