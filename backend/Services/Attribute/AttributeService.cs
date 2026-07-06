@@ -33,7 +33,15 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         PaginationParams pagination,
         CancellationToken cancellationToken = default)
     {
-        var query = db.Attributes.AsNoTracking().OrderBy(attribute => attribute.Name);
+        IQueryable<AttributeEntity> query = db.Attributes.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(pagination.Name))
+        {
+            var name = pagination.Name.Trim();
+            query = query.Where(attribute => attribute.Name.Contains(name));
+        }
+
+        query = query.OrderBy(attribute => attribute.Name);
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
             .Skip(pagination.Skip)
@@ -55,9 +63,12 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         string userId,
         CancellationToken cancellationToken = default)
     {
+        var name = request.Name.Trim();
+        await EnsureNameIsUniqueAsync(name, excludeId: null, cancellationToken);
+
         var attribute = new AttributeEntity
         {
-            Name = request.Name,
+            Name = name,
             Description = request.Description,
             ValueType = request.ValueType,
             InputType = request.InputType,
@@ -81,7 +92,15 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
             return null;
         }
 
-        attribute.Name = request.Name;
+        if (DefaultAttributes.IsDefaultName(attribute.Name))
+        {
+            throw new InvalidOperationException("Default attributes cannot be updated.");
+        }
+
+        var name = request.Name.Trim();
+        await EnsureNameIsUniqueAsync(name, attribute.Id, cancellationToken);
+
+        attribute.Name = name;
         attribute.Description = request.Description;
         attribute.ValueType = request.ValueType;
         attribute.InputType = request.InputType;
@@ -98,7 +117,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
             return false;
         }
 
-        if (DefaultAttributes.All.Any(item => item.Name == attribute.Name))
+        if (DefaultAttributes.IsDefaultName(attribute.Name))
         {
             throw new InvalidOperationException("Default attributes cannot be deleted.");
         }
@@ -165,4 +184,22 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         InputType = attribute.InputType,
         CreatedAt = attribute.CreatedAt,
     };
+
+    private async Task EnsureNameIsUniqueAsync(
+        string name,
+        int? excludeId,
+        CancellationToken cancellationToken)
+    {
+        var query = db.Attributes.Where(item => item.Name == name);
+
+        if (excludeId.HasValue)
+        {
+            query = query.Where(item => item.Id != excludeId.Value);
+        }
+
+        if (await query.AnyAsync(cancellationToken))
+        {
+            throw new InvalidOperationException("An attribute with this name already exists.");
+        }
+    }
 }

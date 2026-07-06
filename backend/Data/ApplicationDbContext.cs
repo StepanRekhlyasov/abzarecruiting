@@ -58,6 +58,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany()
                 .HasForeignKey(attribute => attribute.CreatedById)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(attribute => attribute.Name)
+                .IsUnique();
         });
 
         builder.Entity<ProfileAttribute>(entity =>

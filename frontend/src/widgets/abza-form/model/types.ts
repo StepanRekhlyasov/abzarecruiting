@@ -20,6 +20,7 @@ export type AbzaFieldConfig = {
   validation?: AbzaValidationRule
   options?: AbzaSelectOption[]
   autoComplete?: string
+  disabled?: boolean
 }
 
 export type AbzaFormConfig = {

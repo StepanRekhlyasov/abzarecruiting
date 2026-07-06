@@ -1,3 +1,4 @@
-export { login, register } from './api/authApi'
+export { login, register, getCurrentUser } from './api/authApi'
 export { createLoginFormConfig, createRegisterFormConfig } from './config/formConfigs'
-export { $session, authSucceeded, logout, sessionEstablished } from './model/session'
+export { $session, appStarted, authSucceeded, logout, restoreSessionFx, sessionEstablished } from './model/session'
+export { SessionInitializer } from './ui/SessionInitializer'

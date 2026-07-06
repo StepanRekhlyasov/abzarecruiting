@@ -30,6 +30,14 @@ public static class AttributeSeeder
             .Select(attribute => attribute.Name)
             .ToListAsync();
 
+        var renamed = await RenameLegacyDefaultAttributesAsync(db, logger);
+        if (renamed)
+        {
+            existingNames = await db.Attributes
+                .Select(attribute => attribute.Name)
+                .ToListAsync();
+        }
+
         var createdAt = DateTime.UtcNow;
         var added = false;
 
@@ -57,6 +65,51 @@ public static class AttributeSeeder
             await db.SaveChangesAsync();
             logger.LogInformation("Default profile attributes were seeded.");
         }
+    }
+
+    private static async Task<bool> RenameLegacyDefaultAttributesAsync(ApplicationDbContext db, ILogger logger)
+    {
+        var renamed = false;
+
+        foreach (var (legacyName, currentName) in DefaultAttributes.LegacyNameMap)
+        {
+            var legacyAttribute = await db.Attributes
+                .FirstOrDefaultAsync(attribute => attribute.Name == legacyName);
+
+            if (legacyAttribute is null)
+            {
+                continue;
+            }
+
+            var currentExists = await db.Attributes
+                .AnyAsync(attribute => attribute.Name == currentName && attribute.Id != legacyAttribute.Id);
+
+            if (currentExists)
+            {
+                db.Attributes.Remove(legacyAttribute);
+                logger.LogInformation(
+                    "Removed legacy default attribute '{LegacyName}' because '{CurrentName}' already exists.",
+                    legacyName,
+                    currentName);
+            }
+            else
+            {
+                legacyAttribute.Name = currentName;
+                logger.LogInformation(
+                    "Renamed legacy default attribute '{LegacyName}' to '{CurrentName}'.",
+                    legacyName,
+                    currentName);
+            }
+
+            renamed = true;
+        }
+
+        if (renamed)
+        {
+            await db.SaveChangesAsync();
+        }
+
+        return renamed;
     }
 
     private static async Task<string?> ResolveSystemUserIdAsync(

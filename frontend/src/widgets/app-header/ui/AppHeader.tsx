@@ -23,10 +23,15 @@ export function AppHeader() {
 
   return (
     <AppBar position="static">
-      <Toolbar sx={{ justifyContent: 'space-between' }}>
-        <Typography variant="h6" component={RouterLink} to={ROUTES.home} sx={{ color: 'inherit', textDecoration: 'none' }}>
-          {t('common.appName')}
-        </Typography>
+      <Toolbar sx={{ justifyContent: 'space-between', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="h6" component={RouterLink} to={ROUTES.home} sx={{ color: 'inherit', textDecoration: 'none' }}>
+            {t('common.appName')}
+          </Typography>
+          <Button color="inherit" component={RouterLink} to={ROUTES.attributes}>
+            {t('common.attributes')}
+          </Button>
+        </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {session ? (
             <>

@@ -19,4 +19,7 @@ public class RegisterRequest
     [Required]
     [MinLength(2)]
     public string LastName { get; set; } = string.Empty;
+
+    [Required]
+    public string Role { get; set; } = string.Empty;
 }

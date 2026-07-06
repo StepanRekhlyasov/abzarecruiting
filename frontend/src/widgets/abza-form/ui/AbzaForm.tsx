@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -17,17 +17,44 @@ type AbzaFormProps = {
   onSubmit: (values: AbzaFormValues) => void | Promise<void>
   isSubmitting?: boolean
   serverError?: string | null
+  formId?: string
+  hideSubmitButton?: boolean
+  initialValues?: AbzaFormValues
+  resetKey?: string | number
+  onValuesChange?: (values: AbzaFormValues) => void
 }
 
-function createInitialValues(fields: AbzaFieldConfig[]): AbzaFormValues {
-  return Object.fromEntries(fields.map((field) => [field.name, '']))
+function createInitialValues(fields: AbzaFieldConfig[], initialValues?: AbzaFormValues): AbzaFormValues {
+  const defaults = Object.fromEntries(fields.map((field) => [field.name, '']))
+
+  if (!initialValues) {
+    return defaults
+  }
+
+  return { ...defaults, ...initialValues }
 }
 
-export function AbzaForm({ config, onSubmit, isSubmitting = false, serverError }: AbzaFormProps) {
+export function AbzaForm({
+  config,
+  onSubmit,
+  isSubmitting = false,
+  serverError,
+  formId,
+  hideSubmitButton = false,
+  initialValues,
+  resetKey,
+  onValuesChange,
+}: AbzaFormProps) {
   const { t } = useTranslation()
-  const [values, setValues] = useState<AbzaFormValues>(() => createInitialValues(config.fields))
+  const [values, setValues] = useState<AbzaFormValues>(() => createInitialValues(config.fields, initialValues))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    setValues(createInitialValues(config.fields, initialValues))
+    setErrors({})
+    setTouched({})
+  }, [resetKey])
 
   const validationMessages = {
     required: t('form.errors.required'),
@@ -38,7 +65,16 @@ export function AbzaForm({ config, onSubmit, isSubmitting = false, serverError }
   }
 
   const handleChange = (name: string, value: string) => {
-    setValues((prev) => ({ ...prev, [name]: value }))
+    setValues((prev) => {
+      const next = { ...prev, [name]: value }
+
+      if (name === 'valueType') {
+        next.inputType = ''
+      }
+
+      onValuesChange?.(next)
+      return next
+    })
 
     if (touched[name]) {
       const field = config.fields.find((item) => item.name === name)
@@ -86,6 +122,7 @@ export function AbzaForm({ config, onSubmit, isSubmitting = false, serverError }
             name={field.name}
             value={values[field.name] ?? ''}
             label={field.label}
+            disabled={field.disabled || isSubmitting}
             onChange={(event) => handleChange(field.name, event.target.value)}
             onBlur={() => handleBlur(field.name)}
           >
@@ -114,6 +151,7 @@ export function AbzaForm({ config, onSubmit, isSubmitting = false, serverError }
         error={hasError}
         helperText={error}
         autoComplete={field.autoComplete}
+        disabled={field.disabled || isSubmitting}
         onChange={(event) => handleChange(field.name, event.target.value)}
         onBlur={() => handleBlur(field.name)}
       />
@@ -121,14 +159,16 @@ export function AbzaForm({ config, onSubmit, isSubmitting = false, serverError }
   }
 
   return (
-    <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <Box component="form" id={formId} onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {serverError && <Alert severity="error">{serverError}</Alert>}
 
       {config.fields.map(renderField)}
 
-      <Button type="submit" variant="contained" size="large" disabled={isSubmitting}>
-        {config.submitLabel}
-      </Button>
+      {!hideSubmitButton && (
+        <Button type="submit" variant="contained" size="large" disabled={isSubmitting}>
+          {config.submitLabel}
+        </Button>
+      )}
     </Box>
   )
 }

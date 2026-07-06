@@ -28,8 +28,15 @@ public class AttributeController(IAttributeService attributeService) : Controlle
         [FromBody] CreateAttributeRequest request,
         CancellationToken cancellationToken)
     {
-        var attribute = await attributeService.CreateAsync(request, User.GetUserId()!, cancellationToken);
-        return Ok(attribute);
+        try
+        {
+            var attribute = await attributeService.CreateAsync(request, User.GetUserId()!, cancellationToken);
+            return Ok(attribute);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
@@ -39,8 +46,15 @@ public class AttributeController(IAttributeService attributeService) : Controlle
         [FromBody] UpdateAttributeRequest request,
         CancellationToken cancellationToken)
     {
-        var attribute = await attributeService.UpdateAsync(id, request, cancellationToken);
-        return attribute is null ? NotFound() : Ok(attribute);
+        try
+        {
+            var attribute = await attributeService.UpdateAsync(id, request, cancellationToken);
+            return attribute is null ? NotFound() : Ok(attribute);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]

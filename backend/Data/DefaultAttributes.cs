@@ -2,12 +2,12 @@ namespace Backend.Api.Data;
 
 public static class DefaultAttributes
 {
-    public const string FirstName = "firstName";
-    public const string LastName = "lastName";
-    public const string Phone = "phone";
-    public const string Bio = "bio";
-    public const string Location = "location";
-    public const string Photo = "photo";
+    public const string FirstName = "First name";
+    public const string LastName = "Last name";
+    public const string Phone = "Phone number";
+    public const string Bio = "Biography";
+    public const string Location = "Location";
+    public const string Photo = "Profile photo";
 
     public static readonly DefaultAttributeDefinition[] All =
     [
@@ -18,6 +18,21 @@ public static class DefaultAttributes
         new(Location, "string", "text", "Location"),
         new(Photo, "string", "image", "Profile photo"),
     ];
+
+    private static readonly Dictionary<string, string> LegacyNames = new(StringComparer.Ordinal)
+    {
+        ["firstName"] = FirstName,
+        ["lastName"] = LastName,
+        ["phone"] = Phone,
+        ["bio"] = Bio,
+        ["location"] = Location,
+        ["photo"] = Photo,
+    };
+
+    public static IReadOnlyDictionary<string, string> LegacyNameMap => LegacyNames;
+
+    public static bool IsDefaultName(string name) =>
+        All.Any(definition => definition.Name == name);
 }
 
 public record DefaultAttributeDefinition(

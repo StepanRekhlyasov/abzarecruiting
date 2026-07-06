@@ -1,5 +1,5 @@
 import { isAxiosError } from 'axios'
-import type { AuthResponse, LoginRequest, RegisterRequest } from '@entities/user'
+import type { AuthResponse, CurrentUserResponse, LoginRequest, RegisterRequest } from '@entities/user'
 import { apiClient } from '@shared/api'
 
 type ApiErrorBody = {
@@ -29,6 +29,10 @@ function parseErrorMessage(error: unknown): string {
   return 'Request failed'
 }
 
+export function isUnauthorizedError(error: unknown): boolean {
+  return isAxiosError(error) && error.response?.status === 401
+}
+
 export async function login(request: LoginRequest): Promise<AuthResponse> {
   try {
     const { data } = await apiClient.post<AuthResponse>('/Auth/login', request)
@@ -45,4 +49,9 @@ export async function register(request: RegisterRequest): Promise<AuthResponse> 
   } catch (error) {
     throw new Error(parseErrorMessage(error))
   }
+}
+
+export async function getCurrentUser(): Promise<CurrentUserResponse> {
+  const { data } = await apiClient.get<CurrentUserResponse>('/Auth/me')
+  return data
 }

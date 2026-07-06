@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Backend.Api.Data;
 
@@ -6,7 +7,8 @@ namespace Backend.Api.Extensions;
 public static class ClaimsPrincipalExtensions
 {
     public static string? GetUserId(this ClaimsPrincipal? user) =>
-        user?.FindFirstValue(ClaimTypes.NameIdentifier);
+        user?.FindFirstValue(JwtRegisteredClaimNames.Sub)
+        ?? user?.FindFirstValue(ClaimTypes.NameIdentifier);
 
     public static bool IsInRole(this ClaimsPrincipal? user, string role) =>
         user?.IsInRole(role) ?? false;

@@ -5,7 +5,8 @@
     "login": "Log in",
     "register": "Sign up",
     "logout": "Log out",
-    "greeting": "Hello, {{name}}!"
+    "greeting": "Hello, {{name}}!",
+    "attributes": "Attributes"
   },
   "home": {
     "title": "Home",
@@ -53,6 +54,73 @@
     },
     "errors": {
       "unknown": "Something went wrong. Please try again."
+    }
+  },
+  "attributes": {
+    "title": "Attributes",
+    "search": "Search by name",
+    "loading": "Loading...",
+    "empty": "No attributes found",
+    "columns": {
+      "name": "Name",
+      "description": "Description",
+      "valueType": "Value type",
+      "inputType": "Input type"
+    },
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "valueType": "Value type",
+      "inputType": "Input type"
+    },
+    "valueTypes": {
+      "string": "String",
+      "text": "Text",
+      "number": "Number",
+      "boolean": "Boolean",
+      "date": "Date"
+    },
+    "inputTypes": {
+      "text": "Text field",
+      "textarea": "Textarea",
+      "tel": "Phone",
+      "image": "Image",
+      "number": "Number",
+      "checkbox": "Checkbox",
+      "date": "Date"
+    },
+    "actions": {
+      "add": "Add attribute",
+      "filter": "Filter",
+      "linkSelected": "Add selected to profile",
+      "deleteSelected": "Delete selected"
+    },
+    "create": {
+      "title": "New attribute",
+      "submit": "Create",
+      "cancel": "Cancel"
+    },
+    "edit": {
+      "title": "Edit attribute",
+      "submit": "Save",
+      "cancel": "Cancel"
+    },
+    "form": {
+      "submit": "Create"
+    },
+    "notifications": {
+      "created": "Attribute created",
+      "updated": "Attribute updated",
+      "deleted": "Deleted {{count}} attributes",
+      "linked": "Added {{count}} attributes to profile"
+    },
+    "errors": {
+      "load": "Failed to load attributes",
+      "create": "Failed to create attribute",
+      "update": "Failed to update attribute",
+      "delete": "Failed to delete attributes",
+      "editDefault": "Default attributes cannot be edited",
+      "link": "Failed to add attributes to profile"
     }
   }
 }

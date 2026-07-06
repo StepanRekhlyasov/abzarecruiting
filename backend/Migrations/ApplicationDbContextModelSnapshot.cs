@@ -122,6 +122,9 @@ namespace Backend.Api.Migrations
 
                     b.HasIndex("CreatedById");
 
+                    b.HasIndex("Name")
+                        .IsUnique();
+
                     b.ToTable("Attributes");
                 });
 
