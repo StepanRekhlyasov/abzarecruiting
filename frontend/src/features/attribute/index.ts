@@ -3,8 +3,9 @@ export {
   deleteAttribute,
   deleteAttributesBatch,
   fetchAttributes,
-  linkAttributeToProfile,
+  fetchLinkedProfileAttributeIds,
   linkAttributesToProfileBatch,
+  unlinkAttributesFromProfileBatch,
   updateAttribute,
 } from './api/attributeApi'
 export { createAttributeFormConfig } from './config/formConfigs'

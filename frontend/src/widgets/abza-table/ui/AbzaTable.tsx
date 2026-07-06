@@ -25,6 +25,7 @@ export function AbzaTable<T>({
   selectedIds = [],
   onSelectionChange,
   onRowClick,
+  getRowSx,
   loading = false,
   emptyMessage = 'No data',
   loadingMessage = 'Loading...',
@@ -85,7 +86,7 @@ export function AbzaTable<T>({
                 </TableCell>
               )}
               {columns.map((column) => (
-                <TableCell key={column.id} sx={{ width: column.width }}>
+                <TableCell key={column.id} sx={{ width: column.width }} align={column.align}>
                   {column.label}
                 </TableCell>
               ))}
@@ -111,7 +112,10 @@ export function AbzaTable<T>({
                     hover
                     selected={isSelected}
                     onClick={() => onRowClick?.(row)}
-                    sx={onRowClick ? { cursor: 'pointer' } : undefined}
+                    sx={{
+                      ...(onRowClick ? { cursor: 'pointer' } : undefined),
+                      ...getRowSx?.(row),
+                    }}
                   >
                     {selectable && (
                       <TableCell padding="checkbox" onClick={(event) => event.stopPropagation()}>
@@ -119,7 +123,9 @@ export function AbzaTable<T>({
                       </TableCell>
                     )}
                     {columns.map((column) => (
-                      <TableCell key={column.id}>{column.render(row)}</TableCell>
+                      <TableCell key={column.id} align={column.align}>
+                        {column.render(row)}
+                      </TableCell>
                     ))}
                   </TableRow>
                 )

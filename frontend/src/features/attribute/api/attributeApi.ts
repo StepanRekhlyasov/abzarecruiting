@@ -66,18 +66,8 @@ export async function deleteAttribute(id: number): Promise<void> {
 }
 
 export async function deleteAttributesBatch(attributeIds: number[]): Promise<void> {
-  for (const attributeId of attributeIds) {
-    await deleteAttribute(attributeId)
-  }
-}
-
-export async function linkAttributeToProfile(
-  attributeId: number,
-  candidateId: string,
-  value = '',
-): Promise<void> {
   try {
-    await apiClient.post(`/attribute/${attributeId}/candidate/${candidateId}`, { value })
+    await apiClient.delete('/attribute/delete', { data: { ids: attributeIds } })
   } catch (error) {
     throw new Error(parseErrorMessage(error))
   }
@@ -86,7 +76,30 @@ export async function linkAttributeToProfile(
 export async function linkAttributesToProfileBatch(
   attributeIds: number[],
   candidateId: string,
-  value = '',
 ): Promise<void> {
-  await Promise.all(attributeIds.map((attributeId) => linkAttributeToProfile(attributeId, candidateId, value)))
+  try {
+    await apiClient.post(`/profile/${candidateId}/add`, { attributeIds })
+  } catch (error) {
+    throw new Error(parseErrorMessage(error))
+  }
+}
+
+export async function unlinkAttributesFromProfileBatch(
+  attributeIds: number[],
+  candidateId: string,
+): Promise<void> {
+  try {
+    await apiClient.post(`/profile/${candidateId}/remove`, { attributeIds })
+  } catch (error) {
+    throw new Error(parseErrorMessage(error))
+  }
+}
+
+export async function fetchLinkedProfileAttributeIds(candidateId: string): Promise<number[]> {
+  try {
+    const { data } = await apiClient.get<number[]>(`/profile/${candidateId}/attribute-ids`)
+    return data
+  } catch (error) {
+    throw new Error(parseErrorMessage(error))
+  }
 }

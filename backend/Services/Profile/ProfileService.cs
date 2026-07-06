@@ -1,4 +1,5 @@
 using Backend.Api.Data;
+using Backend.Api.Data.Relations;
 using Backend.Api.Models.Profile;
 using Backend.Api.Services.Attributes;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +9,20 @@ namespace Backend.Api.Services.Profile;
 public interface IProfileService
 {
     Task<ProfileDto?> GetByCandidateIdAsync(string candidateId, CancellationToken cancellationToken = default);
+
+    Task<bool> AddAttributesAsync(
+        string candidateId,
+        IEnumerable<int> attributeIds,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> RemoveAttributesAsync(
+        string candidateId,
+        IEnumerable<int> attributeIds,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<int>> GetLinkedAttributeIdsAsync(
+        string candidateId,
+        CancellationToken cancellationToken = default);
 }
 
 public class ProfileService(ApplicationDbContext db, IAttributeValueMapper valueMapper) : IProfileService
@@ -71,5 +86,119 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
                     .ToList(),
             }).ToList(),
         };
+    }
+
+    public async Task<bool> AddAttributesAsync(
+        string candidateId,
+        IEnumerable<int> attributeIds,
+        CancellationToken cancellationToken = default)
+    {
+        var uniqueIds = attributeIds.Distinct().ToList();
+
+        if (uniqueIds.Count == 0)
+        {
+            return true;
+        }
+
+        if (!await db.Users.AnyAsync(user => user.Id == candidateId, cancellationToken))
+        {
+            return false;
+        }
+
+        var attributes = await db.Attributes
+            .Where(attribute => uniqueIds.Contains(attribute.Id))
+            .ToListAsync(cancellationToken);
+
+        if (attributes.Count != uniqueIds.Count)
+        {
+            throw new InvalidOperationException("One or more attributes were not found.");
+        }
+
+        var existingAttributeIds = await db.ProfileAttributes
+            .Where(item => item.CandidateId == candidateId && uniqueIds.Contains(item.AttributeId))
+            .Select(item => item.AttributeId)
+            .ToHashSetAsync(cancellationToken);
+
+        foreach (var attribute in attributes)
+        {
+            if (existingAttributeIds.Contains(attribute.Id))
+            {
+                continue;
+            }
+
+            var profileAttribute = new ProfileAttribute
+            {
+                CandidateId = candidateId,
+                AttributeId = attribute.Id,
+            };
+
+            valueMapper.SetValue(profileAttribute, attribute, string.Empty);
+            db.ProfileAttributes.Add(profileAttribute);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> RemoveAttributesAsync(
+        string candidateId,
+        IEnumerable<int> attributeIds,
+        CancellationToken cancellationToken = default)
+    {
+        var uniqueIds = attributeIds.Distinct().ToList();
+
+        if (uniqueIds.Count == 0)
+        {
+            return true;
+        }
+
+        if (!await db.Users.AnyAsync(user => user.Id == candidateId, cancellationToken))
+        {
+            return false;
+        }
+
+        var attributes = await db.Attributes
+            .Where(attribute => uniqueIds.Contains(attribute.Id))
+            .ToListAsync(cancellationToken);
+
+        if (attributes.Count != uniqueIds.Count)
+        {
+            throw new InvalidOperationException("One or more attributes were not found.");
+        }
+
+        if (attributes.Any(attribute => DefaultAttributes.IsDefaultName(attribute.Name)))
+        {
+            throw new InvalidOperationException("Default attributes cannot be removed from profile.");
+        }
+
+        var profileAttributes = await db.ProfileAttributes
+            .Where(item => item.CandidateId == candidateId && uniqueIds.Contains(item.AttributeId))
+            .ToListAsync(cancellationToken);
+
+        if (profileAttributes.Count == 0)
+        {
+            return true;
+        }
+
+        db.ProfileAttributes.RemoveRange(profileAttributes);
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<IReadOnlyList<int>> GetLinkedAttributeIdsAsync(
+        string candidateId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await db.Users.AnyAsync(user => user.Id == candidateId, cancellationToken))
+        {
+            return [];
+        }
+
+        return await db.ProfileAttributes
+            .AsNoTracking()
+            .Where(item => item.CandidateId == candidateId)
+            .Select(item => item.AttributeId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
     }
 }

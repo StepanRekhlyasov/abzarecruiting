@@ -58,6 +58,23 @@ public class AttributeController(IAttributeService attributeService) : Controlle
     }
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
+    [HttpDelete("delete")]
+    public async Task<IActionResult> DeleteBatch(
+        [FromBody] DeleteAttributesRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await attributeService.DeleteBatchAsync(request.Ids, cancellationToken);
+            return NoContent();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {

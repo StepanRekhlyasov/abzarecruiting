@@ -42,3 +42,10 @@ public class SetProfileAttributeRequest
     [Required]
     public string Value { get; set; } = string.Empty;
 }
+
+public class DeleteAttributesRequest
+{
+    [Required]
+    [MinLength(1)]
+    public IList<int> Ids { get; set; } = [];
+}

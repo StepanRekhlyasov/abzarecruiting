@@ -6,6 +6,7 @@
     "register": "Sign up",
     "logout": "Log out",
     "greeting": "Hello, {{name}}!",
+    "menu": "Menu",
     "attributes": "Attributes"
   },
   "home": {
@@ -93,6 +94,7 @@
       "add": "Add attribute",
       "filter": "Filter",
       "linkSelected": "Add selected to profile",
+      "unlinkSelected": "Remove selected from profile",
       "deleteSelected": "Delete selected"
     },
     "create": {
@@ -112,7 +114,8 @@
       "created": "Attribute created",
       "updated": "Attribute updated",
       "deleted": "Deleted {{count}} attributes",
-      "linked": "Added {{count}} attributes to profile"
+      "linked": "Added {{count}} attributes to profile",
+      "unlinked": "Removed {{count}} attributes from profile"
     },
     "errors": {
       "load": "Failed to load attributes",
@@ -120,7 +123,8 @@
       "update": "Failed to update attribute",
       "delete": "Failed to delete attributes",
       "editDefault": "Default attributes cannot be edited",
-      "link": "Failed to add attributes to profile"
+      "link": "Failed to add attributes to profile",
+      "unlink": "Failed to remove attributes from profile"
     }
   }
 }

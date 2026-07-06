@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react'
+import type { SxProps, Theme } from '@mui/material/styles'
 
 export type AbzaTableColumn<T> = {
   id: string
   label: string
   render: (row: T) => ReactNode
   width?: number | string
+  align?: 'left' | 'center' | 'right'
 }
 
 export type AbzaTableRowId = string | number
@@ -23,6 +25,7 @@ export type AbzaTableProps<T> = {
   selectedIds?: AbzaTableRowId[]
   onSelectionChange?: (selectedIds: AbzaTableRowId[]) => void
   onRowClick?: (row: T) => void
+  getRowSx?: (row: T) => SxProps<Theme> | undefined
   loading?: boolean
   emptyMessage?: string
   loadingMessage?: string

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Backend.Api.Models.Profile;
 
 public class ProfileAttributeDto
@@ -44,4 +46,18 @@ public class ProfileDto
     public IReadOnlyList<ProfileAttributeDto> Attributes { get; set; } = [];
 
     public IReadOnlyList<ProfileProjectDto> Projects { get; set; } = [];
+}
+
+public class AddProfileAttributesRequest
+{
+    [Required]
+    [MinLength(1)]
+    public IList<int> AttributeIds { get; set; } = [];
+}
+
+public class RemoveProfileAttributesRequest
+{
+    [Required]
+    [MinLength(1)]
+    public IList<int> AttributeIds { get; set; } = [];
 }

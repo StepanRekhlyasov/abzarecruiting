@@ -18,6 +18,8 @@ public interface IAttributeService
 
     Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
 
+    Task DeleteBatchAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default);
+
     Task<bool> SetCandidateValueAsync(
         int attributeId,
         string candidateId,
@@ -125,6 +127,33 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         db.Attributes.Remove(attribute);
         await db.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    public async Task DeleteBatchAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default)
+    {
+        var uniqueIds = ids.Distinct().ToList();
+
+        if (uniqueIds.Count == 0)
+        {
+            return;
+        }
+
+        var attributes = await db.Attributes
+            .Where(item => uniqueIds.Contains(item.Id))
+            .ToListAsync(cancellationToken);
+
+        if (attributes.Count != uniqueIds.Count)
+        {
+            throw new InvalidOperationException("One or more attributes were not found.");
+        }
+
+        if (attributes.Any(item => DefaultAttributes.IsDefaultName(item.Name)))
+        {
+            throw new InvalidOperationException("Default attributes cannot be deleted.");
+        }
+
+        db.Attributes.RemoveRange(attributes);
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<bool> SetCandidateValueAsync(
