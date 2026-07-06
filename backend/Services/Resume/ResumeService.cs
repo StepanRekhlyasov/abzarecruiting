@@ -65,14 +65,12 @@ public class ResumeService(
             .Where(resume => resume.PositionId == positionId && resume.Published)
             .ToListAsync(cancellationToken);
 
-        var filtered = new List<ResumeEntity>();
-        foreach (var resume in resumes)
-        {
-            if (await restrictionEvaluator.CandidateMeetsAllRestrictionsAsync(resume.CandidateId, positionId, cancellationToken))
-            {
-                filtered.Add(resume);
-            }
-        }
+        var restrictions = await restrictionEvaluator.GetRestrictionsForPositionAsync(positionId, cancellationToken);
+        var filtered = await restrictionEvaluator.FilterByRestrictionsAsync(
+            restrictions,
+            resumes,
+            resume => resume.CandidateId,
+            cancellationToken);
 
         var ordered = await OrderByCandidateNameAsync(filtered, cancellationToken);
         var totalCount = ordered.Count;

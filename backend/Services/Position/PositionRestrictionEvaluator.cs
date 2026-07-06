@@ -15,6 +15,16 @@ public interface IPositionRestrictionEvaluator
         int positionId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<PositionRestriction>> GetRestrictionsForPositionAsync(
+        int positionId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<T>> FilterByRestrictionsAsync<T>(
+        IReadOnlyList<PositionRestriction> restrictions,
+        IReadOnlyList<T> items,
+        Func<T, string> candidateIdSelector,
+        CancellationToken cancellationToken = default);
+
     Task<HashSet<int>> GetPositionIdsWithRestrictionsAsync(
         IEnumerable<int> positionIds,
         CancellationToken cancellationToken = default);
@@ -29,6 +39,10 @@ public class PositionRestrictionEvaluator(
     ApplicationDbContext db,
     IAttributeValueMapper attributeValueMapper) : IPositionRestrictionEvaluator
 {
+    private sealed record CandidateRestrictionContext(
+        IReadOnlyList<ProfileAttribute> ProfileAttributes,
+        HashSet<int> TagIds);
+
     public Task<bool> HasAnyRestrictionsAsync(int positionId, CancellationToken cancellationToken = default) =>
         db.PositionRestrictions.AnyAsync(restriction => restriction.PositionId == positionId, cancellationToken);
 
@@ -37,39 +51,40 @@ public class PositionRestrictionEvaluator(
         int positionId,
         CancellationToken cancellationToken = default)
     {
-        var restrictions = await db.PositionRestrictions
-            .AsNoTracking()
-            .Include(restriction => restriction.Attribute)
-            .Where(restriction => restriction.PositionId == positionId)
-            .ToListAsync(cancellationToken);
-
+        var restrictions = await GetRestrictionsForPositionAsync(positionId, cancellationToken);
         if (restrictions.Count == 0)
         {
             return true;
         }
 
-        var profileAttributes = await db.ProfileAttributes
-            .AsNoTracking()
-            .Include(profileAttribute => profileAttribute.Attribute)
-            .Where(profileAttribute => profileAttribute.CandidateId == candidateId)
-            .ToListAsync(cancellationToken);
+        var context = await LoadCandidateContextAsync(candidateId, cancellationToken);
+        return CandidateMeetsAllRestrictions(restrictions, context);
+    }
 
-        var candidateTagIds = await db.ProfileProjectTags
-            .AsNoTracking()
-            .Where(projectTag => projectTag.ProfileProject.CandidateId == candidateId)
-            .Select(projectTag => projectTag.TagId)
-            .Distinct()
-            .ToListAsync(cancellationToken);
+    public async Task<IReadOnlyList<PositionRestriction>> GetRestrictionsForPositionAsync(
+        int positionId,
+        CancellationToken cancellationToken = default) =>
+        await LoadRestrictionsForPositionsAsync([positionId], cancellationToken);
 
-        foreach (var restriction in restrictions)
+    public async Task<IReadOnlyList<T>> FilterByRestrictionsAsync<T>(
+        IReadOnlyList<PositionRestriction> restrictions,
+        IReadOnlyList<T> items,
+        Func<T, string> candidateIdSelector,
+        CancellationToken cancellationToken = default)
+    {
+        if (items.Count == 0 || restrictions.Count == 0)
         {
-            if (!EvaluateRestriction(restriction, profileAttributes, candidateTagIds))
-            {
-                return false;
-            }
+            return items;
         }
 
-        return true;
+        var candidateIds = items.Select(candidateIdSelector).Distinct().ToList();
+        var contexts = await LoadCandidateContextsAsync(candidateIds, cancellationToken);
+
+        return items
+            .Where(item => CandidateMeetsAllRestrictions(
+                restrictions,
+                contexts[candidateIdSelector(item)]))
+            .ToList();
     }
 
     public async Task<HashSet<int>> GetPositionIdsWithRestrictionsAsync(
@@ -95,16 +110,108 @@ public class PositionRestrictionEvaluator(
         IEnumerable<int> positionIds,
         CancellationToken cancellationToken = default)
     {
-        var visible = new HashSet<int>();
-        foreach (var positionId in positionIds)
+        var ids = positionIds.ToList();
+        if (ids.Count == 0)
         {
-            if (await CandidateMeetsAllRestrictionsAsync(candidateId, positionId, cancellationToken))
+            return [];
+        }
+
+        var restrictions = await LoadRestrictionsForPositionsAsync(ids, cancellationToken);
+        if (restrictions.Count == 0)
+        {
+            return [..ids];
+        }
+
+        var restrictionsByPosition = restrictions
+            .GroupBy(restriction => restriction.PositionId)
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<PositionRestriction>)group.ToList());
+
+        var context = await LoadCandidateContextAsync(candidateId, cancellationToken);
+        var visible = new HashSet<int>();
+
+        foreach (var positionId in ids)
+        {
+            if (!restrictionsByPosition.TryGetValue(positionId, out var positionRestrictions)
+                || CandidateMeetsAllRestrictions(positionRestrictions, context))
             {
                 visible.Add(positionId);
             }
         }
 
         return visible;
+    }
+
+    private async Task<List<PositionRestriction>> LoadRestrictionsForPositionsAsync(
+        IReadOnlyList<int> positionIds,
+        CancellationToken cancellationToken)
+    {
+        if (positionIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await db.PositionRestrictions
+            .AsNoTracking()
+            .Include(restriction => restriction.Attribute)
+            .Where(restriction => positionIds.Contains(restriction.PositionId))
+            .ToListAsync(cancellationToken);
+    }
+
+    private async Task<CandidateRestrictionContext> LoadCandidateContextAsync(
+        string candidateId,
+        CancellationToken cancellationToken)
+    {
+        var contexts = await LoadCandidateContextsAsync([candidateId], cancellationToken);
+        return contexts[candidateId];
+    }
+
+    private async Task<IReadOnlyDictionary<string, CandidateRestrictionContext>> LoadCandidateContextsAsync(
+        IReadOnlyList<string> candidateIds,
+        CancellationToken cancellationToken)
+    {
+        if (candidateIds.Count == 0)
+        {
+            return new Dictionary<string, CandidateRestrictionContext>();
+        }
+
+        var profileAttributes = await db.ProfileAttributes
+            .AsNoTracking()
+            .Include(profileAttribute => profileAttribute.Attribute)
+            .Where(profileAttribute => candidateIds.Contains(profileAttribute.CandidateId))
+            .ToListAsync(cancellationToken);
+
+        var tagIdsByCandidate = await db.ProfileProjectTags
+            .AsNoTracking()
+            .Where(projectTag => candidateIds.Contains(projectTag.ProfileProject.CandidateId))
+            .Select(projectTag => new { projectTag.ProfileProject.CandidateId, projectTag.TagId })
+            .ToListAsync(cancellationToken);
+
+        var tagsByCandidate = tagIdsByCandidate
+            .GroupBy(item => item.CandidateId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(item => item.TagId).ToHashSet());
+
+        return candidateIds.ToDictionary(
+            candidateId => candidateId,
+            candidateId => new CandidateRestrictionContext(
+                profileAttributes.Where(item => item.CandidateId == candidateId).ToList(),
+                tagsByCandidate.GetValueOrDefault(candidateId) ?? []));
+    }
+
+    private bool CandidateMeetsAllRestrictions(
+        IReadOnlyList<PositionRestriction> restrictions,
+        CandidateRestrictionContext context)
+    {
+        foreach (var restriction in restrictions)
+        {
+            if (!EvaluateRestriction(restriction, context.ProfileAttributes, context.TagIds))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private bool EvaluateRestriction(
