@@ -33,10 +33,9 @@ export function OptionTags({ options, onChange, disabled = false, label, resetKe
 
   return (
     <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-      <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+      <Box sx={{ display: 'flex', gap: 1, alignItems: 'stretch' }}>
         <TextField
           fullWidth
-          size="small"
           label={label ?? t('attributes.valueTypes.select')}
           value={input}
           disabled={disabled}
