@@ -79,16 +79,20 @@
       "text": "Text",
       "number": "Number",
       "boolean": "Boolean",
-      "date": "Date"
+      "date": "Date",
+      "select": "Select",
+      "period": "Period",
+      "image": "Image"
     },
     "inputTypes": {
       "text": "Text field",
       "textarea": "Textarea",
-      "tel": "Phone",
       "image": "Image",
       "number": "Number",
       "checkbox": "Checkbox",
-      "date": "Date"
+      "date": "Date",
+      "select": "Select",
+      "period": "Period"
     },
     "actions": {
       "add": "Add attribute",

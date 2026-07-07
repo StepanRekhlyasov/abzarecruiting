@@ -14,6 +14,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     }
 
     public DbSet<AttributeEntity> Attributes => Set<AttributeEntity>();
+    public DbSet<AttributeOption> AttributeOptions => Set<AttributeOption>();
     public DbSet<ProfileAttribute> ProfileAttributes => Set<ProfileAttribute>();
     public DbSet<Position> Positions => Set<Position>();
     public DbSet<PositionRestriction> PositionRestrictions => Set<PositionRestriction>();
@@ -60,6 +61,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(attribute => attribute.Name)
+                .IsUnique();
+        });
+
+        builder.Entity<AttributeOption>(entity =>
+        {
+            entity.Property(option => option.InputOption)
+                .HasMaxLength(256)
+                .IsRequired();
+
+            entity.HasOne(option => option.Attribute)
+                .WithMany(attribute => attribute.Options)
+                .HasForeignKey(option => option.AttributeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(option => new { option.AttributeId, option.InputOption })
                 .IsUnique();
         });
 

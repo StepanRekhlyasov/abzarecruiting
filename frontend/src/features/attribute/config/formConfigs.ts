@@ -1,10 +1,8 @@
 import type { TFunction } from 'i18next'
-import { ATTRIBUTE_VALUE_TYPES, getInputTypesForValueType } from '@entities/attribute'
+import { ATTRIBUTE_VALUE_TYPES } from '@entities/attribute'
 import type { AbzaFormConfig } from '@widgets/abza-form'
 
 export function createAttributeFormConfig(t: TFunction, valueType = ''): AbzaFormConfig {
-  const inputTypes = getInputTypesForValueType(valueType)
-
   return {
     submitLabel: t('attributes.form.submit'),
     fields: [
@@ -28,17 +26,6 @@ export function createAttributeFormConfig(t: TFunction, valueType = ''): AbzaFor
         options: ATTRIBUTE_VALUE_TYPES.map((value) => ({
           value,
           label: t(`attributes.valueTypes.${value}`),
-        })),
-      },
-      {
-        name: 'inputType',
-        label: t('attributes.fields.inputType'),
-        type: 'select',
-        validation: { required: true },
-        disabled: !valueType,
-        options: inputTypes.map((value) => ({
-          value,
-          label: t(`attributes.inputTypes.${value}`),
         })),
       },
     ],

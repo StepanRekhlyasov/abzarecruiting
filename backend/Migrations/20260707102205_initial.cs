@@ -268,6 +268,27 @@ namespace Backend.Api.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "AttributeOptions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    AttributeId = table.Column<int>(type: "int", nullable: false),
+                    InputOption = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AttributeOptions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AttributeOptions_Attributes_AttributeId",
+                        column: x => x.AttributeId,
+                        principalTable: "Attributes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "ProfileAttributes",
                 columns: table => new
                 {
@@ -487,6 +508,12 @@ namespace Backend.Api.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_AttributeOptions_AttributeId_InputOption",
+                table: "AttributeOptions",
+                columns: new[] { "AttributeId", "InputOption" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Attributes_CreatedById",
                 table: "Attributes",
                 column: "CreatedById");
@@ -580,6 +607,9 @@ namespace Backend.Api.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUserTokens");
+
+            migrationBuilder.DropTable(
+                name: "AttributeOptions");
 
             migrationBuilder.DropTable(
                 name: "PositionAttributes");

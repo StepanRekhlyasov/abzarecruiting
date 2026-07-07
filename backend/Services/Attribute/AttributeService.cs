@@ -1,5 +1,6 @@
 using Backend.Api.Data;
 using Backend.Api.Data.Relations;
+using Backend.Api.Data.Entities;
 using Backend.Api.Models.Attribute;
 using Backend.Api.Models.Common;
 using Backend.Api.Services.Attributes;
@@ -35,7 +36,10 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         PaginationParams pagination,
         CancellationToken cancellationToken = default)
     {
-        IQueryable<AttributeEntity> query = db.Attributes.AsNoTracking().Where(attribute => !DefaultAttributes.Names.Contains(attribute.Name));
+        IQueryable<AttributeEntity> query = db.Attributes
+            .AsNoTracking()
+            .Include(attribute => attribute.Options)
+            .Where(attribute => !DefaultAttributes.Names.Contains(attribute.Name));
 
         if (!string.IsNullOrWhiteSpace(pagination.Search))
         {
@@ -70,15 +74,25 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         var name = request.Name.Trim();
         await EnsureNameIsUniqueAsync(name, excludeId: null, cancellationToken);
 
+        var inputType = InferInputType(request.ValueType);
+        var options = NormalizeOptions(request.Options);
+
         var attribute = new AttributeEntity
         {
             Name = name,
             Description = request.Description,
             ValueType = request.ValueType,
-            InputType = request.InputType,
+            InputType = inputType,
             CreatedAt = DateTime.UtcNow,
             CreatedById = userId,
         };
+
+        if (inputType == "select" && options.Count > 0)
+        {
+            attribute.Options = options
+                .Select(value => new AttributeOption { InputOption = value })
+                .ToList();
+        }
 
         db.Attributes.Add(attribute);
         await db.SaveChangesAsync(cancellationToken);
@@ -90,7 +104,9 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         UpdateAttributeRequest request,
         CancellationToken cancellationToken = default)
     {
-        var attribute = await db.Attributes.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+        var attribute = await db.Attributes
+            .Include(item => item.Options)
+            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (attribute is null)
         {
             return null;
@@ -104,10 +120,27 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         var name = request.Name.Trim();
         await EnsureNameIsUniqueAsync(name, attribute.Id, cancellationToken);
 
+        var inputType = InferInputType(request.ValueType);
+        var options = NormalizeOptions(request.Options);
+
         attribute.Name = name;
         attribute.Description = request.Description;
         attribute.ValueType = request.ValueType;
-        attribute.InputType = request.InputType;
+        attribute.InputType = inputType;
+
+        if (attribute.Options.Count > 0)
+        {
+            db.AttributeOptions.RemoveRange(attribute.Options);
+            attribute.Options.Clear();
+        }
+
+        if (inputType == "select" && options.Count > 0)
+        {
+            foreach (var value in options)
+            {
+                attribute.Options.Add(new AttributeOption { InputOption = value });
+            }
+        }
 
         await db.SaveChangesAsync(cancellationToken);
         return Map(attribute);
@@ -213,8 +246,43 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         Description = attribute.Description,
         ValueType = attribute.ValueType,
         InputType = attribute.InputType,
+        Options = attribute.Options
+            .OrderBy(option => option.Id)
+            .Select(option => option.InputOption)
+            .ToList(),
         CreatedAt = attribute.CreatedAt,
     };
+
+    private static string InferInputType(string valueType)
+    {
+        // valueType приходит с фронта в виде ключа (например "string", "select", ...)
+        return valueType switch
+        {
+            "string" => "text",
+            "text" => "textarea",
+            "number" => "number",
+            "boolean" => "checkbox",
+            "date" => "date",
+            "select" => "select",
+            "period" => "period",
+            "image" => "image",
+            _ => throw new InvalidOperationException($"Unsupported attribute valueType '{valueType}'."),
+        };
+    }
+
+    private static List<string> NormalizeOptions(IList<string>? options)
+    {
+        if (options is null || options.Count == 0)
+        {
+            return [];
+        }
+
+        return options
+            .Select(option => option?.Trim())
+            .Where(option => !string.IsNullOrWhiteSpace(option))
+            .Distinct(StringComparer.Ordinal)
+            .ToList()!;
+    }
 
     private async Task EnsureNameIsUniqueAsync(
         string name,

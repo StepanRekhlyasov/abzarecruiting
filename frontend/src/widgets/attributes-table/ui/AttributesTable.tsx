@@ -18,6 +18,7 @@ import {
   unlinkAttributesFromProfileBatch,
   updateAttribute,
 } from '@features/attribute'
+import { OptionTags } from '@features/forms'
 import type { AttributeDto } from '@entities/attribute'
 import { isDefaultAttributeName } from '@entities/attribute'
 import { isCandidate, isRecruiterOrAdmin } from '@entities/user'
@@ -39,7 +40,6 @@ function attributeToFormValues(attribute: AttributeDto): AbzaFormValues {
     name: attribute.name,
     description: attribute.description ?? '',
     valueType: attribute.valueType,
-    inputType: attribute.inputType,
   }
 }
 
@@ -60,11 +60,13 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
   const [isCreateSubmitting, setIsCreateSubmitting] = useState(false)
   const [createFormError, setCreateFormError] = useState<string | null>(null)
   const [createValueType, setCreateValueType] = useState('')
+  const [createSelectOptions, setCreateSelectOptions] = useState<string[]>([])
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isEditSubmitting, setIsEditSubmitting] = useState(false)
   const [editFormError, setEditFormError] = useState<string | null>(null)
   const [editValueType, setEditValueType] = useState('')
   const [editingAttribute, setEditingAttribute] = useState<AttributeDto | null>(null)
+  const [editSelectOptions, setEditSelectOptions] = useState<string[]>([])
   const [isLinking, setIsLinking] = useState(false)
   const [isUnlinking, setIsUnlinking] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -204,7 +206,7 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
     name: values.name,
     description: values.description || null,
     valueType: values.valueType,
-    inputType: values.inputType,
+    options: values.valueType === 'select' ? createSelectOptions : undefined,
   })
 
   const handleCreateSubmit = async (values: AbzaFormValues) => {
@@ -215,6 +217,7 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
       await createAttribute(await submitAttributeValues(values))
       setIsCreateModalOpen(false)
       setCreateValueType('')
+      setCreateSelectOptions([])
       onNotify?.(t('attributes.notifications.created'))
       await loadAttributes()
     } catch (error) {
@@ -233,10 +236,16 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
     setEditFormError(null)
 
     try {
-      await updateAttribute(editingAttribute.id, await submitAttributeValues(values))
+      await updateAttribute(editingAttribute.id, {
+        name: values.name,
+        description: values.description || null,
+        valueType: values.valueType,
+        options: values.valueType === 'select' ? editSelectOptions : undefined,
+      })
       setIsEditModalOpen(false)
       setEditingAttribute(null)
       setEditValueType('')
+      setEditSelectOptions([])
       onNotify?.(t('attributes.notifications.updated'))
       await loadAttributes()
     } catch (error) {
@@ -268,6 +277,7 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
 
     setEditingAttribute(row)
     setEditValueType(row.valueType)
+    setEditSelectOptions(row.options ?? [])
     setEditFormError(null)
     setIsEditModalOpen(true)
   }
@@ -446,6 +456,7 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
             setIsCreateModalOpen(false)
             setCreateFormError(null)
             setCreateValueType('')
+            setCreateSelectOptions([])
           }
         }}
         onSubmit={handleCreateModalSubmit}
@@ -456,11 +467,26 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
           hideSubmitButton
           config={createFormConfig}
           resetKey={isCreateModalOpen ? 'create' : 'closed'}
-          onValuesChange={(values) => setCreateValueType(values.valueType ?? '')}
+          onValuesChange={(values) => {
+            const nextValueType = values.valueType ?? ''
+            setCreateValueType(nextValueType)
+            if (nextValueType !== 'select') {
+              setCreateSelectOptions([])
+            }
+          }}
           onSubmit={handleCreateSubmit}
           isSubmitting={isCreateSubmitting}
           serverError={createFormError}
         />
+
+        {createValueType === 'select' && (
+          <OptionTags
+            options={createSelectOptions}
+            onChange={setCreateSelectOptions}
+            disabled={isCreateSubmitting}
+            resetKey={isCreateModalOpen ? 'create' : 'closed'}
+          />
+        )}
       </AbzaModal>
 
       <AbzaModal
@@ -476,6 +502,7 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
             setEditingAttribute(null)
             setEditFormError(null)
             setEditValueType('')
+            setEditSelectOptions([])
           }
         }}
         onSubmit={handleEditModalSubmit}
@@ -487,11 +514,26 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
           config={editFormConfig}
           initialValues={editingAttribute ? attributeToFormValues(editingAttribute) : undefined}
           resetKey={editingAttribute?.id ?? 'closed'}
-          onValuesChange={(values) => setEditValueType(values.valueType ?? '')}
+          onValuesChange={(values) => {
+            const nextValueType = values.valueType ?? ''
+            setEditValueType(nextValueType)
+            if (nextValueType !== 'select') {
+              setEditSelectOptions([])
+            }
+          }}
           onSubmit={handleEditSubmit}
           isSubmitting={isEditSubmitting}
           serverError={editFormError}
         />
+
+        {editValueType === 'select' && (
+          <OptionTags
+            options={editSelectOptions}
+            onChange={setEditSelectOptions}
+            disabled={isEditSubmitting}
+            resetKey={editingAttribute?.id ?? 'closed'}
+          />
+        )}
       </AbzaModal>
     </>
   )

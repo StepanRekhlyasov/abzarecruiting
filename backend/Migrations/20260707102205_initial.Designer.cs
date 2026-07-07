@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260707082733_initial")]
+    [Migration("20260707102205_initial")]
     partial class initial
     {
         /// <inheritdoc />
@@ -129,6 +129,28 @@ namespace Backend.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("Attributes");
+                });
+
+            modelBuilder.Entity("Backend.Api.Data.Entities.AttributeOption", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("AttributeId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("InputOption")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttributeId", "InputOption")
+                        .IsUnique();
+
+                    b.ToTable("AttributeOptions");
                 });
 
             modelBuilder.Entity("Backend.Api.Data.Entities.Position", b =>
@@ -537,6 +559,17 @@ namespace Backend.Api.Migrations
                     b.Navigation("CreatedBy");
                 });
 
+            modelBuilder.Entity("Backend.Api.Data.Entities.AttributeOption", b =>
+                {
+                    b.HasOne("Backend.Api.Data.Entities.Attribute", "Attribute")
+                        .WithMany("Options")
+                        .HasForeignKey("AttributeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Attribute");
+                });
+
             modelBuilder.Entity("Backend.Api.Data.Entities.Position", b =>
                 {
                     b.HasOne("Backend.Api.Data.ApplicationUser", "CreatedBy")
@@ -760,6 +793,8 @@ namespace Backend.Api.Migrations
 
             modelBuilder.Entity("Backend.Api.Data.Entities.Attribute", b =>
                 {
+                    b.Navigation("Options");
+
                     b.Navigation("PositionAttributes");
 
                     b.Navigation("PositionRestrictions");

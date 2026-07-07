@@ -12,6 +12,7 @@ public class Attribute
     public DateTime CreatedAt { get; set; }
     public string CreatedById { get; set; } = string.Empty;
     public ApplicationUser CreatedBy { get; set; } = null!;
+    public ICollection<AttributeOption> Options { get; set; } = [];
     public ICollection<ProfileAttribute> ProfileAttributes { get; set; } = [];
     public ICollection<PositionRestriction> PositionRestrictions { get; set; } = [];
     public ICollection<PositionAttribute> PositionAttributes { get; set; } = [];

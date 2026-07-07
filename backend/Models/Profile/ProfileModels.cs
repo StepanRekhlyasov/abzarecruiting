@@ -12,6 +12,8 @@ public class ProfileAttributeDto
 
     public string InputType { get; set; } = string.Empty;
 
+    public IList<string> Options { get; set; } = [];
+
     public string? Value { get; set; }
 }
 

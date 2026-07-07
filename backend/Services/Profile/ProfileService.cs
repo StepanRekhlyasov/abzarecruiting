@@ -37,7 +37,11 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
             return null;
         }
 
-        var allAttributes = await db.Attributes.AsNoTracking().OrderBy(attribute => attribute.Name).ToListAsync(cancellationToken);
+        var allAttributes = await db.Attributes
+            .AsNoTracking()
+            .Include(attribute => attribute.Options)
+            .OrderBy(attribute => attribute.Name)
+            .ToListAsync(cancellationToken);
         var defaultNames = DefaultAttributes.All.Select(item => item.Name).ToHashSet();
         var profileAttributes = await db.ProfileAttributes
             .AsNoTracking()
@@ -55,6 +59,10 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
                     Name = attribute.Name,
                     ValueType = attribute.ValueType,
                     InputType = attribute.InputType,
+                    Options = attribute.Options
+                        .OrderBy(option => option.Id)
+                        .Select(option => option.InputOption)
+                        .ToList(),
                     Value = profileAttribute is null ? null : valueMapper.GetComparableValue(profileAttribute, attribute),
                 };
             })

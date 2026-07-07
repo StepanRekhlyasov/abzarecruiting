@@ -15,9 +15,7 @@ public class CreateAttributeRequest
     [MaxLength(64)]
     public string ValueType { get; set; } = string.Empty;
 
-    [Required]
-    [MaxLength(64)]
-    public string InputType { get; set; } = string.Empty;
+    public IList<string> Options { get; set; } = [];
 }
 
 public class UpdateAttributeRequest : CreateAttributeRequest;
@@ -33,6 +31,8 @@ public class AttributeDto
     public string ValueType { get; set; } = string.Empty;
 
     public string InputType { get; set; } = string.Empty;
+
+    public IList<string> Options { get; set; } = [];
 
     public DateTime CreatedAt { get; set; }
 }

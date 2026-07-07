@@ -68,10 +68,6 @@ export function AbzaForm({
     setValues((prev) => {
       const next = { ...prev, [name]: value }
 
-      if (name === 'valueType') {
-        next.inputType = ''
-      }
-
       onValuesChange?.(next)
       return next
     })
