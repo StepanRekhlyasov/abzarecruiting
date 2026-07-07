@@ -8,6 +8,7 @@ import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
 import Typography from '@mui/material/Typography'
 import { ROUTES } from '@shared/config/routes'
+import { useAppSettings } from '@shared/config/app/index'
 
 type AppSidebarProps = {
   open: boolean
@@ -21,12 +22,13 @@ const NAV_ITEMS = [
 export function AppSidebar({ open, onClose }: AppSidebarProps) {
   const { t } = useTranslation()
   const location = useLocation()
-
+  const { version } = useAppSettings()
+  
   return (
     <Drawer anchor="left" open={open} onClose={onClose}>
       <Box sx={{ width: 280 }} role="navigation">
         <Box sx={{ px: 2, py: 2 }}>
-          <Typography variant="h6">{t('common.appName')}</Typography>
+          <Typography variant="h6">{t('common.appName')} {version}</Typography>
         </Box>
         <Divider />
         <List>

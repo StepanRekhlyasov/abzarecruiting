@@ -1,167 +1,72 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { isAxiosError } from 'axios'
-import { useUnit } from 'effector-react'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
 import Snackbar from '@mui/material/Snackbar'
-import TextField from '@mui/material/TextField'
-import { $session } from '@entities/user'
 import { createAttributeFormConfig } from '@shared/config/forms'
 import { OptionTags } from '@/features/inputs'
-import { AbzaForm, type AbzaFormValues } from '@features/abza-form'
+import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
 import { AbzaTable } from '@features/abza-table'
-import type { AbzaTableColumn, AbzaTableRowId } from '@features/abza-table'
+import type { AbzaTableColumn } from '@features/abza-table'
 import type { AttributeDto } from '@entities/attribute'
 import {
-  createAttribute,
-  deleteAttributesBatch,
-  fetchAttributes,
-  fetchLinkedProfileAttributeIds,
-  isDefaultAttributeName,
-  linkAttributesToProfileBatch,
-  unlinkAttributesFromProfileBatch,
-  updateAttribute,
-} from '@entities/attribute'
-import { isCandidate, isRecruiterOrAdmin } from '@entities/user'
-import { i18n } from '@shared/config/i18n'
-import BackspaceIcon from '@mui/icons-material/Backspace';
-import AddIcon from '@mui/icons-material/Add';
-import SearchIcon from '@mui/icons-material/Search';
-
-const CREATE_ATTRIBUTE_FORM_ID = 'create-attribute-form'
-const EDIT_ATTRIBUTE_FORM_ID = 'edit-attribute-form'
+  AttributesTableProvider,
+  attributeToFormValues,
+  CREATE_ATTRIBUTE_FORM_ID,
+  EDIT_ATTRIBUTE_FORM_ID,
+  useAttributesTable,
+} from '../model'
+import { AttributesTableToolbar } from './Toolbar'
 
 type AttributesTableProps = {
   onNotify?: (message: string) => void
 }
 
-function attributeToFormValues(attribute: AttributeDto): AbzaFormValues {
-  return {
-    name: attribute.name,
-    description: attribute.description ?? '',
-    valueType: attribute.valueType,
-  }
-}
-
-export function AttributesTable({ onNotify }: AttributesTableProps) {
+function AttributesTableContent() {
   const { t } = useTranslation()
-  const session = useUnit($session)
-
-  const [rows, setRows] = useState<AttributeDto[]>([])
-  const [totalCount, setTotalCount] = useState(0)
-  const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(20)
-  const [searchInput, setSearchInput] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedIds, setSelectedIds] = useState<AbzaTableRowId[]>([])
-  const [loading, setLoading] = useState(false)
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [isCreateSubmitting, setIsCreateSubmitting] = useState(false)
-  const [createFormError, setCreateFormError] = useState<string | null>(null)
-  const [createValueType, setCreateValueType] = useState('')
-  const [createSelectOptions, setCreateSelectOptions] = useState<string[]>([])
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [isEditSubmitting, setIsEditSubmitting] = useState(false)
-  const [editFormError, setEditFormError] = useState<string | null>(null)
-  const [editValueType, setEditValueType] = useState('')
-  const [editingAttribute, setEditingAttribute] = useState<AttributeDto | null>(null)
-  const [editSelectOptions, setEditSelectOptions] = useState<string[]>([])
-  const [isLinking, setIsLinking] = useState(false)
-  const [isUnlinking, setIsUnlinking] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [linkedAttributeIds, setLinkedAttributeIds] = useState<number[]>([])
-
-  const canManageAttributes = isRecruiterOrAdmin(session)
-  const canLinkToProfile = isCandidate(session)
-  const isSelectable = canLinkToProfile || canManageAttributes
+  const {
+    rows,
+    totalCount,
+    page,
+    pageSize,
+    selectedIds,
+    isLoading,
+    actionError,
+    isCreateModalOpen,
+    isCreateSubmitting,
+    createFormError,
+    createValueType,
+    createSelectOptions,
+    isEditModalOpen,
+    isEditSubmitting,
+    editFormError,
+    editValueType,
+    editingAttribute,
+    editSelectOptions,
+    canManageAttributes,
+    canLinkToProfile,
+    isSelectable,
+    linkedAttributeIdSet,
+    setPage,
+    setPageSize,
+    setSelectedIds,
+    setActionError,
+    setCreateValueType,
+    setCreateSelectOptions,
+    setEditValueType,
+    setEditSelectOptions,
+    handleCreateModalClose,
+    handleEditModalClose,
+    handleCreateSubmit,
+    handleEditSubmit,
+    handleCreateModalSubmit,
+    handleEditModalSubmit,
+    handleRowClick,
+  } = useAttributesTable()
 
   const createFormConfig = useMemo(() => createAttributeFormConfig(t, createValueType), [t, createValueType])
   const editFormConfig = useMemo(() => createAttributeFormConfig(t, editValueType), [t, editValueType])
-  const linkedAttributeIdSet = useMemo(() => new Set(linkedAttributeIds), [linkedAttributeIds])
-  const hasDefaultInSelection = useMemo(
-    () => rows.some((row) => selectedIds.includes(row.id) && isDefaultAttributeName(row.name)),
-    [rows, selectedIds],
-  )
-  const unlinkableSelectedCount = useMemo(
-    () => selectedIds.filter((id) => linkedAttributeIdSet.has(Number(id))).length,
-    [selectedIds, linkedAttributeIdSet],
-  )
-
-  const loadLinkedAttributeIds = useCallback(async (signal?: AbortSignal) => {
-    if (!session?.id || !canLinkToProfile) {
-      setLinkedAttributeIds([])
-      return
-    }
-
-    try {
-      const ids = await fetchLinkedProfileAttributeIds(session.id, { signal })
-      if (!signal?.aborted) {
-        setLinkedAttributeIds(ids)
-      }
-    } catch (error) {
-      if (isAxiosError(error) && error.code === 'ERR_CANCELED') {
-        return
-      }
-
-      if (!signal?.aborted) {
-        setLinkedAttributeIds([])
-      }
-    }
-  }, [session?.id, canLinkToProfile])
-
-  const loadAttributes = useCallback(async (signal?: AbortSignal) => {
-    setLoading(true)
-    setActionError(null)
-
-    try {
-      const result = await fetchAttributes(
-        {
-          page: page + 1,
-          size: pageSize,
-          search: searchQuery || undefined,
-        },
-        { signal },
-      )
-
-      if (!signal?.aborted) {
-        setRows(result.items)
-        setTotalCount(result.totalCount)
-      }
-    } catch (error) {
-      if (isAxiosError(error) && error.code === 'ERR_CANCELED') {
-        return
-      }
-
-      if (!signal?.aborted) {
-        setActionError(error instanceof Error ? error.message : i18n.t('attributes.errors.load'))
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false)
-      }
-    }
-  }, [page, pageSize, searchQuery])
-
-  useEffect(() => {
-    const controller = new AbortController()
-    void loadAttributes(controller.signal)
-    return () => controller.abort()
-  }, [loadAttributes])
-
-  useEffect(() => {
-    const controller = new AbortController()
-    void loadLinkedAttributeIds(controller.signal)
-    return () => controller.abort()
-  }, [loadLinkedAttributeIds])
-
-  const handleFilter = () => {
-    setSearchQuery(searchInput.trim())
-    setPage(0)
-  }
 
   const columns = useMemo(() => {
     const baseColumns: AbzaTableColumn<AttributeDto>[] = [
@@ -205,215 +110,6 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
     return baseColumns
   }, [t, canLinkToProfile, linkedAttributeIdSet])
 
-  const submitAttributeValues = async (values: AbzaFormValues) => ({
-    name: values.name,
-    description: values.description || null,
-    valueType: values.valueType,
-    options: values.valueType === 'select' ? createSelectOptions : undefined,
-  })
-
-  const handleCreateSubmit = async (values: AbzaFormValues) => {
-    setIsCreateSubmitting(true)
-    setCreateFormError(null)
-
-    try {
-      await createAttribute(await submitAttributeValues(values))
-      setIsCreateModalOpen(false)
-      setCreateValueType('')
-      setCreateSelectOptions([])
-      onNotify?.(t('attributes.notifications.created'))
-      await loadAttributes()
-    } catch (error) {
-      setCreateFormError(error instanceof Error ? error.message : t('attributes.errors.create'))
-    } finally {
-      setIsCreateSubmitting(false)
-    }
-  }
-
-  const handleEditSubmit = async (values: AbzaFormValues) => {
-    if (!editingAttribute) {
-      return
-    }
-
-    setIsEditSubmitting(true)
-    setEditFormError(null)
-
-    try {
-      await updateAttribute(editingAttribute.id, {
-        name: values.name,
-        description: values.description || null,
-        valueType: values.valueType,
-        options: values.valueType === 'select' ? editSelectOptions : undefined,
-      })
-      setIsEditModalOpen(false)
-      setEditingAttribute(null)
-      setEditValueType('')
-      setEditSelectOptions([])
-      onNotify?.(t('attributes.notifications.updated'))
-      await loadAttributes()
-    } catch (error) {
-      setEditFormError(error instanceof Error ? error.message : t('attributes.errors.update'))
-    } finally {
-      setIsEditSubmitting(false)
-    }
-  }
-
-  const handleCreateModalSubmit = () => {
-    const form = document.getElementById(CREATE_ATTRIBUTE_FORM_ID) as HTMLFormElement | null
-    form?.requestSubmit()
-  }
-
-  const handleEditModalSubmit = () => {
-    const form = document.getElementById(EDIT_ATTRIBUTE_FORM_ID) as HTMLFormElement | null
-    form?.requestSubmit()
-  }
-
-  const handleRowClick = (row: AttributeDto) => {
-    if (!canManageAttributes) {
-      return
-    }
-
-    if (isDefaultAttributeName(row.name)) {
-      onNotify?.(t('attributes.errors.editDefault'))
-      return
-    }
-
-    setEditingAttribute(row)
-    setEditValueType(row.valueType)
-    setEditSelectOptions(row.options ?? [])
-    setEditFormError(null)
-    setIsEditModalOpen(true)
-  }
-
-  const handleDeleteSelected = async () => {
-    if (selectedIds.length === 0) {
-      return
-    }
-
-    const count = selectedIds.length
-    setIsDeleting(true)
-    setActionError(null)
-
-    try {
-      await deleteAttributesBatch(selectedIds.map((id) => Number(id)))
-      setSelectedIds([])
-      onNotify?.(t('attributes.notifications.deleted', { count }))
-      await loadAttributes()
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : t('attributes.errors.delete'))
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
-  const handleLinkSelected = async () => {
-    if (!session?.id || selectedIds.length === 0) {
-      return
-    }
-
-    setIsLinking(true)
-    setActionError(null)
-
-    try {
-      const count = selectedIds.length
-      await linkAttributesToProfileBatch(selectedIds.map((id) => Number(id)), session.id)
-      setSelectedIds([])
-      onNotify?.(t('attributes.notifications.linked', { count }))
-      await loadLinkedAttributeIds()
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : t('attributes.errors.link'))
-    } finally {
-      setIsLinking(false)
-    }
-  }
-
-  const handleUnlinkSelected = async () => {
-    if (!session?.id || unlinkableSelectedCount === 0 || hasDefaultInSelection) {
-      return
-    }
-
-    const idsToUnlink = selectedIds.map((id) => Number(id)).filter((id) => linkedAttributeIdSet.has(id))
-
-    setIsUnlinking(true)
-    setActionError(null)
-
-    try {
-      await unlinkAttributesFromProfileBatch(idsToUnlink, session.id)
-      setSelectedIds([])
-      onNotify?.(t('attributes.notifications.unlinked', { count: idsToUnlink.length }))
-      await loadLinkedAttributeIds()
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : t('attributes.errors.unlink'))
-    } finally {
-      setIsUnlinking(false)
-    }
-  }
-
-  const toolbar = (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'stretch' }}>
-      <TextField
-        size="small"
-        label={t('attributes.search')}
-        value={searchInput}
-        onChange={(event) => setSearchInput(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            event.preventDefault()
-            handleFilter()
-          }
-        }}
-        sx={{ minWidth: 260, flexGrow: 1 }}
-      />
-      <Button variant="outlined" onClick={handleFilter} disabled={loading}>
-        <SearchIcon />
-      </Button>
-      {canManageAttributes && (
-        <Button
-          variant="contained"
-          onClick={() => {
-            setCreateValueType('')
-            setCreateFormError(null)
-            setIsCreateModalOpen(true)
-          }}
-          sx={{ boxShadow: 'none' }}
-        >
-          <AddIcon />
-        </Button>
-      )}
-      {canManageAttributes && (
-        <Button
-          variant="contained"
-          color="error"
-          onClick={handleDeleteSelected}
-          disabled={selectedIds.length === 0 || isDeleting}
-          sx={{ boxShadow: 'none' }}
-        >
-          <BackspaceIcon />
-        </Button>
-      )}
-      {canLinkToProfile && (
-        <Button
-          variant="contained"
-          onClick={handleLinkSelected}
-          disabled={selectedIds.length === 0 || isLinking}
-          sx={{ boxShadow: 'none' }}
-        >
-          {t('attributes.actions.linkSelected')}
-        </Button>
-      )}
-      {canLinkToProfile && (
-        <Button
-          variant="outlined"
-          color="error"
-          onClick={handleUnlinkSelected}
-          disabled={unlinkableSelectedCount === 0 || isUnlinking || hasDefaultInSelection}
-        >
-          {t('attributes.actions.unlinkSelected')}
-        </Button>
-      )}
-    </Box>
-  )
-
   return (
     <>
       {actionError && (
@@ -426,7 +122,7 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
         columns={columns}
         rows={rows}
         getRowId={(row) => row.id}
-        toolbar={toolbar}
+        toolbar={<AttributesTableToolbar />}
         page={page}
         pageSize={pageSize}
         totalCount={totalCount}
@@ -445,7 +141,7 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
                 linkedAttributeIdSet.has(row.id) ? { bgcolor: 'rgba(76, 175, 80, 0.12)' } : undefined
             : undefined
         }
-        loading={loading}
+        loading={isLoading}
         emptyMessage={t('attributes.empty')}
         loadingMessage={t('attributes.loading')}
       />
@@ -457,14 +153,7 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
           submitLabel: t('attributes.create.submit'),
           cancelLabel: t('attributes.create.cancel'),
         }}
-        onClose={() => {
-          if (!isCreateSubmitting) {
-            setIsCreateModalOpen(false)
-            setCreateFormError(null)
-            setCreateValueType('')
-            setCreateSelectOptions([])
-          }
-        }}
+        onClose={handleCreateModalClose}
         onSubmit={handleCreateModalSubmit}
         isSubmitting={isCreateSubmitting}
       >
@@ -502,15 +191,7 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
           submitLabel: t('attributes.edit.submit'),
           cancelLabel: t('attributes.edit.cancel'),
         }}
-        onClose={() => {
-          if (!isEditSubmitting) {
-            setIsEditModalOpen(false)
-            setEditingAttribute(null)
-            setEditFormError(null)
-            setEditValueType('')
-            setEditSelectOptions([])
-          }
-        }}
+        onClose={handleEditModalClose}
         onSubmit={handleEditModalSubmit}
         isSubmitting={isEditSubmitting}
       >
@@ -542,6 +223,14 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
         )}
       </AbzaModal>
     </>
+  )
+}
+
+export function AttributesTable({ onNotify }: AttributesTableProps) {
+  return (
+    <AttributesTableProvider onNotify={onNotify}>
+      <AttributesTableContent />
+    </AttributesTableProvider>
   )
 }
 
