@@ -4,8 +4,10 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
+  type RefObject,
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import { isAxiosError } from 'axios'
@@ -25,7 +27,6 @@ import {
 } from '@entities/attribute'
 import { $session, isCandidate, isRecruiterOrAdmin } from '@entities/user'
 import { i18n } from '@shared/config/i18n'
-import { CREATE_ATTRIBUTE_FORM_ID, EDIT_ATTRIBUTE_FORM_ID } from './constants'
 
 type AttributesTableContextValue = {
   rows: AttributeDto[]
@@ -51,6 +52,8 @@ type AttributesTableContextValue = {
   linkedAttributeIdSet: Set<number>
   hasDefaultInSelection: boolean
   unlinkableSelectedCount: number
+  createFormRef: RefObject<HTMLFormElement | null>
+  editFormRef: RefObject<HTMLFormElement | null>
   setSearchInput: (value: string) => void
   setPage: (page: number) => void
   setPageSize: (size: number) => void
@@ -83,6 +86,8 @@ const AttributesTableContext = createContext<AttributesTableContextValue | null>
 export function AttributesTableProvider({ children, onNotify }: AttributesTableProviderProps) {
   const { t } = useTranslation()
   const session = useUnit($session)
+  const createFormRef = useRef<HTMLFormElement>(null)
+  const editFormRef = useRef<HTMLFormElement>(null)
 
   const [rows, setRows] = useState<AttributeDto[]>([])
   const [totalCount, setTotalCount] = useState(0)
@@ -278,13 +283,11 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
   )
 
   const handleCreateModalSubmit = useCallback(() => {
-    const form = document.getElementById(CREATE_ATTRIBUTE_FORM_ID) as HTMLFormElement | null
-    form?.requestSubmit()
+    createFormRef.current?.requestSubmit()
   }, [])
 
   const handleEditModalSubmit = useCallback(() => {
-    const form = document.getElementById(EDIT_ATTRIBUTE_FORM_ID) as HTMLFormElement | null
-    form?.requestSubmit()
+    editFormRef.current?.requestSubmit()
   }, [])
 
   const handleRowClick = useCallback(
@@ -405,6 +408,8 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       linkedAttributeIdSet,
       hasDefaultInSelection,
       unlinkableSelectedCount,
+      createFormRef,
+      editFormRef,
       setSearchInput,
       setPage,
       setPageSize,

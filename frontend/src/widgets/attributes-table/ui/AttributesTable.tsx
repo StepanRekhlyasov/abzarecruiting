@@ -13,8 +13,6 @@ import type { AttributeDto } from '@entities/attribute'
 import {
   AttributesTableProvider,
   attributeToFormValues,
-  CREATE_ATTRIBUTE_FORM_ID,
-  EDIT_ATTRIBUTE_FORM_ID,
   useAttributesTable,
 } from '../model'
 import { AttributesTableToolbar } from './Toolbar'
@@ -57,6 +55,8 @@ function AttributesTableContent() {
     handleCreateModalSubmit,
     handleEditModalSubmit,
     handleRowClick,
+    createFormRef,
+    editFormRef,
   } = useAttributesTable()
 
   const createFormConfig = useMemo(() => createAttributeFormConfig(t, createValueType), [t, createValueType])
@@ -152,7 +152,7 @@ function AttributesTableContent() {
         isLoading={isLoading}
       >
         <AbzaForm
-          formId={CREATE_ATTRIBUTE_FORM_ID}
+          formRef={createFormRef}
           hideSubmitButton
           config={createFormConfig}
           resetKey={isCreateModalOpen ? 'create' : 'closed'}
@@ -190,7 +190,7 @@ function AttributesTableContent() {
         isLoading={isLoading}
       >
         <AbzaForm
-          formId={EDIT_ATTRIBUTE_FORM_ID}
+          formRef={editFormRef}
           hideSubmitButton
           config={editFormConfig}
           initialValues={editingAttribute ? attributeToFormValues(editingAttribute) : undefined}

@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, type RefObject, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -17,7 +17,7 @@ type AbzaFormProps = {
   onSubmit: (values: AbzaFormValues) => void | Promise<void>
   isLoading?: boolean
   serverError?: string | null
-  formId?: string
+  formRef?: RefObject<HTMLFormElement | null>
   hideSubmitButton?: boolean
   initialValues?: AbzaFormValues
   resetKey?: string | number
@@ -39,7 +39,7 @@ export function AbzaForm({
   onSubmit,
   isLoading = false,
   serverError,
-  formId,
+  formRef,
   hideSubmitButton = false,
   initialValues,
   resetKey,
@@ -155,7 +155,7 @@ export function AbzaForm({
   }
 
   return (
-    <Box component="form" id={formId} onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <Box component="form" ref={formRef} onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {serverError && <Alert severity="error">{serverError}</Alert>}
 
       {config.fields.map(renderField)}
