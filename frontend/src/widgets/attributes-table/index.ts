@@ -1,1 +1,1 @@
-export { AttributesTable, AttributesTableWithNotifications } from './ui/AttributesTable'
+export { AttributesTable } from './ui/AttributesTable'

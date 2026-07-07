@@ -19,10 +19,6 @@ import {
 } from '../model'
 import { AttributesTableToolbar } from './Toolbar'
 
-type AttributesTableProps = {
-  onNotify?: (message: string) => void
-}
-
 function AttributesTableContent() {
   const { t } = useTranslation()
   const {
@@ -224,20 +220,12 @@ function AttributesTableContent() {
   )
 }
 
-export function AttributesTable({ onNotify }: AttributesTableProps) {
-  return (
-    <AttributesTableProvider onNotify={onNotify}>
-      <AttributesTableContent />
-    </AttributesTableProvider>
-  )
-}
-
-export function AttributesTableWithNotifications() {
+export function AttributesTable() {
   const [notification, setNotification] = useState<string | null>(null)
 
   return (
-    <>
-      <AttributesTable onNotify={setNotification} />
+    <AttributesTableProvider onNotify={setNotification}>
+      <AttributesTableContent />
       <Snackbar
         open={Boolean(notification)}
         autoHideDuration={4000}
@@ -245,6 +233,6 @@ export function AttributesTableWithNotifications() {
         message={notification ?? ''}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
-    </>
+    </AttributesTableProvider>
   )
 }

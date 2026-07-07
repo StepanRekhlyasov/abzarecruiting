@@ -3,7 +3,7 @@ import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
 import { AppHeader } from '@features/app-header'
-import { AttributesTableWithNotifications } from '@widgets/attributes-table'
+import { AttributesTable } from '@widgets/attributes-table'
 
 export function AttributesPage() {
   const { t } = useTranslation()
@@ -17,7 +17,7 @@ export function AttributesPage() {
             {t('attributes.title')}
           </Typography>
 
-          <AttributesTableWithNotifications />
+          <AttributesTable />
         </Box>
       </Container>
     </>

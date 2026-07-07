@@ -45,7 +45,6 @@ type AttributesTableContextValue = {
   editValueType: string
   editingAttribute: AttributeDto | null
   editSelectOptions: string[]
-  linkedAttributeIds: number[]
   canManageAttributes: boolean
   canLinkToProfile: boolean
   isSelectable: boolean
@@ -400,7 +399,6 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       editValueType,
       editingAttribute,
       editSelectOptions,
-      linkedAttributeIds,
       canManageAttributes,
       canLinkToProfile,
       isSelectable,
@@ -447,7 +445,6 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       editValueType,
       editingAttribute,
       editSelectOptions,
-      linkedAttributeIds,
       canManageAttributes,
       canLinkToProfile,
       isSelectable,
