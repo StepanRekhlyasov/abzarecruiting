@@ -3,6 +3,10 @@ import type { AttributeDto, CreateAttributeRequest, UpdateAttributeRequest } fro
 import { apiClient } from '@shared/api'
 import type { PagedResult, PaginationParams } from '@shared/model/pagination'
 
+type FetchAttributesOptions = {
+  signal?: AbortSignal
+}
+
 type ApiErrorBody = {
   message?: string
   errors?: string[]
@@ -30,11 +34,21 @@ function parseErrorMessage(error: unknown): string {
   return 'Request failed'
 }
 
-export async function fetchAttributes(params: PaginationParams): Promise<PagedResult<AttributeDto>> {
+export async function fetchAttributes(
+  params: PaginationParams,
+  options?: FetchAttributesOptions,
+): Promise<PagedResult<AttributeDto>> {
   try {
-    const { data } = await apiClient.get<PagedResult<AttributeDto>>('/attribute', { params })
+    const { data } = await apiClient.get<PagedResult<AttributeDto>>('/attribute', {
+      params,
+      signal: options?.signal,
+    })
     return data
   } catch (error) {
+    if (isAxiosError(error) && error.code === 'ERR_CANCELED') {
+      throw error
+    }
+
     throw new Error(parseErrorMessage(error))
   }
 }
@@ -95,11 +109,20 @@ export async function unlinkAttributesFromProfileBatch(
   }
 }
 
-export async function fetchLinkedProfileAttributeIds(candidateId: string): Promise<number[]> {
+export async function fetchLinkedProfileAttributeIds(
+  candidateId: string,
+  options?: { signal?: AbortSignal },
+): Promise<number[]> {
   try {
-    const { data } = await apiClient.get<number[]>(`/profile/${candidateId}/attribute-ids`)
+    const { data } = await apiClient.get<number[]>(`/profile/${candidateId}/attribute-ids`, {
+      signal: options?.signal,
+    })
     return data
   } catch (error) {
+    if (isAxiosError(error) && error.code === 'ERR_CANCELED') {
+      throw error
+    }
+
     throw new Error(parseErrorMessage(error))
   }
 }

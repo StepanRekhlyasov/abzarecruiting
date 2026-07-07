@@ -29,19 +29,13 @@ export function AppHeader() {
     <>
       <AppBar position="static">
         <Toolbar sx={{ justifyContent: 'space-between', gap: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton
               color="inherit"
-              edge="start"
               aria-label={t('common.menu')}
               onClick={() => setIsSidebarOpen(true)}
             >
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" component={RouterLink} to={ROUTES.home} sx={{ color: 'inherit', textDecoration: 'none' }}>
-              {t('common.appName')}
-            </Typography>
-          </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {session ? (
               <>
@@ -62,14 +56,7 @@ export function AppHeader() {
                 </Button>
               </>
             )}
-            <LanguageSwitcher
-              sx={{
-                '& .MuiInputLabel-root': { color: 'inherit' },
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.5)' },
-                '& .MuiSvgIcon-root': { color: 'inherit' },
-                color: 'inherit',
-              }}
-            />
+            <LanguageSwitcher />
           </Box>
         </Toolbar>
       </AppBar>

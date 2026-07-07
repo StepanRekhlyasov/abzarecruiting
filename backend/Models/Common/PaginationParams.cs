@@ -12,7 +12,7 @@ public class PaginationParams
 
     public int Size { get; init; } = DefaultSize;
 
-    public string? Name { get; init; }
+    public string? Search { get; init; }
 
     [BindNever]
     public int NormalizedPage => Page < 1 ? DefaultPage : Page;

@@ -32,14 +32,14 @@ export function createRegisterFormConfig(t: TFunction): AbzaFormConfig {
         label: t('auth.fields.firstName'),
         type: 'text',
         autoComplete: 'given-name',
-        validation: { required: true, minLength: 2 },
+        validation: { required: true },
       },
       {
         name: 'lastName',
         label: t('auth.fields.lastName'),
         type: 'text',
         autoComplete: 'family-name',
-        validation: { required: true, minLength: 2 },
+        validation: { required: true },
       },
       {
         name: 'email',
@@ -53,7 +53,7 @@ export function createRegisterFormConfig(t: TFunction): AbzaFormConfig {
         label: t('auth.fields.password'),
         type: 'password',
         autoComplete: 'new-password',
-        validation: { required: true, minLength: 6 },
+        validation: { required: true },
       },
       {
         name: 'role',

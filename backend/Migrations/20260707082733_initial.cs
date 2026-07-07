@@ -7,7 +7,7 @@ using MySql.EntityFrameworkCore.Metadata;
 namespace Backend.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -490,6 +490,12 @@ namespace Backend.Api.Migrations
                 name: "IX_Attributes_CreatedById",
                 table: "Attributes",
                 column: "CreatedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Attributes_Name",
+                table: "Attributes",
+                column: "Name",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_PositionAttributes_AttributeId",

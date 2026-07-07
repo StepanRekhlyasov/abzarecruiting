@@ -8,5 +8,5 @@ export type PagedResult<T> = {
 export type PaginationParams = {
   page?: number
   size?: number
-  name?: string
+  search?: string
 }

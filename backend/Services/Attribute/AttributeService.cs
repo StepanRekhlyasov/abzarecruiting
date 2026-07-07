@@ -37,10 +37,12 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
     {
         IQueryable<AttributeEntity> query = db.Attributes.AsNoTracking().Where(attribute => !DefaultAttributes.Names.Contains(attribute.Name));
 
-        if (!string.IsNullOrWhiteSpace(pagination.Name))
+        if (!string.IsNullOrWhiteSpace(pagination.Search))
         {
-            var name = pagination.Name.Trim();
-            query = query.Where(attribute => attribute.Name.Contains(name));
+            var search = pagination.Search.Trim();
+            query = query.Where(attribute =>
+                attribute.Name.Contains(search)
+                || (attribute.Description != null && attribute.Description.Contains(search)));
         }
 
         query = query.OrderBy(attribute => attribute.Name);

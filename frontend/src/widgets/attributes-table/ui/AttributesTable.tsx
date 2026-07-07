@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { isAxiosError } from 'axios'
 import { useUnit } from 'effector-react'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -20,6 +21,7 @@ import {
 import type { AttributeDto } from '@entities/attribute'
 import { isDefaultAttributeName } from '@entities/attribute'
 import { isCandidate, isRecruiterOrAdmin } from '@entities/user'
+import { i18n } from '@shared/config/i18n'
 import { AbzaForm, type AbzaFormValues } from '@widgets/abza-form'
 import { AbzaModal } from '@widgets/abza-modal'
 import { AbzaTable } from '@widgets/abza-table'
@@ -84,46 +86,71 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
     [selectedIds, linkedAttributeIdSet],
   )
 
-  const loadLinkedAttributeIds = useCallback(async () => {
+  const loadLinkedAttributeIds = useCallback(async (signal?: AbortSignal) => {
     if (!session?.id || !canLinkToProfile) {
       setLinkedAttributeIds([])
       return
     }
 
     try {
-      const ids = await fetchLinkedProfileAttributeIds(session.id)
-      setLinkedAttributeIds(ids)
-    } catch {
-      setLinkedAttributeIds([])
+      const ids = await fetchLinkedProfileAttributeIds(session.id, { signal })
+      if (!signal?.aborted) {
+        setLinkedAttributeIds(ids)
+      }
+    } catch (error) {
+      if (isAxiosError(error) && error.code === 'ERR_CANCELED') {
+        return
+      }
+
+      if (!signal?.aborted) {
+        setLinkedAttributeIds([])
+      }
     }
   }, [session?.id, canLinkToProfile])
 
-  const loadAttributes = useCallback(async () => {
+  const loadAttributes = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     setActionError(null)
 
     try {
-      const result = await fetchAttributes({
-        page: page + 1,
-        size: pageSize,
-        name: searchQuery || undefined,
-      })
+      const result = await fetchAttributes(
+        {
+          page: page + 1,
+          size: pageSize,
+          search: searchQuery || undefined,
+        },
+        { signal },
+      )
 
-      setRows(result.items)
-      setTotalCount(result.totalCount)
+      if (!signal?.aborted) {
+        setRows(result.items)
+        setTotalCount(result.totalCount)
+      }
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : t('attributes.errors.load'))
+      if (isAxiosError(error) && error.code === 'ERR_CANCELED') {
+        return
+      }
+
+      if (!signal?.aborted) {
+        setActionError(error instanceof Error ? error.message : i18n.t('attributes.errors.load'))
+      }
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) {
+        setLoading(false)
+      }
     }
-  }, [page, pageSize, searchQuery, t])
+  }, [page, pageSize, searchQuery])
 
   useEffect(() => {
-    void loadAttributes()
+    const controller = new AbortController()
+    void loadAttributes(controller.signal)
+    return () => controller.abort()
   }, [loadAttributes])
 
   useEffect(() => {
-    void loadLinkedAttributeIds()
+    const controller = new AbortController()
+    void loadLinkedAttributeIds(controller.signal)
+    return () => controller.abort()
   }, [loadLinkedAttributeIds])
 
   const handleFilter = () => {
