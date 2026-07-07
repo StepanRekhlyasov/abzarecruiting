@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import { createAttributeFormConfig } from '@shared/config/forms'
-import { OptionTags } from '@/features/inputs'
 import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
 import { AbzaTable } from '@features/abza-table'
@@ -28,13 +27,9 @@ function AttributesTableContent() {
     actionError,
     isCreateModalOpen,
     createFormError,
-    createValueType,
-    createSelectOptions,
     isEditModalOpen,
     editFormError,
-    editValueType,
     editingAttribute,
-    editSelectOptions,
     canManageAttributes,
     canLinkToProfile,
     isSelectable,
@@ -43,10 +38,6 @@ function AttributesTableContent() {
     setPageSize,
     setSelectedIds,
     setActionError,
-    setCreateValueType,
-    setCreateSelectOptions,
-    setEditValueType,
-    setEditSelectOptions,
     handleCreateModalClose,
     handleEditModalClose,
     handleCreateSubmit,
@@ -58,8 +49,7 @@ function AttributesTableContent() {
     editFormRef,
   } = useAttributesTable()
 
-  const createFormConfig = useMemo(() => createAttributeFormConfig(t, createValueType), [t, createValueType])
-  const editFormConfig = useMemo(() => createAttributeFormConfig(t, editValueType), [t, editValueType])
+  const formConfig = useMemo(() => createAttributeFormConfig(t), [t])
 
   const columns = useMemo(() => {
     const baseColumns: AbzaTableColumn<AttributeDto>[] = [
@@ -153,28 +143,12 @@ function AttributesTableContent() {
         <AbzaForm
           formRef={createFormRef}
           hideSubmitButton
-          config={createFormConfig}
+          config={formConfig}
           resetKey={isCreateModalOpen ? 'create' : 'closed'}
-          onValuesChange={(values) => {
-            const nextValueType = values.valueType ?? ''
-            setCreateValueType(nextValueType)
-            if (nextValueType !== 'select') {
-              setCreateSelectOptions([])
-            }
-          }}
           onSubmit={handleCreateSubmit}
           isLoading={isLoading}
           serverError={createFormError}
         />
-
-        {createValueType === 'select' && (
-          <OptionTags
-            options={createSelectOptions}
-            onChange={setCreateSelectOptions}
-            disabled={isLoading}
-            resetKey={isCreateModalOpen ? 'create' : 'closed'}
-          />
-        )}
       </AbzaModal>
 
       <AbzaModal
@@ -191,29 +165,13 @@ function AttributesTableContent() {
         <AbzaForm
           formRef={editFormRef}
           hideSubmitButton
-          config={editFormConfig}
+          config={formConfig}
           initialValues={editingAttribute ? attributeToFormValues(editingAttribute) : undefined}
           resetKey={editingAttribute?.id ?? 'closed'}
-          onValuesChange={(values) => {
-            const nextValueType = values.valueType ?? ''
-            setEditValueType(nextValueType)
-            if (nextValueType !== 'select') {
-              setEditSelectOptions([])
-            }
-          }}
           onSubmit={handleEditSubmit}
           isLoading={isLoading}
           serverError={editFormError}
         />
-
-        {editValueType === 'select' && (
-          <OptionTags
-            options={editSelectOptions}
-            onChange={setEditSelectOptions}
-            disabled={isLoading}
-            resetKey={editingAttribute?.id ?? 'closed'}
-          />
-        )}
       </AbzaModal>
     </>
   )

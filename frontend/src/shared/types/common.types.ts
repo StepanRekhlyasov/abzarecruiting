@@ -14,7 +14,7 @@ export type PaginationParams = {
   search?: string
 }
 
-export type AbzaFieldType = 'email' | 'password' | 'text' | 'select'
+export type AbzaFieldType = 'email' | 'password' | 'text' | 'select' | 'optionTags'
 
 export type AbzaValidationRule = {
   required?: boolean
@@ -37,6 +37,7 @@ export type AbzaFieldConfig = {
   options?: AbzaSelectOption[]
   autoComplete?: string
   disabled?: boolean
+  showWhen?: { field: string; value: string }
 }
 
 export type AbzaFormConfig = {
@@ -44,7 +45,7 @@ export type AbzaFormConfig = {
   submitLabel: string
 }
 
-export type AbzaFormValues = Record<string, string>
+export type AbzaFormValues = Record<string, string | string[]>
 
 export type AbzaFormErrors = Record<string, string>
 

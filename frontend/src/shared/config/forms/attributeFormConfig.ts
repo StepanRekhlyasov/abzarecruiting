@@ -2,7 +2,7 @@ import type { TFunction } from 'i18next'
 import { ATTRIBUTE_VALUE_TYPES } from '@shared/types'
 import type { AbzaFormConfig } from '@shared/types'
 
-export function createAttributeFormConfig(t: TFunction, _valueType = ''): AbzaFormConfig {
+export function createAttributeFormConfig(t: TFunction): AbzaFormConfig {
   return {
     submitLabel: t('attributes.form.submit'),
     fields: [
@@ -27,6 +27,12 @@ export function createAttributeFormConfig(t: TFunction, _valueType = ''): AbzaFo
           value,
           label: t(`attributes.valueTypes.${value}`),
         })),
+      },
+      {
+        name: 'options',
+        label: t('attributes.valueTypes.select'),
+        type: 'optionTags',
+        showWhen: { field: 'valueType', value: 'select' },
       },
     ],
   }

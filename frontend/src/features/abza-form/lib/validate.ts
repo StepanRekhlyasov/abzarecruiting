@@ -1,4 +1,5 @@
 import type { AbzaFieldConfig, AbzaFormErrors, AbzaFormValues } from '@shared/types'
+import { getStringArrayValue, getStringValue, isFieldVisible } from './fieldVisibility'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -18,8 +19,23 @@ export function validateAbzaForm(
   const errors: AbzaFormErrors = {}
 
   for (const field of fields) {
-    const value = values[field.name] ?? ''
+    if (!isFieldVisible(field, values)) {
+      continue
+    }
+
     const rules = field.validation
+
+    if (field.type === 'optionTags') {
+      const options = getStringArrayValue(values, field.name)
+
+      if (rules?.required && options.length === 0) {
+        errors[field.name] = messages.required
+      }
+
+      continue
+    }
+
+    const value = getStringValue(values, field.name)
 
     if (rules?.required && !value.trim()) {
       errors[field.name] = messages.required

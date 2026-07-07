@@ -28,6 +28,17 @@ import {
 import { $session, isCandidate, isRecruiterOrAdmin } from '@entities/user'
 import { i18n } from '@shared/config/i18n'
 
+function toSubmitValues(values: AbzaFormValues) {
+  const valueType = typeof values.valueType === 'string' ? values.valueType : ''
+
+  return {
+    name: typeof values.name === 'string' ? values.name : '',
+    description: (typeof values.description === 'string' ? values.description : '') || null,
+    valueType,
+    options: valueType === 'select' && Array.isArray(values.options) ? values.options : undefined,
+  }
+}
+
 type AttributesTableContextValue = {
   rows: AttributeDto[]
   totalCount: number
@@ -39,13 +50,9 @@ type AttributesTableContextValue = {
   actionError: string | null
   isCreateModalOpen: boolean
   createFormError: string | null
-  createValueType: string
-  createSelectOptions: string[]
   isEditModalOpen: boolean
   editFormError: string | null
-  editValueType: string
   editingAttribute: AttributeDto | null
-  editSelectOptions: string[]
   canManageAttributes: boolean
   canLinkToProfile: boolean
   isSelectable: boolean
@@ -59,10 +66,6 @@ type AttributesTableContextValue = {
   setPageSize: (size: number) => void
   setSelectedIds: (ids: AbzaTableRowId[]) => void
   setActionError: (error: string | null) => void
-  setCreateValueType: (value: string) => void
-  setCreateSelectOptions: (options: string[]) => void
-  setEditValueType: (value: string) => void
-  setEditSelectOptions: (options: string[]) => void
   handleFilter: () => void
   handleCreateClick: () => void
   handleCreateModalClose: () => void
@@ -100,13 +103,9 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
   const [actionError, setActionError] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [createFormError, setCreateFormError] = useState<string | null>(null)
-  const [createValueType, setCreateValueType] = useState('')
-  const [createSelectOptions, setCreateSelectOptions] = useState<string[]>([])
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editFormError, setEditFormError] = useState<string | null>(null)
-  const [editValueType, setEditValueType] = useState('')
   const [editingAttribute, setEditingAttribute] = useState<AttributeDto | null>(null)
-  const [editSelectOptions, setEditSelectOptions] = useState<string[]>([])
   const [linkedAttributeIds, setLinkedAttributeIds] = useState<number[]>([])
 
   const canManageAttributes = isRecruiterOrAdmin(session)
@@ -195,18 +194,7 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
     setPage(0)
   }, [searchInput])
 
-  const submitAttributeValues = useCallback(
-    async (values: AbzaFormValues) => ({
-      name: values.name,
-      description: values.description || null,
-      valueType: values.valueType,
-      options: values.valueType === 'select' ? createSelectOptions : undefined,
-    }),
-    [createSelectOptions],
-  )
-
   const handleCreateClick = useCallback(() => {
-    setCreateValueType('')
     setCreateFormError(null)
     setIsCreateModalOpen(true)
   }, [])
@@ -215,8 +203,6 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
     if (!isLoading) {
       setIsCreateModalOpen(false)
       setCreateFormError(null)
-      setCreateValueType('')
-      setCreateSelectOptions([])
     }
   }, [isLoading])
 
@@ -225,8 +211,6 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       setIsEditModalOpen(false)
       setEditingAttribute(null)
       setEditFormError(null)
-      setEditValueType('')
-      setEditSelectOptions([])
     }
   }, [isLoading])
 
@@ -236,10 +220,8 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       setCreateFormError(null)
 
       try {
-        await createAttribute(await submitAttributeValues(values))
+        await createAttribute(toSubmitValues(values))
         setIsCreateModalOpen(false)
-        setCreateValueType('')
-        setCreateSelectOptions([])
         onNotify?.(t('attributes.notifications.created'))
         await loadAttributes()
       } catch (error) {
@@ -248,7 +230,7 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
         setIsLoading(false)
       }
     },
-    [loadAttributes, onNotify, submitAttributeValues, t],
+    [loadAttributes, onNotify, t],
   )
 
   const handleEditSubmit = useCallback(
@@ -261,16 +243,9 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       setEditFormError(null)
 
       try {
-        await updateAttribute(editingAttribute.id, {
-          name: values.name,
-          description: values.description || null,
-          valueType: values.valueType,
-          options: values.valueType === 'select' ? editSelectOptions : undefined,
-        })
+        await updateAttribute(editingAttribute.id, toSubmitValues(values))
         setIsEditModalOpen(false)
         setEditingAttribute(null)
-        setEditValueType('')
-        setEditSelectOptions([])
         onNotify?.(t('attributes.notifications.updated'))
         await loadAttributes()
       } catch (error) {
@@ -279,7 +254,7 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
         setIsLoading(false)
       }
     },
-    [editSelectOptions, editingAttribute, loadAttributes, onNotify, t],
+    [editingAttribute, loadAttributes, onNotify, t],
   )
 
   const handleCreateModalSubmit = useCallback(() => {
@@ -302,8 +277,6 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       }
 
       setEditingAttribute(row)
-      setEditValueType(row.valueType)
-      setEditSelectOptions(row.options ?? [])
       setEditFormError(null)
       setIsEditModalOpen(true)
     },
@@ -395,13 +368,9 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       actionError,
       isCreateModalOpen,
       createFormError,
-      createValueType,
-      createSelectOptions,
       isEditModalOpen,
       editFormError,
-      editValueType,
       editingAttribute,
-      editSelectOptions,
       canManageAttributes,
       canLinkToProfile,
       isSelectable,
@@ -415,10 +384,6 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       setPageSize,
       setSelectedIds,
       setActionError,
-      setCreateValueType,
-      setCreateSelectOptions,
-      setEditValueType,
-      setEditSelectOptions,
       handleFilter,
       handleCreateClick,
       handleCreateModalClose,
@@ -443,13 +408,9 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       actionError,
       isCreateModalOpen,
       createFormError,
-      createValueType,
-      createSelectOptions,
       isEditModalOpen,
       editFormError,
-      editValueType,
       editingAttribute,
-      editSelectOptions,
       canManageAttributes,
       canLinkToProfile,
       isSelectable,

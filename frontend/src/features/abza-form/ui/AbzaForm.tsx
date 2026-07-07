@@ -9,7 +9,9 @@ import InputLabel from '@mui/material/InputLabel'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import TextField from '@mui/material/TextField'
+import { OptionTags } from '@shared/ui/inputs'
 import { validateAbzaForm } from '../lib/validate'
+import { getStringArrayValue, getStringValue, isFieldVisible } from '../lib/fieldVisibility'
 import type { AbzaFieldConfig, AbzaFormConfig, AbzaFormValues } from '@shared/types'
 
 type AbzaFormProps = {
@@ -21,11 +23,12 @@ type AbzaFormProps = {
   hideSubmitButton?: boolean
   initialValues?: AbzaFormValues
   resetKey?: string | number
-  onValuesChange?: (values: AbzaFormValues) => void
 }
 
 function createInitialValues(fields: AbzaFieldConfig[], initialValues?: AbzaFormValues): AbzaFormValues {
-  const defaults = Object.fromEntries(fields.map((field) => [field.name, '']))
+  const defaults = Object.fromEntries(
+    fields.map((field) => [field.name, field.type === 'optionTags' ? [] : '']),
+  ) as AbzaFormValues
 
   if (!initialValues) {
     return defaults
@@ -43,7 +46,6 @@ export function AbzaForm({
   hideSubmitButton = false,
   initialValues,
   resetKey,
-  onValuesChange,
 }: AbzaFormProps) {
   const { t } = useTranslation()
   const [values, setValues] = useState<AbzaFormValues>(() => createInitialValues(config.fields, initialValues))
@@ -65,17 +67,35 @@ export function AbzaForm({
   }
 
   const handleChange = (name: string, value: string) => {
-    setValues((prev) => {
-      const next = { ...prev, [name]: value }
+    let next: AbzaFormValues = { ...values, [name]: value }
 
-      onValuesChange?.(next)
-      return next
-    })
+    if (name === 'valueType' && value !== 'select') {
+      for (const field of config.fields) {
+        if (field.type === 'optionTags') {
+          next = { ...next, [field.name]: [] }
+        }
+      }
+    }
+
+    setValues(next)
 
     if (touched[name]) {
       const field = config.fields.find((item) => item.name === name)
       if (field) {
-        const nextErrors = validateAbzaForm([field], { ...values, [name]: value }, validationMessages)
+        const nextErrors = validateAbzaForm([field], next, validationMessages)
+        setErrors((prev) => ({ ...prev, [name]: nextErrors[name] ?? '' }))
+      }
+    }
+  }
+
+  const handleOptionsChange = (name: string, options: string[]) => {
+    const next = { ...values, [name]: options }
+    setValues(next)
+
+    if (touched[name]) {
+      const field = config.fields.find((item) => item.name === name)
+      if (field) {
+        const nextErrors = validateAbzaForm([field], next, validationMessages)
         setErrors((prev) => ({ ...prev, [name]: nextErrors[name] ?? '' }))
       }
     }
@@ -105,8 +125,25 @@ export function AbzaForm({
   }
 
   const renderField = (field: AbzaFieldConfig) => {
+    if (!isFieldVisible(field, values)) {
+      return null
+    }
+
     const error = touched[field.name] ? errors[field.name] : undefined
     const hasError = Boolean(error)
+
+    if (field.type === 'optionTags') {
+      return (
+        <OptionTags
+          key={field.name}
+          label={field.label}
+          options={getStringArrayValue(values, field.name)}
+          onChange={(options) => handleOptionsChange(field.name, options)}
+          disabled={field.disabled || isLoading}
+          resetKey={resetKey}
+        />
+      )
+    }
 
     if (field.type === 'select') {
       return (
@@ -116,7 +153,7 @@ export function AbzaForm({
             labelId={`${field.name}-label`}
             id={field.name}
             name={field.name}
-            value={values[field.name] ?? ''}
+            value={getStringValue(values, field.name)}
             label={field.label}
             disabled={field.disabled || isLoading}
             onChange={(event) => handleChange(field.name, event.target.value)}
@@ -143,7 +180,7 @@ export function AbzaForm({
         name={field.name}
         label={field.label}
         type={inputType}
-        value={values[field.name] ?? ''}
+        value={getStringValue(values, field.name)}
         error={hasError}
         helperText={error}
         autoComplete={field.autoComplete}

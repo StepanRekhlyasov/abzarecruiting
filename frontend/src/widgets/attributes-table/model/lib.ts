@@ -1,4 +1,4 @@
-import type { AbzaFormValues } from '@features/abza-form'
+import type { AbzaFormValues } from '@shared/types'
 import type { AttributeDto } from '@entities/attribute'
 
 export function attributeToFormValues(attribute: AttributeDto): AbzaFormValues {
@@ -6,5 +6,6 @@ export function attributeToFormValues(attribute: AttributeDto): AbzaFormValues {
     name: attribute.name,
     description: attribute.description ?? '',
     valueType: attribute.valueType,
+    options: attribute.options ?? [],
   }
 }
