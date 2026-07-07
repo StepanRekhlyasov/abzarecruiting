@@ -2,8 +2,7 @@ import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
-import { Counter } from '@features/counter'
-import { AppHeader } from '@widgets/app-header'
+import { AppHeader } from '@features/app-header'
 
 export function HomePage() {
   const { t } = useTranslation()
@@ -26,11 +25,9 @@ export function HomePage() {
           {t('home.title')}
         </Typography>
 
-        <Typography variant="body1" color="text.secondary" textAlign="center">
+        <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
           {t('home.description')}
         </Typography>
-
-        <Counter />
       </Box>
       </Container>
     </>

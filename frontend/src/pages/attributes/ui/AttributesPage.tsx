@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
-import { AppHeader } from '@widgets/app-header'
+import { AppHeader } from '@features/app-header'
 import { AttributesTableWithNotifications } from '@widgets/attributes-table'
 
 export function AttributesPage() {

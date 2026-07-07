@@ -7,26 +7,29 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Snackbar from '@mui/material/Snackbar'
 import TextField from '@mui/material/TextField'
-import { $session } from '@features/auth'
+import { $session } from '@entities/user'
+import { createAttributeFormConfig } from '@shared/config/forms'
+import { OptionTags } from '@/features/inputs'
+import { AbzaForm, type AbzaFormValues } from '@features/abza-form'
+import { AbzaModal } from '@features/abza-modal'
+import { AbzaTable } from '@features/abza-table'
+import type { AbzaTableColumn, AbzaTableRowId } from '@features/abza-table'
+import type { AttributeDto } from '@entities/attribute'
 import {
   createAttribute,
-  createAttributeFormConfig,
   deleteAttributesBatch,
   fetchAttributes,
   fetchLinkedProfileAttributeIds,
+  isDefaultAttributeName,
   linkAttributesToProfileBatch,
   unlinkAttributesFromProfileBatch,
   updateAttribute,
-} from '@features/attribute'
-import { OptionTags } from '@features/forms'
-import type { AttributeDto } from '@entities/attribute'
-import { isDefaultAttributeName } from '@entities/attribute'
+} from '@entities/attribute'
 import { isCandidate, isRecruiterOrAdmin } from '@entities/user'
 import { i18n } from '@shared/config/i18n'
-import { AbzaForm, type AbzaFormValues } from '@widgets/abza-form'
-import { AbzaModal } from '@widgets/abza-modal'
-import { AbzaTable } from '@widgets/abza-table'
-import type { AbzaTableColumn, AbzaTableRowId } from '@widgets/abza-table'
+import BackspaceIcon from '@mui/icons-material/Backspace';
+import AddIcon from '@mui/icons-material/Add';
+import SearchIcon from '@mui/icons-material/Search';
 
 const CREATE_ATTRIBUTE_FORM_ID = 'create-attribute-form'
 const EDIT_ATTRIBUTE_FORM_ID = 'edit-attribute-form'
@@ -347,7 +350,7 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
   }
 
   const toolbar = (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'stretch' }}>
       <TextField
         size="small"
         label={t('attributes.search')}
@@ -362,7 +365,7 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
         sx={{ minWidth: 260, flexGrow: 1 }}
       />
       <Button variant="outlined" onClick={handleFilter} disabled={loading}>
-        {t('attributes.actions.filter')}
+        <SearchIcon />
       </Button>
       {canManageAttributes && (
         <Button
@@ -372,18 +375,20 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
             setCreateFormError(null)
             setIsCreateModalOpen(true)
           }}
+          sx={{ boxShadow: 'none' }}
         >
-          {t('attributes.actions.add')}
+          <AddIcon />
         </Button>
       )}
       {canManageAttributes && (
         <Button
-          variant="outlined"
+          variant="contained"
           color="error"
           onClick={handleDeleteSelected}
           disabled={selectedIds.length === 0 || isDeleting}
+          sx={{ boxShadow: 'none' }}
         >
-          {t('attributes.actions.deleteSelected')}
+          <BackspaceIcon />
         </Button>
       )}
       {canLinkToProfile && (
@@ -391,6 +396,7 @@ export function AttributesTable({ onNotify }: AttributesTableProps) {
           variant="contained"
           onClick={handleLinkSelected}
           disabled={selectedIds.length === 0 || isLinking}
+          sx={{ boxShadow: 'none' }}
         >
           {t('attributes.actions.linkSelected')}
         </Button>

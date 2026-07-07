@@ -31,7 +31,7 @@ export function getRolesFromToken(token: string): string[] {
       return []
     }
 
-    return Array.isArray(roleClaim) ? roleClaim : [roleClaim]
+    return Array.isArray(roleClaim) ? roleClaim.map(String) : [String(roleClaim)]
   } catch {
     return []
   }

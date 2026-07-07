@@ -6,11 +6,11 @@ import Container from '@mui/material/Container'
 import Link from '@mui/material/Link'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
-import { createRegisterFormConfig, register, authSucceeded } from '@features/auth'
-import type { UserRole } from '@entities/user'
+import { authSucceeded, register, type UserRole } from '@entities/user'
+import { createRegisterFormConfig } from '@shared/config/forms'
 import { ROUTES } from '@shared/config/routes'
-import { AppHeader } from '@widgets/app-header'
-import { AbzaForm, type AbzaFormValues } from '@widgets/abza-form'
+import { AppHeader } from '@features/app-header'
+import { AbzaForm, type AbzaFormValues } from '@features/abza-form'
 
 export function RegisterPage() {
   const { t } = useTranslation()

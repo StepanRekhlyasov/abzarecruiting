@@ -62,6 +62,9 @@ services:
         - path: ./frontend/package.json
           target: /app/package.json
           action: restart
+        - path: ./frontend/pnpm-lock.yaml
+          target: /app/pnpm-lock.yaml
+          action: restart
         - path: ./frontend/vite.config.ts
           target: /app/vite.config.ts
           action: restart

@@ -1,4 +1,4 @@
-import type { SessionUser } from '@entities/user'
+import type { SessionUser } from '@shared/types'
 
 const SESSION_KEY = 'user_session'
 

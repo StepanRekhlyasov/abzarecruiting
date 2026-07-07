@@ -1,17 +1,19 @@
 # React
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
+RUN corepack enable
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --legacy-peer-deps
+COPY package.json pnpm-lock.yaml ./
+RUN corepack install
+RUN pnpm install --frozen-lockfile
 COPY . .
 
 FROM base AS build-stage
-RUN npm run build
+RUN pnpm run build
 
 FROM base AS dev-stage
 ENV CHOKIDAR_USEPOLLING=true
 EXPOSE 80
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "80"]
+CMD ["pnpm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "80"]
 
 # Nginx (production only)
 FROM nginx:stable-alpine AS production-stage

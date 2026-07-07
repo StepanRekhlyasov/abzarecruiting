@@ -6,10 +6,11 @@ import Container from '@mui/material/Container'
 import Link from '@mui/material/Link'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
-import { createLoginFormConfig, login, authSucceeded } from '@features/auth'
+import { authSucceeded, login } from '@entities/user'
+import { createLoginFormConfig } from '@shared/config/forms'
 import { ROUTES } from '@shared/config/routes'
-import { AppHeader } from '@widgets/app-header'
-import { AbzaForm, type AbzaFormValues } from '@widgets/abza-form'
+import { AppHeader } from '@features/app-header'
+import { AbzaForm, type AbzaFormValues } from '@features/abza-form'
 
 export function LoginPage() {
   const { t } = useTranslation()
