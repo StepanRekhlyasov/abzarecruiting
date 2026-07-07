@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
-import Snackbar from '@mui/material/Snackbar'
 import { createAttributeFormConfig } from '@shared/config/forms'
 import { OptionTags } from '@/features/inputs'
 import { AbzaForm } from '@features/abza-form'
@@ -221,18 +220,9 @@ function AttributesTableContent() {
 }
 
 export function AttributesTable() {
-  const [notification, setNotification] = useState<string | null>(null)
-
   return (
-    <AttributesTableProvider onNotify={setNotification}>
+    <AttributesTableProvider>
       <AttributesTableContent />
-      <Snackbar
-        open={Boolean(notification)}
-        autoHideDuration={4000}
-        onClose={() => setNotification(null)}
-        message={notification ?? ''}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      />
     </AttributesTableProvider>
   )
 }
