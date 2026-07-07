@@ -11,7 +11,7 @@ export function AbzaModal({
   onClose,
   onSubmit,
   children,
-  isSubmitting = false,
+  isLoading = false,
   maxWidth = 'sm',
 }: AbzaModalProps) {
   return (
@@ -19,10 +19,10 @@ export function AbzaModal({
       <DialogTitle>{config.title}</DialogTitle>
       <DialogContent dividers>{children}</DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={isSubmitting}>
+        <Button onClick={onClose} disabled={isLoading}>
           {config.cancelLabel}
         </Button>
-        <Button variant="contained" onClick={onSubmit} disabled={isSubmitting}>
+        <Button variant="contained" onClick={onSubmit} disabled={isLoading}>
           {config.submitLabel}
         </Button>
       </DialogActions>

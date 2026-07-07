@@ -15,13 +15,13 @@ import { AbzaForm, type AbzaFormValues } from '@features/abza-form'
 export function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
   const formConfig = useMemo(() => createLoginFormConfig(t), [t])
 
   const handleSubmit = async (values: AbzaFormValues) => {
-    setIsSubmitting(true)
+    setIsLoading(true)
     setServerError(null)
 
     try {
@@ -35,7 +35,7 @@ export function LoginPage() {
     } catch (error) {
       setServerError(error instanceof Error ? error.message : t('auth.errors.unknown'))
     } finally {
-      setIsSubmitting(false)
+      setIsLoading(false)
     }
   }
 
@@ -56,7 +56,7 @@ export function LoginPage() {
             <AbzaForm
               config={formConfig}
               onSubmit={handleSubmit}
-              isSubmitting={isSubmitting}
+              isLoading={isLoading}
               serverError={serverError}
             />
 

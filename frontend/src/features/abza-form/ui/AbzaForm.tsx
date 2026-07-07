@@ -15,7 +15,7 @@ import type { AbzaFieldConfig, AbzaFormConfig, AbzaFormValues } from '@shared/ty
 type AbzaFormProps = {
   config: AbzaFormConfig
   onSubmit: (values: AbzaFormValues) => void | Promise<void>
-  isSubmitting?: boolean
+  isLoading?: boolean
   serverError?: string | null
   formId?: string
   hideSubmitButton?: boolean
@@ -37,7 +37,7 @@ function createInitialValues(fields: AbzaFieldConfig[], initialValues?: AbzaForm
 export function AbzaForm({
   config,
   onSubmit,
-  isSubmitting = false,
+  isLoading = false,
   serverError,
   formId,
   hideSubmitButton = false,
@@ -118,7 +118,7 @@ export function AbzaForm({
             name={field.name}
             value={values[field.name] ?? ''}
             label={field.label}
-            disabled={field.disabled || isSubmitting}
+            disabled={field.disabled || isLoading}
             onChange={(event) => handleChange(field.name, event.target.value)}
             onBlur={() => handleBlur(field.name)}
           >
@@ -147,7 +147,7 @@ export function AbzaForm({
         error={hasError}
         helperText={error}
         autoComplete={field.autoComplete}
-        disabled={field.disabled || isSubmitting}
+        disabled={field.disabled || isLoading}
         onChange={(event) => handleChange(field.name, event.target.value)}
         onBlur={() => handleBlur(field.name)}
       />
@@ -161,7 +161,7 @@ export function AbzaForm({
       {config.fields.map(renderField)}
 
       {!hideSubmitButton && (
-        <Button type="submit" variant="contained" size="large" disabled={isSubmitting}>
+        <Button type="submit" variant="contained" size="large" disabled={isLoading}>
           {config.submitLabel}
         </Button>
       )}

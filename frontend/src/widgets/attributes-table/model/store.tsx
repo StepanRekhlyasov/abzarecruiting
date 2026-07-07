@@ -37,12 +37,10 @@ type AttributesTableContextValue = {
   isLoading: boolean
   actionError: string | null
   isCreateModalOpen: boolean
-  isCreateSubmitting: boolean
   createFormError: string | null
   createValueType: string
   createSelectOptions: string[]
   isEditModalOpen: boolean
-  isEditSubmitting: boolean
   editFormError: string | null
   editValueType: string
   editingAttribute: AttributeDto | null
@@ -97,12 +95,10 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
   const [isLoading, setIsLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [isCreateSubmitting, setIsCreateSubmitting] = useState(false)
   const [createFormError, setCreateFormError] = useState<string | null>(null)
   const [createValueType, setCreateValueType] = useState('')
   const [createSelectOptions, setCreateSelectOptions] = useState<string[]>([])
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [isEditSubmitting, setIsEditSubmitting] = useState(false)
   const [editFormError, setEditFormError] = useState<string | null>(null)
   const [editValueType, setEditValueType] = useState('')
   const [editingAttribute, setEditingAttribute] = useState<AttributeDto | null>(null)
@@ -212,27 +208,27 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
   }, [])
 
   const handleCreateModalClose = useCallback(() => {
-    if (!isCreateSubmitting) {
+    if (!isLoading) {
       setIsCreateModalOpen(false)
       setCreateFormError(null)
       setCreateValueType('')
       setCreateSelectOptions([])
     }
-  }, [isCreateSubmitting])
+  }, [isLoading])
 
   const handleEditModalClose = useCallback(() => {
-    if (!isEditSubmitting) {
+    if (!isLoading) {
       setIsEditModalOpen(false)
       setEditingAttribute(null)
       setEditFormError(null)
       setEditValueType('')
       setEditSelectOptions([])
     }
-  }, [isEditSubmitting])
+  }, [isLoading])
 
   const handleCreateSubmit = useCallback(
     async (values: AbzaFormValues) => {
-      setIsCreateSubmitting(true)
+      setIsLoading(true)
       setCreateFormError(null)
 
       try {
@@ -245,7 +241,7 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       } catch (error) {
         setCreateFormError(error instanceof Error ? error.message : t('attributes.errors.create'))
       } finally {
-        setIsCreateSubmitting(false)
+        setIsLoading(false)
       }
     },
     [loadAttributes, onNotify, submitAttributeValues, t],
@@ -257,7 +253,7 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
         return
       }
 
-      setIsEditSubmitting(true)
+      setIsLoading(true)
       setEditFormError(null)
 
       try {
@@ -276,7 +272,7 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       } catch (error) {
         setEditFormError(error instanceof Error ? error.message : t('attributes.errors.update'))
       } finally {
-        setIsEditSubmitting(false)
+        setIsLoading(false)
       }
     },
     [editSelectOptions, editingAttribute, loadAttributes, onNotify, t],
@@ -396,12 +392,10 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       isLoading,
       actionError,
       isCreateModalOpen,
-      isCreateSubmitting,
       createFormError,
       createValueType,
       createSelectOptions,
       isEditModalOpen,
-      isEditSubmitting,
       editFormError,
       editValueType,
       editingAttribute,
@@ -445,12 +439,10 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       isLoading,
       actionError,
       isCreateModalOpen,
-      isCreateSubmitting,
       createFormError,
       createValueType,
       createSelectOptions,
       isEditModalOpen,
-      isEditSubmitting,
       editFormError,
       editValueType,
       editingAttribute,

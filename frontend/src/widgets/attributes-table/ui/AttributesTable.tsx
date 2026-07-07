@@ -34,12 +34,10 @@ function AttributesTableContent() {
     isLoading,
     actionError,
     isCreateModalOpen,
-    isCreateSubmitting,
     createFormError,
     createValueType,
     createSelectOptions,
     isEditModalOpen,
-    isEditSubmitting,
     editFormError,
     editValueType,
     editingAttribute,
@@ -155,7 +153,7 @@ function AttributesTableContent() {
         }}
         onClose={handleCreateModalClose}
         onSubmit={handleCreateModalSubmit}
-        isSubmitting={isCreateSubmitting}
+        isLoading={isLoading}
       >
         <AbzaForm
           formId={CREATE_ATTRIBUTE_FORM_ID}
@@ -170,7 +168,7 @@ function AttributesTableContent() {
             }
           }}
           onSubmit={handleCreateSubmit}
-          isSubmitting={isCreateSubmitting}
+          isLoading={isLoading}
           serverError={createFormError}
         />
 
@@ -178,7 +176,7 @@ function AttributesTableContent() {
           <OptionTags
             options={createSelectOptions}
             onChange={setCreateSelectOptions}
-            disabled={isCreateSubmitting}
+            disabled={isLoading}
             resetKey={isCreateModalOpen ? 'create' : 'closed'}
           />
         )}
@@ -193,7 +191,7 @@ function AttributesTableContent() {
         }}
         onClose={handleEditModalClose}
         onSubmit={handleEditModalSubmit}
-        isSubmitting={isEditSubmitting}
+        isLoading={isLoading}
       >
         <AbzaForm
           formId={EDIT_ATTRIBUTE_FORM_ID}
@@ -209,7 +207,7 @@ function AttributesTableContent() {
             }
           }}
           onSubmit={handleEditSubmit}
-          isSubmitting={isEditSubmitting}
+          isLoading={isLoading}
           serverError={editFormError}
         />
 
@@ -217,7 +215,7 @@ function AttributesTableContent() {
           <OptionTags
             options={editSelectOptions}
             onChange={setEditSelectOptions}
-            disabled={isEditSubmitting}
+            disabled={isLoading}
             resetKey={editingAttribute?.id ?? 'closed'}
           />
         )}

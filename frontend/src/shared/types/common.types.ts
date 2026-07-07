@@ -90,6 +90,6 @@ export type AbzaModalProps = {
   onClose: () => void
   onSubmit: () => void | Promise<void>
   children: ReactNode
-  isSubmitting?: boolean
+  isLoading?: boolean
   maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 }
