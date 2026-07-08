@@ -80,13 +80,9 @@ type AttributesTableContextValue = {
   handleUnlinkSelected: () => Promise<void>
 }
 
-type AttributesTableProviderProps = PropsWithChildren<{
-  onNotify?: (message: string) => void
-}>
-
 const AttributesTableContext = createContext<AttributesTableContextValue | null>(null)
 
-export function AttributesTableProvider({ children, onNotify }: AttributesTableProviderProps) {
+export function AttributesTableProvider({ children }: PropsWithChildren) {
   const { t } = useTranslation()
   const session = useUnit($session)
   const createFormRef = useRef<HTMLFormElement>(null)
@@ -222,7 +218,6 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       try {
         await createAttribute(toSubmitValues(values))
         setIsCreateModalOpen(false)
-        onNotify?.(t('attributes.notifications.created'))
         await loadAttributes()
       } catch (error) {
         setCreateFormError(error instanceof Error ? error.message : t('attributes.errors.create'))
@@ -230,7 +225,7 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
         setIsLoading(false)
       }
     },
-    [loadAttributes, onNotify, t],
+    [loadAttributes, t],
   )
 
   const handleEditSubmit = useCallback(
@@ -243,21 +238,22 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       setEditFormError(null)
 
       try {
-        await updateAttribute(editingAttribute.id, {
+        const updated = await updateAttribute(editingAttribute.id, {
           ...toSubmitValues(values),
           version: editingAttribute.version,
         })
+        setRows((currentRows) =>
+          currentRows.map((row) => (row.id === updated.id ? updated : row)),
+        )
         setIsEditModalOpen(false)
         setEditingAttribute(null)
-        onNotify?.(t('attributes.notifications.updated'))
-        await loadAttributes()
       } catch (error) {
         setEditFormError(error instanceof Error ? error.message : t('attributes.errors.update'))
       } finally {
         setIsLoading(false)
       }
     },
-    [editingAttribute, loadAttributes, onNotify, t],
+    [editingAttribute, t],
   )
 
   const handleCreateModalSubmit = useCallback(() => {
@@ -275,7 +271,6 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       }
 
       if (isDefaultAttributeName(row.name)) {
-        onNotify?.(t('attributes.errors.editDefault'))
         return
       }
 
@@ -283,7 +278,7 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       setEditFormError(null)
       setIsEditModalOpen(true)
     },
-    [canManageAttributes, onNotify, t],
+    [canManageAttributes, t],
   )
 
   const handleDeleteSelected = useCallback(async () => {
@@ -302,15 +297,16 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       })
 
       await deleteAttributesBatch(items)
+      const deletedIds = new Set(items.map((item) => item.id))
+      setRows((currentRows) => currentRows.filter((row) => !deletedIds.has(row.id)))
+      setTotalCount((currentTotal) => Math.max(0, currentTotal - count))
       setSelectedIds([])
-      onNotify?.(t('attributes.notifications.deleted', { count }))
-      await loadAttributes()
     } catch (error) {
       setActionError(error instanceof Error ? error.message : t('attributes.errors.delete'))
     } finally {
       setIsLoading(false)
     }
-  }, [loadAttributes, onNotify, rows, selectedIds, t])
+  }, [rows, selectedIds, t])  
 
   const handleLinkSelected = useCallback(async () => {
     if (!session?.id || selectedIds.length === 0) {
@@ -321,17 +317,15 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
     setActionError(null)
 
     try {
-      const count = selectedIds.length
       await linkAttributesToProfileBatch(selectedIds.map((id) => Number(id)), session.id)
       setSelectedIds([])
-      onNotify?.(t('attributes.notifications.linked', { count }))
       await loadLinkedAttributeIds()
     } catch (error) {
       setActionError(error instanceof Error ? error.message : t('attributes.errors.link'))
     } finally {
       setIsLoading(false)
     }
-  }, [loadLinkedAttributeIds, onNotify, selectedIds, session?.id, t])
+  }, [loadLinkedAttributeIds, selectedIds, session?.id, t])
 
   const handleUnlinkSelected = useCallback(async () => {
     if (!session?.id || unlinkableSelectedCount === 0 || hasDefaultInSelection) {
@@ -346,7 +340,6 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
     try {
       await unlinkAttributesFromProfileBatch(idsToUnlink, session.id)
       setSelectedIds([])
-      onNotify?.(t('attributes.notifications.unlinked', { count: idsToUnlink.length }))
       await loadLinkedAttributeIds()
     } catch (error) {
       setActionError(error instanceof Error ? error.message : t('attributes.errors.unlink'))
@@ -357,7 +350,6 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
     hasDefaultInSelection,
     linkedAttributeIdSet,
     loadLinkedAttributeIds,
-    onNotify,
     selectedIds,
     session?.id,
     t,
