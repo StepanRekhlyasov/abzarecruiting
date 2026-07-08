@@ -1,4 +1,4 @@
-import { type FormEvent, type RefObject, useEffect, useState } from 'react'
+import { type RefObject, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -102,7 +102,7 @@ export function AbzaForm({
     }
   }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     const nextErrors = validateAbzaForm(config.fields, values, validationMessages)
