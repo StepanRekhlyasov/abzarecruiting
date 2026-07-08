@@ -25,7 +25,6 @@ import {
   updateAttribute,
 } from '@entities/attribute'
 import { $session, isCandidate, isRecruiterOrAdmin } from '@entities/user'
-import { i18n } from '@shared/config/i18n'
 
 function toSubmitValues(values: AbzaFormValues) {
   const valueType = typeof values.valueType === 'string' ? values.valueType : ''
