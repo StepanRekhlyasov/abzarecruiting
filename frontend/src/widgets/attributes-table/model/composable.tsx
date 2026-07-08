@@ -20,7 +20,6 @@ import {
   deleteAttributesBatch,
   fetchAttributes,
   fetchLinkedProfileAttributeIds,
-  isDefaultAttributeName,
   linkAttributesToProfileBatch,
   unlinkAttributesFromProfileBatch,
   updateAttribute,
@@ -57,8 +56,6 @@ type AttributesTableContextValue = {
   canLinkToProfile: boolean
   isSelectable: boolean
   linkedAttributeIdSet: Set<number>
-  hasDefaultInSelection: boolean
-  unlinkableSelectedCount: number
   createFormRef: RefObject<HTMLFormElement | null>
   editFormRef: RefObject<HTMLFormElement | null>
   setSearchInput: (value: string) => void
@@ -109,14 +106,6 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
   const isSelectable = canLinkToProfile || canManageAttributes
 
   const linkedAttributeIdSet = useMemo(() => new Set(linkedAttributeIds), [linkedAttributeIds])
-  const hasDefaultInSelection = useMemo(
-    () => rows.some((row) => selectedIds.includes(row.id) && isDefaultAttributeName(row.name)),
-    [rows, selectedIds],
-  )
-  const unlinkableSelectedCount = useMemo(
-    () => selectedIds.filter((id) => linkedAttributeIdSet.has(Number(id))).length,
-    [selectedIds, linkedAttributeIdSet],
-  )
 
   const loadLinkedAttributeIds = useCallback(async (signal?: AbortSignal) => {
     if (!session?.id || !canLinkToProfile) {
@@ -270,10 +259,6 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
         return
       }
 
-      if (isDefaultAttributeName(row.name)) {
-        return
-      }
-
       setEditingAttribute(row)
       setEditFormError(null)
       setIsEditModalOpen(true)
@@ -328,7 +313,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
   }, [loadLinkedAttributeIds, selectedIds, session?.id, t])
 
   const handleUnlinkSelected = useCallback(async () => {
-    if (!session?.id || unlinkableSelectedCount === 0 || hasDefaultInSelection) {
+    if (!session?.id) {
       return
     }
 
@@ -347,13 +332,11 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       setIsLoading(false)
     }
   }, [
-    hasDefaultInSelection,
     linkedAttributeIdSet,
     loadLinkedAttributeIds,
     selectedIds,
     session?.id,
     t,
-    unlinkableSelectedCount,
   ])
 
   const value = useMemo<AttributesTableContextValue>(
@@ -368,15 +351,13 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       actionError,
       isCreateModalOpen,
       createFormError,
-      isEditModalOpen,
+      isEditModalOpen,  
       editFormError,
       editingAttribute,
       canManageAttributes,
       canLinkToProfile,
       isSelectable,
       linkedAttributeIdSet,
-      hasDefaultInSelection,
-      unlinkableSelectedCount,
       createFormRef,
       editFormRef,
       setSearchInput,
@@ -415,8 +396,6 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       canLinkToProfile,
       isSelectable,
       linkedAttributeIdSet,
-      hasDefaultInSelection,
-      unlinkableSelectedCount,
       handleFilter,
       handleCreateClick,
       handleCreateModalClose,

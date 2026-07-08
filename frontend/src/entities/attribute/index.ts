@@ -12,7 +12,6 @@ export {
   getInputTypesForValueType,
   INPUT_TYPES_BY_VALUE_TYPE,
 } from './model/constants'
-export { DEFAULT_ATTRIBUTE_NAMES, isDefaultAttributeName } from './model/defaults'
 export {
   createAttribute,
   deleteAttribute,
