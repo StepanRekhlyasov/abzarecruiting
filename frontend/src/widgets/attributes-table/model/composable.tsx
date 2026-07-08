@@ -153,7 +153,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       }
 
       if (!signal?.aborted) {
-        setActionError(error instanceof Error ? error.message : i18n.t('attributes.errors.load'))
+        setActionError(error instanceof Error ? error.message : t('attributes.errors.load'))
       }
     } finally {
       if (!signal?.aborted) {
@@ -214,7 +214,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
         setIsLoading(false)
       }
     },
-    [loadAttributes, t],
+    [loadAttributes],
   )
 
   const handleEditSubmit = useCallback(
@@ -242,7 +242,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
         setIsLoading(false)
       }
     },
-    [editingAttribute, t],
+    [editingAttribute],
   )
 
   const handleCreateModalSubmit = useCallback(() => {
@@ -263,7 +263,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       setEditFormError(null)
       setIsEditModalOpen(true)
     },
-    [canManageAttributes, t],
+    [canManageAttributes],
   )
 
   const handleDeleteSelected = useCallback(async () => {
@@ -291,7 +291,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
     } finally {
       setIsLoading(false)
     }
-  }, [rows, selectedIds, t])  
+  }, [rows, selectedIds])  
 
   const handleLinkSelected = useCallback(async () => {
     if (!session?.id || selectedIds.length === 0) {
@@ -310,7 +310,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
     } finally {
       setIsLoading(false)
     }
-  }, [loadLinkedAttributeIds, selectedIds, session?.id, t])
+  }, [loadLinkedAttributeIds, selectedIds, session?.id])
 
   const handleUnlinkSelected = useCallback(async () => {
     if (!session?.id) {
@@ -336,7 +336,6 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
     loadLinkedAttributeIds,
     selectedIds,
     session?.id,
-    t,
   ])
 
   const value = useMemo<AttributesTableContextValue>(
