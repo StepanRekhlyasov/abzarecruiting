@@ -3,6 +3,7 @@ export type {
   AttributeInputType,
   AttributeValueType,
   CreateAttributeRequest,
+  DeleteAttributeItem,
   UpdateAttributeRequest,
 } from '@shared/types'
 export {

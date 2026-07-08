@@ -2,6 +2,7 @@ import { isAxiosError } from 'axios'
 import type {
   AttributeDto,
   CreateAttributeRequest,
+  DeleteAttributeItem,
   PagedResult,
   PaginationParams,
   UpdateAttributeRequest,
@@ -76,17 +77,17 @@ export async function updateAttribute(id: number, request: UpdateAttributeReques
   }
 }
 
-export async function deleteAttribute(id: number): Promise<void> {
+export async function deleteAttribute(id: number, version: number): Promise<void> {
   try {
-    await apiClient.delete(`/attribute/${id}`)
+    await apiClient.delete(`/attribute/${id}`, { params: { version } })
   } catch (error) {
     throw new Error(parseErrorMessage(error))
   }
 }
 
-export async function deleteAttributesBatch(attributeIds: number[]): Promise<void> {
+export async function deleteAttributesBatch(items: DeleteAttributeItem[]): Promise<void> {
   try {
-    await apiClient.delete('/attribute/delete', { data: { ids: attributeIds } })
+    await apiClient.delete('/attribute/delete', { data: { items } })
   } catch (error) {
     throw new Error(parseErrorMessage(error))
   }

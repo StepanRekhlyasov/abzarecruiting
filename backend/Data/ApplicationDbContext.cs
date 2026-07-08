@@ -55,6 +55,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(attribute => attribute.CreatedAt)
                 .HasColumnType("datetime(6)");
 
+            entity.Property(attribute => attribute.Version)
+                .HasDefaultValue(0);
+
             entity.HasOne(attribute => attribute.CreatedBy)
                 .WithMany()
                 .HasForeignKey(attribute => attribute.CreatedById)

@@ -6,6 +6,7 @@ export type AttributeDto = {
   inputType: string
   options: string[]
   createdAt: string
+  version: number
 }
 
 export type CreateAttributeRequest = {
@@ -15,7 +16,14 @@ export type CreateAttributeRequest = {
   options?: string[]
 }
 
-export type UpdateAttributeRequest = CreateAttributeRequest
+export type UpdateAttributeRequest = CreateAttributeRequest & {
+  version: number
+}
+
+export type DeleteAttributeItem = {
+  id: number
+  version: number
+}
 
 export const ATTRIBUTE_VALUE_TYPES = ['string', 'text', 'number', 'boolean', 'date', 'select', 'period', 'image'] as const
 export const ATTRIBUTE_INPUT_TYPES = ['text', 'textarea', 'image', 'number', 'checkbox', 'date', 'select', 'period'] as const

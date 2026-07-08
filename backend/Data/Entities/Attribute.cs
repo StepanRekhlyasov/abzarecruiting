@@ -10,6 +10,7 @@ public class Attribute
     public string ValueType { get; set; } = string.Empty;
     public string InputType { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+    public int Version { get; set; }
     public string CreatedById { get; set; } = string.Empty;
     public ApplicationUser CreatedBy { get; set; } = null!;
     public ICollection<AttributeOption> Options { get; set; } = [];

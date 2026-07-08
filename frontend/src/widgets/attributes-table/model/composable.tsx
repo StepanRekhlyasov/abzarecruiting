@@ -243,7 +243,10 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
       setEditFormError(null)
 
       try {
-        await updateAttribute(editingAttribute.id, toSubmitValues(values))
+        await updateAttribute(editingAttribute.id, {
+          ...toSubmitValues(values),
+          version: editingAttribute.version,
+        })
         setIsEditModalOpen(false)
         setEditingAttribute(null)
         onNotify?.(t('attributes.notifications.updated'))
@@ -293,7 +296,12 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
     setActionError(null)
 
     try {
-      await deleteAttributesBatch(selectedIds.map((id) => Number(id)))
+      const items = selectedIds.map((id) => {
+        const row = rows.find((item) => item.id === Number(id))
+        return { id: Number(id), version: row?.version ?? 0 }
+      })
+
+      await deleteAttributesBatch(items)
       setSelectedIds([])
       onNotify?.(t('attributes.notifications.deleted', { count }))
       await loadAttributes()
@@ -302,7 +310,7 @@ export function AttributesTableProvider({ children, onNotify }: AttributesTableP
     } finally {
       setIsLoading(false)
     }
-  }, [loadAttributes, onNotify, selectedIds, t])
+  }, [loadAttributes, onNotify, rows, selectedIds, t])
 
   const handleLinkSelected = useCallback(async () => {
     if (!session?.id || selectedIds.length === 0) {

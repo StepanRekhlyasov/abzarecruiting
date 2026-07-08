@@ -3,6 +3,7 @@ export type {
   AttributeInputType,
   AttributeValueType,
   CreateAttributeRequest,
+  DeleteAttributeItem,
   UpdateAttributeRequest,
 } from './attribute.types'
 export { ATTRIBUTE_INPUT_TYPES, ATTRIBUTE_VALUE_TYPES } from './attribute.types'

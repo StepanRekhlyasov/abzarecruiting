@@ -17,9 +17,9 @@ public interface IAttributeService
 
     Task<AttributeDto?> UpdateAsync(int id, UpdateAttributeRequest request, CancellationToken cancellationToken = default);
 
-    Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(int id, int version, CancellationToken cancellationToken = default);
 
-    Task DeleteBatchAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default);
+    Task DeleteBatchAsync(IEnumerable<DeleteAttributeItem> items, CancellationToken cancellationToken = default);
 
     Task<bool> SetCandidateValueAsync(
         int attributeId,
@@ -32,6 +32,8 @@ public interface IAttributeService
 
 public class AttributeService(ApplicationDbContext db, IAttributeValueMapper valueMapper) : IAttributeService
 {
+    private const string VersionChangedMessage = "The attribute version has changed.";
+
     public async Task<PagedResult<AttributeDto>> GetListAsync(
         PaginationParams pagination,
         CancellationToken cancellationToken = default)
@@ -117,6 +119,11 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
             throw new InvalidOperationException("Default attributes cannot be updated.");
         }
 
+        if (attribute.Version != request.Version)
+        {
+            throw new InvalidOperationException(VersionChangedMessage);
+        }
+
         var name = request.Name.Trim();
         await EnsureNameIsUniqueAsync(name, attribute.Id, cancellationToken);
 
@@ -142,11 +149,12 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
             }
         }
 
+        attribute.Version++;
         await db.SaveChangesAsync(cancellationToken);
         return Map(attribute);
     }
 
-    public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(int id, int version, CancellationToken cancellationToken = default)
     {
         var attribute = await db.Attributes.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (attribute is null)
@@ -159,25 +167,34 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
             throw new InvalidOperationException("Default attributes cannot be deleted.");
         }
 
+        if (attribute.Version != version)
+        {
+            throw new InvalidOperationException(VersionChangedMessage);
+        }
+
         db.Attributes.Remove(attribute);
         await db.SaveChangesAsync(cancellationToken);
         return true;
     }
 
-    public async Task DeleteBatchAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default)
+    public async Task DeleteBatchAsync(IEnumerable<DeleteAttributeItem> items, CancellationToken cancellationToken = default)
     {
-        var uniqueIds = ids.Distinct().ToList();
+        var uniqueItems = items
+            .GroupBy(item => item.Id)
+            .Select(group => group.Last())
+            .ToList();
 
-        if (uniqueIds.Count == 0)
+        if (uniqueItems.Count == 0)
         {
             return;
         }
 
+        var ids = uniqueItems.Select(item => item.Id).ToList();
         var attributes = await db.Attributes
-            .Where(item => uniqueIds.Contains(item.Id))
+            .Where(item => ids.Contains(item.Id))
             .ToListAsync(cancellationToken);
 
-        if (attributes.Count != uniqueIds.Count)
+        if (attributes.Count != ids.Count)
         {
             throw new InvalidOperationException("One or more attributes were not found.");
         }
@@ -185,6 +202,16 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         if (attributes.Any(item => DefaultAttributes.IsDefaultName(item.Name)))
         {
             throw new InvalidOperationException("Default attributes cannot be deleted.");
+        }
+
+        var versionById = uniqueItems.ToDictionary(item => item.Id, item => item.Version);
+
+        foreach (var attribute in attributes)
+        {
+            if (attribute.Version != versionById[attribute.Id])
+            {
+                throw new InvalidOperationException(VersionChangedMessage);
+            }
         }
 
         db.Attributes.RemoveRange(attributes);
@@ -251,6 +278,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
             .Select(option => option.InputOption)
             .ToList(),
         CreatedAt = attribute.CreatedAt,
+        Version = attribute.Version,
     };
 
     private static string InferInputType(string valueType)

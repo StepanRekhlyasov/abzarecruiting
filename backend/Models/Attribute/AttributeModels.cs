@@ -18,7 +18,10 @@ public class CreateAttributeRequest
     public IList<string> Options { get; set; } = [];
 }
 
-public class UpdateAttributeRequest : CreateAttributeRequest;
+public class UpdateAttributeRequest : CreateAttributeRequest
+{
+    public int Version { get; set; }
+}
 
 public class AttributeDto
 {
@@ -35,6 +38,15 @@ public class AttributeDto
     public IList<string> Options { get; set; } = [];
 
     public DateTime CreatedAt { get; set; }
+
+    public int Version { get; set; }
+}
+
+public class DeleteAttributeItem
+{
+    public int Id { get; set; }
+
+    public int Version { get; set; }
 }
 
 public class SetProfileAttributeRequest
@@ -47,5 +59,5 @@ public class DeleteAttributesRequest
 {
     [Required]
     [MinLength(1)]
-    public IList<int> Ids { get; set; } = [];
+    public IList<DeleteAttributeItem> Items { get; set; } = [];
 }

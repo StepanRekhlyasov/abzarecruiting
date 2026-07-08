@@ -10,7 +10,7 @@ export function createAttributeFormConfig(t: TFunction): AbzaFormConfig {
         name: 'name',
         label: t('attributes.fields.name'),
         type: 'text',
-        validation: { required: true, minLength: 2, maxLength: 256 },
+        validation: { required: true, maxLength: 256 },
       },
       {
         name: 'description',

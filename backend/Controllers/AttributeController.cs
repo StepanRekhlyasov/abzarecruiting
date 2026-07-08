@@ -65,7 +65,7 @@ public class AttributeController(IAttributeService attributeService) : Controlle
     {
         try
         {
-            await attributeService.DeleteBatchAsync(request.Ids, cancellationToken);
+            await attributeService.DeleteBatchAsync(request.Items, cancellationToken);
             return NoContent();
         }
         catch (InvalidOperationException exception)
@@ -76,11 +76,11 @@ public class AttributeController(IAttributeService attributeService) : Controlle
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(int id, [FromQuery] int version, CancellationToken cancellationToken)
     {
         try
         {
-            var deleted = await attributeService.DeleteAsync(id, cancellationToken);
+            var deleted = await attributeService.DeleteAsync(id, version, cancellationToken);
             return deleted ? NoContent() : NotFound();
         }
         catch (InvalidOperationException exception)
