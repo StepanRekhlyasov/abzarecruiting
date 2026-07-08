@@ -10,16 +10,12 @@ type OptionTagsProps = {
   onChange: (options: string[]) => void
   disabled?: boolean
   label?: string
-  resetKey?: string | number
 }
 
-export function OptionTags({ options, onChange, disabled = false, label, resetKey }: OptionTagsProps) {
+export function OptionTags({ options, onChange, disabled = false, label }: OptionTagsProps) {
   const { t } = useTranslation()
   const [input, setInput] = useState('')
 
-  useEffect(() => {
-    setInput('')
-  }, [resetKey])
 
   const addOption = () => {
     const option = input.trim()

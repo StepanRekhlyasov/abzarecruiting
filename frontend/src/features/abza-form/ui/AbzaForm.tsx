@@ -22,7 +22,6 @@ type AbzaFormProps = {
   formRef?: RefObject<HTMLFormElement | null>
   hideSubmitButton?: boolean
   initialValues?: AbzaFormValues
-  resetKey?: string | number
 }
 
 function createInitialValues(fields: AbzaFieldConfig[], initialValues?: AbzaFormValues): AbzaFormValues {
@@ -45,18 +44,11 @@ export function AbzaForm({
   formRef,
   hideSubmitButton = false,
   initialValues,
-  resetKey,
 }: AbzaFormProps) {
   const { t } = useTranslation()
   const [values, setValues] = useState<AbzaFormValues>(() => createInitialValues(config.fields, initialValues))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
-
-  useEffect(() => {
-    setValues(createInitialValues(config.fields, initialValues))
-    setErrors({})
-    setTouched({})
-  }, [resetKey])
 
   const validationMessages = {
     required: t('form.errors.required'),
@@ -140,7 +132,6 @@ export function AbzaForm({
           options={getStringArrayValue(values, field.name)}
           onChange={(options) => handleOptionsChange(field.name, options)}
           disabled={field.disabled || isLoading}
-          resetKey={resetKey}
         />
       )
     }

@@ -144,7 +144,6 @@ function AttributesTableContent() {
           formRef={createFormRef}
           hideSubmitButton
           config={formConfig}
-          resetKey={isCreateModalOpen ? 'create' : 'closed'}
           onSubmit={handleCreateSubmit}
           isLoading={isLoading}
           serverError={createFormError}
@@ -167,7 +166,6 @@ function AttributesTableContent() {
           hideSubmitButton
           config={formConfig}
           initialValues={editingAttribute ? attributeToFormValues(editingAttribute) : undefined}
-          resetKey={editingAttribute?.id ?? 'closed'}
           onSubmit={handleEditSubmit}
           isLoading={isLoading}
           serverError={editFormError}
