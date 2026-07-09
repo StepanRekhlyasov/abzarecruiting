@@ -1,0 +1,52 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace Backend.Api.Models.User;
+
+public class UserListItemDto
+{
+    public string Id { get; set; } = string.Empty;
+
+    public string Email { get; set; } = string.Empty;
+
+    public string FirstName { get; set; } = string.Empty;
+
+    public string LastName { get; set; } = string.Empty;
+
+    public string Role { get; set; } = string.Empty;
+}
+
+public class CreateUserRequest
+{
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+
+    [Required]
+    public string Password { get; set; } = string.Empty;
+
+    [Required]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Required]
+    public string LastName { get; set; } = string.Empty;
+
+    [Required]
+    public string Role { get; set; } = string.Empty;
+}
+
+public class ChangeUsersRoleBatchRequest
+{
+    [Required]
+    [MinLength(1)]
+    public List<string> UserIds { get; set; } = [];
+
+    [Required]
+    public string Role { get; set; } = string.Empty;
+}
+
+public class DeleteUsersRequest
+{
+    [Required]
+    [MinLength(1)]
+    public List<string> UserIds { get; set; } = [];
+}

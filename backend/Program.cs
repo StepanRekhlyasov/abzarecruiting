@@ -12,6 +12,7 @@ using Backend.Api.Services.Project;
 using Backend.Api.Services.Restriction;
 using Backend.Api.Services.Resume;
 using Backend.Api.Services.Tag;
+using Backend.Api.Services.User;
 using Backend.Api.WebSockets;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -84,6 +85,7 @@ builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<IResumeService, ResumeService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddSingleton<NotificationWebSocketHandler>();
 
 builder.Services.AddControllers();
@@ -138,7 +140,9 @@ using (var scope = app.Services.CreateScope())
         .CreateLogger("Startup");
     var defaultAttributesSettings = scope.ServiceProvider
         .GetRequiredService<IOptions<DefaultAttributesSettings>>();
-    await AttributeSeeder.SeedAsync(db, userManager, defaultAttributesSettings, logger);
+    var profileAttributeService = scope.ServiceProvider.GetRequiredService<IProfileAttributeService>();
+    await AttributeSeeder.SeedAsync(db, userManager, profileAttributeService, defaultAttributesSettings, logger);
+    await UserSeeder.SeedAsync(userManager, profileAttributeService, logger);
 }
 
 if (app.Environment.IsDevelopment())

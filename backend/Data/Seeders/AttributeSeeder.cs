@@ -1,4 +1,5 @@
 using Backend.Api.Configuration;
+using Backend.Api.Services.Profile;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -8,9 +9,13 @@ namespace Backend.Api.Data.Seeders;
 
 public static class AttributeSeeder
 {
+    private const string SystemUserFirstName = "Stepan";
+    private const string SystemUserLastName = "Rekhliasov";
+
     public static async Task SeedAsync(
         ApplicationDbContext db,
         UserManager<ApplicationUser> userManager,
+        IProfileAttributeService profileAttributeService,
         IOptions<DefaultAttributesSettings> settings,
         ILogger logger)
     {
@@ -64,6 +69,21 @@ public static class AttributeSeeder
         {
             await db.SaveChangesAsync();
             logger.LogInformation("Default profile attributes were seeded.");
+        }
+
+        try
+        {
+            await profileAttributeService.SetStringValuesAsync(systemUserId, new Dictionary<string, string>
+            {
+                [DefaultAttributes.FirstName] = SystemUserFirstName,
+                [DefaultAttributes.LastName] = SystemUserLastName,
+            });
+        }
+        catch (InvalidOperationException exception)
+        {
+            logger.LogWarning(
+                "System user profile name was not set: {Message}",
+                exception.Message);
         }
     }
 

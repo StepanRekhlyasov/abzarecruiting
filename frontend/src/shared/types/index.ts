@@ -10,15 +10,17 @@ export { ATTRIBUTE_INPUT_TYPES, ATTRIBUTE_VALUE_TYPES } from './attribute.types'
 
 export type {
   AuthResponse,
+  ChangeUsersRoleBatchRequest,
+  CreateUserRequest,
   CurrentUserResponse,
+  DeleteUsersRequest,
   LoginRequest,
   RegisterRequest,
   SessionUser,
   User,
+  UserListItem,
   UserRole,
 } from './user.types'
-
-export type { CandidateListItem } from './candidate.types'
 
 export type {
   AbzaFieldConfig,

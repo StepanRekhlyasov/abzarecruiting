@@ -11,7 +11,7 @@ namespace Backend.Api.Controllers;
 [Route("api/profile")]
 public class ProfileController(IProfileService profileService) : ControllerBase
 {
-    [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
+    [Authorize(Roles = Roles.Admin)]
     [HttpGet("{candidateId}")]
     public async Task<ActionResult<ProfileDto>> GetByCandidateId(string candidateId, CancellationToken cancellationToken)
     {

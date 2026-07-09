@@ -13,15 +13,37 @@
   "profile": {
     "title": "Profile",
     "placeholder": "Profile content will appear here",
-    "candidates": {
-      "title": "Candidates",
+    "users": {
+      "title": "Users",
       "search": "Search by first name, last name or email",
       "loading": "Loading...",
-      "empty": "No candidates found",
+      "empty": "No users found",
       "columns": {
         "firstName": "First name",
         "lastName": "Last name",
-        "email": "Email"
+        "email": "Email",
+        "role": "Role",
+        "actions": ""
+      },
+      "actions": {
+        "changeRoleSelected": "Change role",
+        "editRole": "Edit role"
+      },
+      "create": {
+        "title": "New user",
+        "submit": "Create",
+        "cancel": "Cancel"
+      },
+      "changeRole": {
+        "title": "Change role",
+        "submit": "Save",
+        "cancel": "Cancel"
+      },
+      "errors": {
+        "load": "Failed to load users",
+        "create": "Failed to create user",
+        "changeRole": "Failed to change role",
+        "delete": "Failed to delete users"
       }
     }
   },
@@ -53,7 +75,8 @@
     },
     "roles": {
       "candidate": "Candidate",
-      "recruiter": "Recruiter"
+      "recruiter": "Recruiter",
+      "admin": "Admin"
     },
     "login": {
       "title": "Log in",
@@ -154,6 +177,11 @@
     "auth": {
       "invalidRole": "Invalid role.",
       "invalidCredentials": "Invalid email or password."
+    },
+    "users": {
+      "notFound": "One or more users were not found",
+      "cannotDeleteSelf": "You cannot delete your own account",
+      "cannotChangeOwnRole": "You cannot change your own role"
     },
     "attributes": {
       "load": "Failed to load attributes",

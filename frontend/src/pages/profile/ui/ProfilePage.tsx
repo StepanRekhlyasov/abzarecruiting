@@ -7,7 +7,7 @@ import Typography from '@mui/material/Typography'
 import { AppHeader } from '@features/app-header'
 import { $session, isAdmin, isCandidate } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
-import { CandidatesTable } from '@widgets/candidates-table'
+import { UsersTable } from '@widgets/users-table'
 
 export function ProfilePage() {
   const { t } = useTranslation()
@@ -24,10 +24,10 @@ export function ProfilePage() {
         <Container maxWidth="lg">
           <Box sx={{ py: 4 }}>
             <Typography variant="h4" component="h1" gutterBottom>
-              {t('profile.candidates.title')}
+              {t('profile.users.title')}
             </Typography>
 
-            <CandidatesTable />
+            <UsersTable />
           </Box>
         </Container>
       </>

@@ -13,15 +13,37 @@
   "profile": {
     "title": "Профиль",
     "placeholder": "Содержимое профиля появится здесь",
-    "candidates": {
-      "title": "Кандидаты",
+    "users": {
+      "title": "Пользователи",
       "search": "Поиск по имени, фамилии или email",
       "loading": "Загрузка...",
-      "empty": "Кандидаты не найдены",
+      "empty": "Пользователи не найдены",
       "columns": {
         "firstName": "Имя",
         "lastName": "Фамилия",
-        "email": "Email"
+        "email": "Email",
+        "role": "Роль",
+        "actions": ""
+      },
+      "actions": {
+        "changeRoleSelected": "Сменить роль",
+        "editRole": "Изменить роль"
+      },
+      "create": {
+        "title": "Новый пользователь",
+        "submit": "Создать",
+        "cancel": "Отмена"
+      },
+      "changeRole": {
+        "title": "Сменить роль",
+        "submit": "Сохранить",
+        "cancel": "Отмена"
+      },
+      "errors": {
+        "load": "Не удалось загрузить пользователей",
+        "create": "Не удалось создать пользователя",
+        "changeRole": "Не удалось сменить роль",
+        "delete": "Не удалось удалить пользователей"
       }
     }
   },
@@ -53,7 +75,8 @@
     },
     "roles": {
       "candidate": "Кандидат",
-      "recruiter": "Рекрутер"
+      "recruiter": "Рекрутер",
+      "admin": "Админ"
     },
     "login": {
       "title": "Вход",
@@ -154,6 +177,11 @@
     "auth": {
       "invalidRole": "Некорректная роль.",
       "invalidCredentials": "Неверный email или пароль."
+    },
+    "users": {
+      "notFound": "Один или несколько пользователей не найдены",
+      "cannotDeleteSelf": "Нельзя удалить собственный аккаунт",
+      "cannotChangeOwnRole": "Нельзя изменить собственную роль"
     },
     "attributes": {
       "load": "Не удалось загрузить атрибуты",

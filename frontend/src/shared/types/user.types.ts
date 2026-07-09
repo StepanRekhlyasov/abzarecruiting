@@ -36,3 +36,28 @@ export type User = {
   id: string
   name: string
 }
+
+export type UserListItem = {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  role: UserRole | string
+}
+
+export type CreateUserRequest = {
+  email: string
+  password: string
+  firstName: string
+  lastName: string
+  role: UserRole
+}
+
+export type ChangeUsersRoleBatchRequest = {
+  userIds: string[]
+  role: UserRole
+}
+
+export type DeleteUsersRequest = {
+  userIds: string[]
+}
