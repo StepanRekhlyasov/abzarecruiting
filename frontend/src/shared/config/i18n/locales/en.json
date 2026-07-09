@@ -7,7 +7,23 @@
     "logout": "Log out",
     "greeting": "Hello, {{name}}!",
     "menu": "Menu",
-    "attributes": "Attributes"
+    "attributes": "Attributes",
+    "profile": "Profile"
+  },
+  "profile": {
+    "title": "Profile",
+    "placeholder": "Profile content will appear here",
+    "candidates": {
+      "title": "Candidates",
+      "search": "Search by first name, last name or email",
+      "loading": "Loading...",
+      "empty": "No candidates found",
+      "columns": {
+        "firstName": "First name",
+        "lastName": "Last name",
+        "email": "Email"
+      }
+    }
   },
   "home": {
     "title": "Home",

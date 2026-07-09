@@ -3,6 +3,7 @@ import { HomePage } from '@pages/home'
 import { LoginPage } from '@pages/login'
 import { RegisterPage } from '@pages/register'
 import { AttributesPage } from '@pages/attributes'
+import { ProfileDetailPage, ProfilePage } from '@pages/profile'
 import { ROUTES } from '@shared/config/routes'
 
 export function AppRouter() {
@@ -13,6 +14,8 @@ export function AppRouter() {
         <Route path={ROUTES.login} element={<LoginPage />} />
         <Route path={ROUTES.register} element={<RegisterPage />} />
         <Route path={ROUTES.attributes} element={<AttributesPage />} />
+        <Route path={ROUTES.profile} element={<ProfilePage />} />
+        <Route path={ROUTES.profileDetail} element={<ProfileDetailPage />} />
       </Routes>
     </BrowserRouter>
   )

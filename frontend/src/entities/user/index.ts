@@ -7,7 +7,7 @@ export type {
   User,
   UserRole,
 } from '@shared/types'
-export { getSessionDisplayName, isCandidate, isRecruiterOrAdmin } from './model/helpers'
+export { getSessionDisplayName, isAdmin, isCandidate, isRecruiterOrAdmin } from './model/helpers'
 export { getCurrentUser, isUnauthorizedError, login, register } from './api/authApi'
 export {
   $session,

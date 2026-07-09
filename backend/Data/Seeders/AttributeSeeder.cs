@@ -138,6 +138,14 @@ public static class AttributeSeeder
         var user = await userManager.FindByEmailAsync(settings.SystemUserEmail);
         if (user is not null)
         {
+            if (!await userManager.IsInRoleAsync(user, Roles.Admin))
+            {
+                await userManager.AddToRoleAsync(user, Roles.Admin);
+                logger.LogInformation(
+                    "System user '{Email}' was granted Admin role.",
+                    settings.SystemUserEmail);
+            }
+
             return user.Id;
         }
 

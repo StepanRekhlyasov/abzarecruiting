@@ -36,8 +36,8 @@ services:
       - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=camp_project;User=app;Password=app;
       - Cors__AllowedOrigins__0=http://localhost:8000
       - Jwt__SecretKey=CHANGE_ME_TO_A_LONG_RANDOM_SECRET_KEY_AT_LEAST_32_CHARS
-      - DefaultAttributes__SystemUserEmail=system@local
-      - DefaultAttributes__SystemUserPassword=SystemUser1
+      - DefaultAttributes__SystemUserEmail=srekhlyasov@gmail.com
+      - DefaultAttributes__SystemUserPassword=1
     depends_on:
       mysql:
         condition: service_healthy

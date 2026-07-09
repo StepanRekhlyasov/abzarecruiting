@@ -7,7 +7,23 @@
     "logout": "Выйти",
     "greeting": "Привет, {{name}}!",
     "menu": "Меню",
-    "attributes": "Атрибуты"
+    "attributes": "Атрибуты",
+    "profile": "Профиль"
+  },
+  "profile": {
+    "title": "Профиль",
+    "placeholder": "Содержимое профиля появится здесь",
+    "candidates": {
+      "title": "Кандидаты",
+      "search": "Поиск по имени, фамилии или email",
+      "loading": "Загрузка...",
+      "empty": "Кандидаты не найдены",
+      "columns": {
+        "firstName": "Имя",
+        "lastName": "Фамилия",
+        "email": "Email"
+      }
+    }
   },
   "home": {
     "title": "Главная",

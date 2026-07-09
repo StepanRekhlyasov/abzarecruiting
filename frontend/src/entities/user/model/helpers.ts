@@ -13,3 +13,7 @@ export function isRecruiterOrAdmin(user: SessionUser | null): boolean {
 export function isCandidate(user: SessionUser | null): boolean {
   return user?.roles.includes('Candidate') ?? false
 }
+
+export function isAdmin(user: SessionUser | null): boolean {
+  return user?.roles.includes('Admin') ?? false
+}

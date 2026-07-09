@@ -1,5 +1,7 @@
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
+import { useUnit } from 'effector-react'
 import Box from '@mui/material/Box'
 import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
@@ -7,6 +9,7 @@ import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
 import Typography from '@mui/material/Typography'
+import { $session, isAdmin, isCandidate } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
 import { useAppSettings } from '@shared/config/app/index'
 
@@ -15,15 +18,22 @@ type AppSidebarProps = {
   onClose: () => void
 }
 
-const NAV_ITEMS = [
-  { to: ROUTES.attributes, labelKey: 'common.attributes' as const },
-]
-
 export function AppSidebar({ open, onClose }: AppSidebarProps) {
   const { t } = useTranslation()
   const location = useLocation()
   const { version } = useAppSettings()
-  
+  const session = useUnit($session)
+
+  const navItems = useMemo(() => {
+    const items = [{ to: ROUTES.attributes, labelKey: 'common.attributes' as const }]
+
+    if (isCandidate(session) || isAdmin(session)) {
+      items.push({ to: ROUTES.profile, labelKey: 'common.profile' as const })
+    }
+
+    return items
+  }, [session])
+
   return (
     <Drawer anchor="left" open={open} onClose={onClose}>
       <Box sx={{ width: 280 }} role="navigation">
@@ -32,7 +42,7 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
         </Box>
         <Divider />
         <List>
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <ListItemButton
               key={item.to}
               component={RouterLink}

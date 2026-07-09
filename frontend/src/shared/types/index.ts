@@ -18,6 +18,8 @@ export type {
   UserRole,
 } from './user.types'
 
+export type { CandidateListItem } from './candidate.types'
+
 export type {
   AbzaFieldConfig,
   AbzaFieldType,
