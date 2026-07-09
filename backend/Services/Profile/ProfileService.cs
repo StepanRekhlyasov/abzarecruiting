@@ -119,7 +119,7 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
 
         if (attributes.Count != uniqueIds.Count)
         {
-            throw new InvalidOperationException("One or more attributes were not found.");
+            throw new InvalidOperationException("error.attributes.notFound");
         }
 
         var existingAttributeIds = await db.ProfileAttributes
@@ -171,12 +171,12 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
 
         if (attributes.Count != uniqueIds.Count)
         {
-            throw new InvalidOperationException("One or more attributes were not found.");
+            throw new InvalidOperationException("error.attributes.notFound");
         }
 
         if (attributes.Any(attribute => DefaultAttributes.IsDefaultName(attribute.Name)))
         {
-            throw new InvalidOperationException("Default attributes cannot be removed from profile.");
+            throw new InvalidOperationException("error.attributes.editDefault");
         }
 
         var profileAttributes = await db.ProfileAttributes

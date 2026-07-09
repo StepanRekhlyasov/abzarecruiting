@@ -9,7 +9,6 @@ import {
   type PropsWithChildren,
   type RefObject,
 } from 'react'
-import { useTranslation } from 'react-i18next'
 import { isAxiosError } from 'axios'
 import { useUnit } from 'effector-react'
 import type { AbzaFormValues } from '@features/abza-form'
@@ -25,6 +24,7 @@ import {
   updateAttribute,
 } from '@entities/attribute'
 import { $session, isCandidate, isRecruiterOrAdmin } from '@entities/user'
+import { getErrorKey } from '@shared/lib/errors'
 
 function toSubmitValues(values: AbzaFormValues) {
   const valueType = typeof values.valueType === 'string' ? values.valueType : ''
@@ -79,7 +79,6 @@ type AttributesTableContextValue = {
 const AttributesTableContext = createContext<AttributesTableContextValue | null>(null)
 
 export function AttributesTableProvider({ children }: PropsWithChildren) {
-  const { t } = useTranslation()
   const session = useUnit($session)
   const createFormRef = useRef<HTMLFormElement>(null)
   const editFormRef = useRef<HTMLFormElement>(null)
@@ -152,7 +151,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       }
 
       if (!signal?.aborted) {
-        setActionError(error instanceof Error ? error.message : t('attributes.errors.load'))
+        setActionError(getErrorKey(error, 'error.attributes.load'))
       }
     } finally {
       if (!signal?.aborted) {
@@ -208,7 +207,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
         setIsCreateModalOpen(false)
         await loadAttributes()
       } catch (error) {
-        setCreateFormError(error instanceof Error ? error.message : t('attributes.errors.create'))
+        setCreateFormError(getErrorKey(error, 'error.attributes.create'))
       } finally {
         setIsLoading(false)
       }
@@ -236,7 +235,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
         setIsEditModalOpen(false)
         setEditingAttribute(null)
       } catch (error) {
-        setEditFormError(error instanceof Error ? error.message : t('attributes.errors.update'))
+        setEditFormError(getErrorKey(error, 'error.attributes.update'))
       } finally {
         setIsLoading(false)
       }
@@ -286,7 +285,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       setTotalCount((currentTotal) => Math.max(0, currentTotal - count))
       setSelectedIds([])
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : t('attributes.errors.delete'))
+      setActionError(getErrorKey(error, 'error.attributes.delete'))
     } finally {
       setIsLoading(false)
     }
@@ -305,7 +304,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       setSelectedIds([])
       await loadLinkedAttributeIds()
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : t('attributes.errors.link'))
+      setActionError(getErrorKey(error, 'error.attributes.link'))
     } finally {
       setIsLoading(false)
     }
@@ -326,7 +325,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       setSelectedIds([])
       await loadLinkedAttributeIds()
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : t('attributes.errors.unlink'))
+      setActionError(getErrorKey(error, 'error.attributes.unlink'))
     } finally {
       setIsLoading(false)
     }

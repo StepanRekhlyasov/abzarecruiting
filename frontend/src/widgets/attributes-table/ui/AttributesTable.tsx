@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import { createAttributeFormConfig } from '@shared/config/forms'
+import { resolveErrorMessage } from '@shared/lib/errors'
 import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
 import { AbzaTable } from '@features/abza-table'
@@ -49,6 +50,7 @@ function AttributesTableContent() {
     editFormRef,
   } = useAttributesTable()
 
+  const resolvedActionError = resolveErrorMessage(actionError)
   const formConfig = useMemo(() => createAttributeFormConfig(t), [t])
 
   const columns = useMemo(() => {
@@ -95,9 +97,9 @@ function AttributesTableContent() {
 
   return (
     <>
-      {actionError && (
+      {resolvedActionError && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>
-          {actionError}
+          {resolvedActionError}
         </Alert>
       )}
 

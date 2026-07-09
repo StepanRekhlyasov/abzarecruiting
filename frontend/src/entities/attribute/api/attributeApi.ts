@@ -8,36 +8,10 @@ import type {
   UpdateAttributeRequest,
 } from '@shared/types'
 import { apiClient } from '@shared/api'
+import { parseApiError } from '@shared/lib/errors'
 
 type FetchAttributesOptions = {
   signal?: AbortSignal
-}
-
-type ApiErrorBody = {
-  message?: string
-  errors?: string[]
-}
-
-function parseErrorMessage(error: unknown): string {
-  if (isAxiosError(error)) {
-    const body = error.response?.data as ApiErrorBody | undefined
-
-    if (body?.errors?.length) {
-      return body.errors.join(' ')
-    }
-
-    if (body?.message) {
-      return body.message
-    }
-
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Request failed'
 }
 
 export async function fetchAttributes(
@@ -55,7 +29,7 @@ export async function fetchAttributes(
       throw error
     }
 
-    throw new Error(parseErrorMessage(error))
+    throw new Error(parseApiError(error))
   }
 }
 
@@ -64,7 +38,7 @@ export async function createAttribute(request: CreateAttributeRequest): Promise<
     const { data } = await apiClient.post<AttributeDto>('/attribute', request)
     return data
   } catch (error) {
-    throw new Error(parseErrorMessage(error))
+    throw new Error(parseApiError(error))
   }
 }
 
@@ -73,7 +47,7 @@ export async function updateAttribute(id: number, request: UpdateAttributeReques
     const { data } = await apiClient.post<AttributeDto>(`/attribute/${id}`, request)
     return data
   } catch (error) {
-    throw new Error(parseErrorMessage(error))
+    throw new Error(parseApiError(error))
   }
 }
 
@@ -81,7 +55,7 @@ export async function deleteAttribute(id: number, version: number): Promise<void
   try {
     await apiClient.delete(`/attribute/${id}`, { params: { version } })
   } catch (error) {
-    throw new Error(parseErrorMessage(error))
+    throw new Error(parseApiError(error))
   }
 }
 
@@ -89,7 +63,7 @@ export async function deleteAttributesBatch(items: DeleteAttributeItem[]): Promi
   try {
     await apiClient.delete('/attribute/delete', { data: { items } })
   } catch (error) {
-    throw new Error(parseErrorMessage(error))
+    throw new Error(parseApiError(error))
   }
 }
 
@@ -100,7 +74,7 @@ export async function linkAttributesToProfileBatch(
   try {
     await apiClient.post(`/profile/${candidateId}/add`, { attributeIds })
   } catch (error) {
-    throw new Error(parseErrorMessage(error))
+    throw new Error(parseApiError(error))
   }
 }
 
@@ -111,7 +85,7 @@ export async function unlinkAttributesFromProfileBatch(
   try {
     await apiClient.post(`/profile/${candidateId}/remove`, { attributeIds })
   } catch (error) {
-    throw new Error(parseErrorMessage(error))
+    throw new Error(parseApiError(error))
   }
 }
 
@@ -129,6 +103,6 @@ export async function fetchLinkedProfileAttributeIds(
       throw error
     }
 
-    throw new Error(parseErrorMessage(error))
+    throw new Error(parseApiError(error))
   }
 }

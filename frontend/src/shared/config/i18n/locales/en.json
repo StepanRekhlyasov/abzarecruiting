@@ -130,5 +130,26 @@
       "link": "Failed to add attributes to profile",
       "unlink": "Failed to remove attributes from profile"
     }
+  },
+  "error": {
+    "unknown": "Something went wrong. Please try again.",
+    "unauthorized": "Unauthorized. Please log in again.",
+    "oldVersion": "You have stale content. Please refresh the page",
+    "auth": {
+      "invalidRole": "Invalid role.",
+      "invalidCredentials": "Invalid email or password."
+    },
+    "attributes": {
+      "load": "Failed to load attributes",
+      "create": "Failed to create attribute",
+      "update": "Failed to update attribute",
+      "delete": "Failed to delete attributes",
+      "link": "Failed to add attributes to profile",
+      "unlink": "Failed to remove attributes from profile",
+      "editDefault": "Default attributes cannot be edited",
+      "notFound": "One or more attributes were not found",
+      "nameExists": "An attribute with this name already exists",
+      "unsupportedValueType": "Unsupported attribute value type"
+    }
   }
 }

@@ -22,7 +22,7 @@ public class AuthController(
     {
         if (request.Role is not (Roles.Candidate or Roles.Recruiter))
         {
-            return BadRequest(new { message = "Invalid role." });
+            return BadRequest(new { message = "error.auth.invalidRole" });
         }
 
         var user = new ApplicationUser
@@ -78,14 +78,14 @@ public class AuthController(
 
         if (user is null)
         {
-            return Unauthorized(new { message = "Invalid email or password." });
+            return Unauthorized(new { message = "error.auth.invalidCredentials" });
         }
 
         var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
 
         if (!result.Succeeded)
         {
-            return Unauthorized(new { message = "Invalid email or password." });
+            return Unauthorized(new { message = "error.auth.invalidCredentials" });
         }
 
         var token = await jwtTokenService.CreateTokenAsync(user);

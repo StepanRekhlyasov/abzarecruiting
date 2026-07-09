@@ -10,6 +10,7 @@ import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import TextField from '@mui/material/TextField'
 import { OptionTags } from '@shared/ui/inputs'
+import { resolveErrorMessage } from '@shared/lib/errors'
 import { validateAbzaForm } from '../lib/validate'
 import { getStringArrayValue, getStringValue, isFieldVisible } from '../lib/fieldVisibility'
 import type { AbzaFieldConfig, AbzaFormConfig, AbzaFormValues } from '@shared/types'
@@ -49,6 +50,7 @@ export function AbzaForm({
   const [values, setValues] = useState<AbzaFormValues>(() => createInitialValues(config.fields, initialValues))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const resolvedServerError = resolveErrorMessage(serverError)
 
   const validationMessages = {
     required: t('form.errors.required'),
@@ -184,7 +186,7 @@ export function AbzaForm({
 
   return (
     <Box component="form" ref={formRef} onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {serverError && <Alert severity="error">{serverError}</Alert>}
+      {resolvedServerError && <Alert severity="error">{resolvedServerError}</Alert>}
 
       {config.fields.map(renderField)}
 

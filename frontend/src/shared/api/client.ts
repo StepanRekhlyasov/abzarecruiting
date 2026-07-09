@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { getAccessToken } from '@shared/lib/auth/accessToken'
+import { logout } from '@entities/user'
 import { API_BASE_URL } from './config'
 
 export const apiClient = axios.create({
@@ -18,3 +19,16 @@ apiClient.interceptors.request.use((config) => {
 
   return config
 })
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status
+
+    if (status === 401) {
+      logout()
+    }
+
+    return Promise.reject(error)
+  },
+)

@@ -32,7 +32,7 @@ public interface IAttributeService
 
 public class AttributeService(ApplicationDbContext db, IAttributeValueMapper valueMapper) : IAttributeService
 {
-    private const string VersionChangedMessage = "The attribute version has changed.";
+    private const string VersionChangedMessage = "error.oldVersion";
 
     public async Task<PagedResult<AttributeDto>> GetListAsync(
         PaginationParams pagination,
@@ -116,7 +116,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
 
         if (DefaultAttributes.IsDefaultName(attribute.Name))
         {
-            throw new InvalidOperationException("Default attributes cannot be updated.");
+            throw new InvalidOperationException("error.attributes.editDefault");
         }
 
         if (attribute.Version != request.Version)
@@ -164,7 +164,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
 
         if (DefaultAttributes.IsDefaultName(attribute.Name))
         {
-            throw new InvalidOperationException("Default attributes cannot be deleted.");
+            throw new InvalidOperationException("error.attributes.editDefault");
         }
 
         if (attribute.Version != version)
@@ -196,12 +196,12 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
 
         if (attributes.Count != ids.Count)
         {
-            throw new InvalidOperationException("One or more attributes were not found.");
+            throw new InvalidOperationException("error.attributes.notFound");
         }
 
         if (attributes.Any(item => DefaultAttributes.IsDefaultName(item.Name)))
         {
-            throw new InvalidOperationException("Default attributes cannot be deleted.");
+            throw new InvalidOperationException("error.attributes.editDefault");
         }
 
         var versionById = uniqueItems.ToDictionary(item => item.Id, item => item.Version);
@@ -294,7 +294,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
             "select" => "select",
             "period" => "period",
             "image" => "image",
-            _ => throw new InvalidOperationException($"Unsupported attribute valueType '{valueType}'."),
+            _ => throw new InvalidOperationException("error.attributes.unsupportedValueType"),
         };
     }
 
@@ -326,7 +326,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
 
         if (await query.AnyAsync(cancellationToken))
         {
-            throw new InvalidOperationException("An attribute with this name already exists.");
+            throw new InvalidOperationException("error.attributes.nameExists");
         }
     }
 }

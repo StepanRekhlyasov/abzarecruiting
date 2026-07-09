@@ -9,6 +9,7 @@ import Typography from '@mui/material/Typography'
 import { authSucceeded, login } from '@entities/user'
 import { createLoginFormConfig } from '@shared/config/forms'
 import { ROUTES } from '@shared/config/routes'
+import { getErrorKey } from '@shared/lib/errors'
 import { AppHeader } from '@features/app-header'
 import { AbzaForm, type AbzaFormValues } from '@features/abza-form'
 
@@ -33,7 +34,7 @@ export function LoginPage() {
       authSucceeded(response)
       navigate(ROUTES.home)
     } catch (error) {
-      setServerError(error instanceof Error ? error.message : t('auth.errors.unknown'))
+      setServerError(getErrorKey(error))
     } finally {
       setIsLoading(false)
     }
