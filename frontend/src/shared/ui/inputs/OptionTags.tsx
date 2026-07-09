@@ -32,7 +32,7 @@ export function OptionTags({ options, onChange, disabled = false, label }: Optio
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'stretch' }}>
         <TextField
           fullWidth
-          label={label ?? t('attributes.valueTypes.select')}
+          label={label ?? t('attributes.inputTypes.select')}
           value={input}
           disabled={disabled}
           onChange={(event) => setInput(event.target.value)}

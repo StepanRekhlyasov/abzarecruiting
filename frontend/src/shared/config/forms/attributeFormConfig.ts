@@ -30,7 +30,7 @@ export function createAttributeFormConfig(t: TFunction): AbzaFormConfig {
       },
       {
         name: 'options',
-        label: t('attributes.valueTypes.select'),
+        label: t('attributes.inputTypes.select'),
         type: 'optionTags',
         showWhen: { field: 'valueType', value: 'select' },
       },
