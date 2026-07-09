@@ -4,6 +4,7 @@ import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import { createAttributeFormConfig } from '@shared/config/forms'
 import { i18n } from '@shared/config/i18n'
+import { formatDateTime } from '@shared/lib/date'
 import { resolveErrorMessage } from '@shared/lib/errors'
 import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
@@ -82,6 +83,12 @@ function AttributesTableContent() {
         label: t('attributes.columns.inputType'),
         sortable: true,
         render: (row) => t(`attributes.inputTypes.${row.inputType}`, row.inputType),
+      },
+      {
+        id: 'createdAt',
+        label: t('attributes.columns.createdAt'),
+        sortable: true,
+        render: (row) => formatDateTime(row.createdAt),
       },
     ]
 

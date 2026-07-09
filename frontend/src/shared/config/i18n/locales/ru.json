@@ -23,6 +23,7 @@
         "lastName": "Фамилия",
         "email": "Email",
         "role": "Роль",
+        "createdAt": "Создан",
         "actions": ""
       },
       "actions": {
@@ -105,7 +106,8 @@
       "name": "Имя",
       "description": "Описание",
       "valueType": "Тип значения",
-      "inputType": "Тип ввода"
+      "inputType": "Тип ввода",
+      "createdAt": "Создан"
     },
     "fields": {
       "name": "Имя",

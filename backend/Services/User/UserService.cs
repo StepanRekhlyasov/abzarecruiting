@@ -51,6 +51,7 @@ public class UserService(
                     FirstName = names.FirstName,
                     LastName = names.LastName,
                     Role = role ?? string.Empty,
+                    CreatedAt = user.CreatedAt,
                 };
             });
 
@@ -72,6 +73,9 @@ public class UserService(
             "lastname" => pagination.IsDescending
                 ? items.OrderByDescending(user => user.LastName)
                 : items.OrderBy(user => user.LastName),
+            "email" => pagination.IsDescending
+                ? items.OrderByDescending(user => user.Email)
+                : items.OrderBy(user => user.Email),
             "role" => pagination.IsDescending
                 ? items.OrderByDescending(user => user.Role)
                 : items.OrderBy(user => user.Role),
@@ -79,8 +83,8 @@ public class UserService(
                 ? items.OrderByDescending(user => user.Id)
                 : items.OrderBy(user => user.Id),
             _ => pagination.IsDescending
-                ? items.OrderByDescending(user => user.Email)
-                : items.OrderBy(user => user.Email),
+                ? items.OrderByDescending(user => user.CreatedAt)
+                : items.OrderBy(user => user.CreatedAt),
         };
 
         var filtered = items.ToList();
@@ -143,6 +147,7 @@ public class UserService(
             FirstName = request.FirstName,
             LastName = request.LastName,
             Role = request.Role,
+            CreatedAt = user.CreatedAt,
         };
     }
 

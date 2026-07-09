@@ -43,6 +43,7 @@ export type UserListItem = {
   lastName: string
   email: string
   role: UserRole | string
+  createdAt: string
 }
 
 export type CreateUserRequest = {
