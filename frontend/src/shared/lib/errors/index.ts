@@ -1,5 +1,4 @@
 import { isAxiosError } from 'axios'
-import type { TFunction } from 'i18next'
 import { i18n } from '@shared/config/i18n'
 
 type ApiErrorBody = {
