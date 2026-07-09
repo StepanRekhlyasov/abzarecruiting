@@ -32,7 +32,7 @@ public interface IPositionService
         UpdatePositionRequest request,
         CancellationToken cancellationToken = default);
 
-    Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(int id, int version, CancellationToken cancellationToken = default);
 
     Task<bool> UpsertAttributeAsync(
         int positionId,
@@ -55,6 +55,7 @@ public class PositionService(
     ApplicationDbContext db,
     IPositionRestrictionEvaluator restrictionEvaluator) : IPositionService
 {
+    private const string VersionChangedMessage = "error.oldVersion";
     public async Task<PagedResult<PositionListItemDto>> GetListAsync(
         PaginationParams pagination,
         ClaimsPrincipal? user,
@@ -103,6 +104,7 @@ public class PositionService(
                 Level = item.Level,
                 Format = item.Format,
                 CreatedAt = item.CreatedAt,
+                Version = item.Version,
                 Attributes = item.Attributes,
                 Tags = item.Tags,
             }
@@ -143,23 +145,34 @@ public class PositionService(
             return null;
         }
 
+        if (position.Version != request.Version)
+        {
+            throw new InvalidOperationException(VersionChangedMessage);
+        }
+
         position.Name = request.Name;
         position.Description = request.Description;
         position.Company = request.Company;
         position.Country = request.Country;
         position.Level = request.Level;
         position.Format = request.Format;
+        position.Version++;
 
         await db.SaveChangesAsync(cancellationToken);
         return await GetByIdAsync(id, null, cancellationToken);
     }
 
-    public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(int id, int version, CancellationToken cancellationToken = default)
     {
         var position = await db.Positions.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (position is null)
         {
             return false;
+        }
+
+        if (position.Version != version)
+        {
+            throw new InvalidOperationException(VersionChangedMessage);
         }
 
         db.Positions.Remove(position);
@@ -364,6 +377,7 @@ public class PositionService(
                 Level = position.Level,
                 Format = position.Format,
                 CreatedAt = position.CreatedAt,
+                Version = position.Version,
                 Attributes = attributes
                     .Where(item => item.PositionId == position.Id)
                     .Select(item => new PositionAttributeDto

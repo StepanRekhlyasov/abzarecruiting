@@ -27,7 +27,10 @@ public class CreatePositionRequest
     public WorkFormat Format { get; set; }
 }
 
-public class UpdatePositionRequest : CreatePositionRequest;
+public class UpdatePositionRequest : CreatePositionRequest
+{
+    public int Version { get; set; }
+}
 
 public class PositionRelationRequest
 {
@@ -70,6 +73,8 @@ public class PositionListItemDto
 
     public DateTime CreatedAt { get; set; }
 
+    public int Version { get; set; }
+
     public IReadOnlyList<PositionAttributeDto> Attributes { get; set; } = [];
 
     public IReadOnlyList<PositionTagDto> Tags { get; set; } = [];
@@ -92,6 +97,8 @@ public class PositionDetailDto
     public WorkFormat Format { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public int Version { get; set; }
 
     public IReadOnlyList<PositionAttributeDto> Attributes { get; set; } = [];
 

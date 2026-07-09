@@ -13,6 +13,7 @@ public class Position
     public PositionLevel Level { get; set; }
     public WorkFormat Format { get; set; }
     public DateTime CreatedAt { get; set; }
+    public int Version { get; set; }
     public string CreatedById { get; set; } = string.Empty;
     public ApplicationUser CreatedBy { get; set; } = null!;
     public ICollection<PositionRestriction> PositionRestrictions { get; set; } = [];

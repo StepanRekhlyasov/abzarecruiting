@@ -30,7 +30,7 @@ public interface IResumeService
 
     Task<ResumeDto?> UpdateAsync(int id, UpdateResumeRequest request, CancellationToken cancellationToken = default);
 
-    Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(int id, int version, CancellationToken cancellationToken = default);
 
     bool CanView(ResumeEntity resume, string? userId, bool isAdmin, bool isRecruiter);
 
@@ -42,6 +42,7 @@ public class ResumeService(
     IPositionRestrictionEvaluator restrictionEvaluator,
     IAttributeValueMapper valueMapper) : IResumeService
 {
+    private const string VersionChangedMessage = "error.oldVersion";
     public async Task<ResumeDto?> CreateAsync(int positionId, string candidateId, CancellationToken cancellationToken = default)
     {
         if (!await db.Positions.AnyAsync(position => position.Id == positionId, cancellationToken))
@@ -166,17 +167,28 @@ public class ResumeService(
             return null;
         }
 
+        if (resume.Version != request.Version)
+        {
+            throw new InvalidOperationException(VersionChangedMessage);
+        }
+
         resume.Published = request.Published;
+        resume.Version++;
         await db.SaveChangesAsync(cancellationToken);
         return await MapSingleAsync(resume, cancellationToken);
     }
 
-    public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(int id, int version, CancellationToken cancellationToken = default)
     {
         var resume = await db.Resumes.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (resume is null)
         {
             return false;
+        }
+
+        if (resume.Version != version)
+        {
+            throw new InvalidOperationException(VersionChangedMessage);
         }
 
         db.Resumes.Remove(resume);
@@ -260,6 +272,7 @@ public class ResumeService(
             PositionId = resume.PositionId,
             Published = resume.Published,
             CreatedAt = resume.CreatedAt,
+            Version = resume.Version,
             CandidateAttributes =
             [
                 .. defaultAttributes.Select(attribute =>

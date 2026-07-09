@@ -133,6 +133,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(position => position.CreatedAt)
                 .HasColumnType("datetime(6)");
 
+            entity.Property(position => position.Version)
+                .HasDefaultValue(0);
+
             entity.HasOne(position => position.CreatedBy)
                 .WithMany()
                 .HasForeignKey(position => position.CreatedById)
@@ -148,6 +151,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
             entity.Property(restriction => restriction.CreatedAt)
                 .HasColumnType("datetime(6)");
+
+            entity.Property(restriction => restriction.Version)
+                .HasDefaultValue(0);
 
             entity.HasOne(restriction => restriction.Position)
                 .WithMany(position => position.PositionRestrictions)
@@ -177,6 +183,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
             entity.Property(resume => resume.CreatedAt)
                 .HasColumnType("datetime(6)");
+
+            entity.Property(resume => resume.Version)
+                .HasDefaultValue(0);
 
             entity.HasOne(resume => resume.Candidate)
                 .WithMany(user => user.Resumes)
@@ -218,6 +227,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
             entity.Property(tag => tag.CreatedAt)
                 .HasColumnType("datetime(6)");
+
+            entity.Property(tag => tag.Version)
+                .HasDefaultValue(0);
 
             entity.HasOne(tag => tag.CreatedBy)
                 .WithMany()

@@ -75,13 +75,20 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
             return Forbid();
         }
 
-        var updated = await resumeService.UpdateAsync(id, request, cancellationToken);
-        return updated is null ? NotFound() : Ok(updated);
+        try
+        {
+            var updated = await resumeService.UpdateAsync(id, request, cancellationToken);
+            return updated is null ? NotFound() : Ok(updated);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [Authorize]
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(int id, [FromQuery] int version, CancellationToken cancellationToken)
     {
         var resume = await db.Resumes.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (resume is null)
@@ -94,7 +101,14 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
             return Forbid();
         }
 
-        var deleted = await resumeService.DeleteAsync(id, cancellationToken);
-        return deleted ? NoContent() : NotFound();
+        try
+        {
+            var deleted = await resumeService.DeleteAsync(id, version, cancellationToken);
+            return deleted ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 }

@@ -33,10 +33,35 @@ public class TagController(ITagService tagService) : ControllerBase
     }
 
     [Authorize(Roles = Roles.Admin)]
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    [HttpPost("{id:int}")]
+    public async Task<ActionResult<TagDto>> Update(
+        int id,
+        [FromBody] UpdateTagRequest request,
+        CancellationToken cancellationToken)
     {
-        var deleted = await tagService.DeleteAsync(id, cancellationToken);
-        return deleted ? NoContent() : NotFound();
+        try
+        {
+            var tag = await tagService.UpdateAsync(id, request, cancellationToken);
+            return tag is null ? NotFound() : Ok(tag);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    [Authorize(Roles = Roles.Admin)]
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, [FromQuery] int version, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var deleted = await tagService.DeleteAsync(id, version, cancellationToken);
+            return deleted ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 }

@@ -7,6 +7,7 @@ public class Resume
     public int PositionId { get; set; }
     public bool Published { get; set; }
     public DateTime CreatedAt { get; set; }
+    public int Version { get; set; }
     public ApplicationUser Candidate { get; set; } = null!;
     public Position Position { get; set; } = null!;
 }

@@ -88,15 +88,29 @@ public class PositionController(IPositionService positionService) : ControllerBa
         [FromBody] UpdatePositionRequest request,
         CancellationToken cancellationToken)
     {
-        var position = await positionService.UpdateAsync(id, request, cancellationToken);
-        return position is null ? NotFound() : Ok(position);
+        try
+        {
+            var position = await positionService.UpdateAsync(id, request, cancellationToken);
+            return position is null ? NotFound() : Ok(position);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(int id, [FromQuery] int version, CancellationToken cancellationToken)
     {
-        var deleted = await positionService.DeleteAsync(id, cancellationToken);
-        return deleted ? NoContent() : NotFound();
+        try
+        {
+            var deleted = await positionService.DeleteAsync(id, version, cancellationToken);
+            return deleted ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 }

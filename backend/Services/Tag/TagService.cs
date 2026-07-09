@@ -12,11 +12,15 @@ public interface ITagService
 
     Task<TagDto> CreateAsync(CreateTagRequest request, string userId, CancellationToken cancellationToken = default);
 
-    Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
+    Task<TagDto?> UpdateAsync(int id, UpdateTagRequest request, CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteAsync(int id, int version, CancellationToken cancellationToken = default);
 }
 
 public class TagService(ApplicationDbContext db) : ITagService
 {
+    private const string VersionChangedMessage = "error.oldVersion";
+
     public async Task<PagedResult<TagDto>> GetListAsync(
         PaginationParams pagination,
         CancellationToken cancellationToken = default)
@@ -55,12 +59,39 @@ public class TagService(ApplicationDbContext db) : ITagService
         return Map(tag);
     }
 
-    public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<TagDto?> UpdateAsync(
+        int id,
+        UpdateTagRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var tag = await db.Tags.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+        if (tag is null)
+        {
+            return null;
+        }
+
+        if (tag.Version != request.Version)
+        {
+            throw new InvalidOperationException(VersionChangedMessage);
+        }
+
+        tag.Name = request.Name;
+        tag.Version++;
+        await db.SaveChangesAsync(cancellationToken);
+        return Map(tag);
+    }
+
+    public async Task<bool> DeleteAsync(int id, int version, CancellationToken cancellationToken = default)
     {
         var tag = await db.Tags.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (tag is null)
         {
             return false;
+        }
+
+        if (tag.Version != version)
+        {
+            throw new InvalidOperationException(VersionChangedMessage);
         }
 
         db.Tags.Remove(tag);
@@ -73,5 +104,6 @@ public class TagService(ApplicationDbContext db) : ITagService
         Id = tag.Id,
         Name = tag.Name,
         CreatedAt = tag.CreatedAt,
+        Version = tag.Version,
     };
 }

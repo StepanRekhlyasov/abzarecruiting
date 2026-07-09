@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import { createAttributeFormConfig } from '@shared/config/forms'
+import { i18n } from '@shared/config/i18n'
 import { resolveErrorMessage } from '@shared/lib/errors'
 import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
@@ -51,7 +52,7 @@ function AttributesTableContent() {
   } = useAttributesTable()
 
   const resolvedActionError = resolveErrorMessage(actionError)
-  const formConfig = useMemo(() => createAttributeFormConfig(t), [t])
+  const formConfig = useMemo(() => createAttributeFormConfig(t), [i18n.language])
 
   const columns = useMemo(() => {
     const baseColumns: AbzaTableColumn<AttributeDto>[] = [
@@ -93,7 +94,7 @@ function AttributesTableContent() {
     }
 
     return baseColumns
-  }, [t, canLinkToProfile, linkedAttributeIdSet])
+  }, [i18n.language, canLinkToProfile, linkedAttributeIdSet])
 
   return (
     <>

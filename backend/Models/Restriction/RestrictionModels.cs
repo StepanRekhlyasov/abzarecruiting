@@ -18,7 +18,10 @@ public class CreateRestrictionRequest
     public RestrictionCondition Condition { get; set; }
 }
 
-public class UpdateRestrictionRequest : CreateRestrictionRequest;
+public class UpdateRestrictionRequest : CreateRestrictionRequest
+{
+    public int Version { get; set; }
+}
 
 public class RestrictionDto
 {
@@ -37,4 +40,6 @@ public class RestrictionDto
     public DateTime CreatedAt { get; set; }
 
     public string CreatedById { get; set; } = string.Empty;
+
+    public int Version { get; set; }
 }

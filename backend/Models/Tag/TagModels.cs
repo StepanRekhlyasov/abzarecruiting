@@ -9,6 +9,11 @@ public class CreateTagRequest
     public string Name { get; set; } = string.Empty;
 }
 
+public class UpdateTagRequest : CreateTagRequest
+{
+    public int Version { get; set; }
+}
+
 public class TagDto
 {
     public int Id { get; set; }
@@ -16,4 +21,6 @@ public class TagDto
     public string Name { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; }
+
+    public int Version { get; set; }
 }

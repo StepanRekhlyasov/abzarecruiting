@@ -6,6 +6,8 @@ public class UpdateResumeRequest
 {
     [Required]
     public bool Published { get; set; }
+
+    public int Version { get; set; }
 }
 
 public class ResumeCandidateAttributeDto
@@ -26,6 +28,8 @@ public class ResumeDto
     public bool Published { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public int Version { get; set; }
 
     public IReadOnlyList<ResumeCandidateAttributeDto> CandidateAttributes { get; set; } = [];
 }

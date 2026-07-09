@@ -21,6 +21,8 @@ public class PositionRestriction
 
     public string CreatedById { get; set; } = string.Empty;
 
+    public int Version { get; set; }
+
     public int? TagId { get; set; }
 
     public Position Position { get; set; } = null!;

@@ -12,11 +12,12 @@ public interface IRestrictionService
 
     Task<RestrictionDto?> UpdateAsync(int id, UpdateRestrictionRequest request, CancellationToken cancellationToken = default);
 
-    Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(int id, int version, CancellationToken cancellationToken = default);
 }
 
 public class RestrictionService(ApplicationDbContext db) : IRestrictionService
 {
+    private const string VersionChangedMessage = "error.oldVersion";
     public async Task<RestrictionDto?> CreateAsync(
         CreateRestrictionRequest request,
         string userId,
@@ -64,22 +65,33 @@ public class RestrictionService(ApplicationDbContext db) : IRestrictionService
             return null;
         }
 
+        if (restriction.Version != request.Version)
+        {
+            throw new InvalidOperationException(VersionChangedMessage);
+        }
+
         restriction.PositionId = request.PositionId;
         restriction.AttributeId = request.AttributeId;
         restriction.TagId = request.TagId;
         restriction.TargetValue = request.TargetValue;
         restriction.Condition = request.Condition;
+        restriction.Version++;
 
         await db.SaveChangesAsync(cancellationToken);
         return Map(restriction);
     }
 
-    public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(int id, int version, CancellationToken cancellationToken = default)
     {
         var restriction = await db.PositionRestrictions.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (restriction is null)
         {
             return false;
+        }
+
+        if (restriction.Version != version)
+        {
+            throw new InvalidOperationException(VersionChangedMessage);
         }
 
         db.PositionRestrictions.Remove(restriction);
@@ -129,5 +141,6 @@ public class RestrictionService(ApplicationDbContext db) : IRestrictionService
         Condition = restriction.Condition,
         CreatedAt = restriction.CreatedAt,
         CreatedById = restriction.CreatedById,
+        Version = restriction.Version,
     };
 }

@@ -8,6 +8,7 @@ import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import { authSucceeded, login } from '@entities/user'
 import { createLoginFormConfig } from '@shared/config/forms'
+import { i18n } from '@shared/config/i18n'
 import { ROUTES } from '@shared/config/routes'
 import { getErrorKey } from '@shared/lib/errors'
 import { AppHeader } from '@features/app-header'
@@ -19,7 +20,7 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
-  const formConfig = useMemo(() => createLoginFormConfig(t), [t])
+  const formConfig = useMemo(() => createLoginFormConfig(t), [i18n.language])
 
   const handleSubmit = async (values: AbzaFormValues) => {
     setIsLoading(true)

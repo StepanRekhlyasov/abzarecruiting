@@ -8,6 +8,7 @@ import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import { authSucceeded, register, type UserRole } from '@entities/user'
 import { createRegisterFormConfig } from '@shared/config/forms'
+import { i18n } from '@shared/config/i18n'
 import { ROUTES } from '@shared/config/routes'
 import { getErrorKey } from '@shared/lib/errors'
 import { AppHeader } from '@features/app-header'
@@ -19,7 +20,7 @@ export function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
-  const formConfig = useMemo(() => createRegisterFormConfig(t), [t])
+  const formConfig = useMemo(() => createRegisterFormConfig(t), [i18n.language])
 
   const handleSubmit = async (values: AbzaFormValues) => {
     setIsLoading(true)
