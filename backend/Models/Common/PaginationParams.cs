@@ -14,6 +14,10 @@ public class PaginationParams
 
     public string? Search { get; init; }
 
+    public string? SortBy { get; init; }
+
+    public string? SortDir { get; init; }
+
     [BindNever]
     public int NormalizedPage => Page < 1 ? DefaultPage : Page;
 
@@ -33,4 +37,12 @@ public class PaginationParams
 
     [BindNever]
     public int Skip => (NormalizedPage - 1) * NormalizedSize;
+
+    [BindNever]
+    public bool IsDescending =>
+        string.Equals(SortDir?.Trim(), "desc", StringComparison.OrdinalIgnoreCase);
+
+    [BindNever]
+    public string? NormalizedSortBy =>
+        string.IsNullOrWhiteSpace(SortBy) ? null : SortBy.Trim().ToLowerInvariant();
 }

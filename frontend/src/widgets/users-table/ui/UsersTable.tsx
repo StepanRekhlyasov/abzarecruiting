@@ -12,11 +12,6 @@ import type { AbzaTableColumn } from '@features/abza-table'
 import { UsersTableProvider, useUsersTable } from '../model'
 import { UsersTableToolbar } from './Toolbar'
 
-function roleLabel(role: string, t: (key: string, fallback?: string) => string) {
-  const key = `auth.roles.${role.toLowerCase()}`
-  return t(key, role)
-}
-
 function UsersTableContent() {
   const { t } = useTranslation()
   const {
@@ -31,10 +26,13 @@ function UsersTableContent() {
     createFormError,
     isChangeRoleModalOpen,
     changeRoleFormError,
+    sortBy,
+    sortDir,
     setPage,
     setPageSize,
     setSelectedIds,
     setActionError,
+    handleSortChange,
     handleCreateModalClose,
     handleChangeRoleModalClose,
     handleCreateSubmit,
@@ -55,22 +53,26 @@ function UsersTableContent() {
       {
         id: 'firstName',
         label: t('profile.users.columns.firstName'),
+        sortable: true,
         render: (row) => row.firstName,
       },
       {
         id: 'lastName',
         label: t('profile.users.columns.lastName'),
+        sortable: true,
         render: (row) => row.lastName,
       },
       {
         id: 'email',
         label: t('profile.users.columns.email'),
+        sortable: true,
         render: (row) => row.email,
       },
       {
         id: 'role',
         label: t('profile.users.columns.role'),
-        render: (row) => roleLabel(String(row.role), t),
+        sortable: true,
+        render: (row) => t(`auth.roles.${row.role.toLowerCase()}`),
       },
     ],
     [i18n.language],
@@ -97,6 +99,9 @@ function UsersTableContent() {
           setPageSize(size)
           setPage(0)
         }}
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onSortChange={handleSortChange}
         selectable
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}

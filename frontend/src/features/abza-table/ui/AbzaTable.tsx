@@ -8,8 +8,9 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TablePagination from '@mui/material/TablePagination'
 import TableRow from '@mui/material/TableRow'
+import TableSortLabel from '@mui/material/TableSortLabel'
 import Typography from '@mui/material/Typography'
-import type { AbzaTableProps, AbzaTableRowId } from '@shared/types'
+import type { AbzaTableProps, AbzaTableRowId, SortDirection } from '@shared/types'
 
 export function AbzaTable<T>({
   columns,
@@ -21,6 +22,9 @@ export function AbzaTable<T>({
   totalCount,
   onPageChange,
   onPageSizeChange,
+  sortBy,
+  sortDir = 'asc',
+  onSortChange,
   selectable = false,
   selectedIds = [],
   onSelectionChange,
@@ -63,6 +67,15 @@ export function AbzaTable<T>({
     onSelectionChange([...merged])
   }
 
+  const handleSort = (columnId: string) => {
+    if (!onSortChange) {
+      return
+    }
+
+    const nextDir: SortDirection = sortBy === columnId && sortDir === 'asc' ? 'desc' : 'asc'
+    onSortChange(columnId, nextDir)
+  }
+
   return (
     <Paper elevation={1}>
       {toolbar && (
@@ -86,8 +99,24 @@ export function AbzaTable<T>({
                 </TableCell>
               )}
               {columns.map((column) => (
-                <TableCell key={column.id} sx={{ width: column.width }} align={column.align}>
-                  {column.label}
+                <TableCell
+                  key={column.id}
+                  sx={{ width: column.width }}
+                  align={column.align}
+                  sortDirection={sortBy === column.id ? sortDir : false}
+                >
+                  {column.sortable && onSortChange ? (
+                    <TableSortLabel
+                      active={sortBy === column.id}
+                      direction={sortBy === column.id ? sortDir : 'asc'}
+                      onClick={() => handleSort(column.id)}
+                      disabled={loading}
+                    >
+                      {column.label}
+                    </TableSortLabel>
+                  ) : (
+                    column.label
+                  )}
                 </TableCell>
               ))}
             </TableRow>

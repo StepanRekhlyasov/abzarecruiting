@@ -61,7 +61,43 @@ public class PositionService(
         ClaimsPrincipal? user,
         CancellationToken cancellationToken = default)
     {
-        var query = db.Positions.AsNoTracking().OrderByDescending(position => position.CreatedAt);
+        var query = db.Positions.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(pagination.Search))
+        {
+            var search = pagination.Search.Trim();
+            query = query.Where(position =>
+                position.Name.Contains(search)
+                || position.Company.Contains(search)
+                || position.Country.Contains(search)
+                || position.Description.Contains(search));
+        }
+
+        query = pagination.NormalizedSortBy switch
+        {
+            "name" => pagination.IsDescending
+                ? query.OrderByDescending(position => position.Name)
+                : query.OrderBy(position => position.Name),
+            "company" => pagination.IsDescending
+                ? query.OrderByDescending(position => position.Company)
+                : query.OrderBy(position => position.Company),
+            "country" => pagination.IsDescending
+                ? query.OrderByDescending(position => position.Country)
+                : query.OrderBy(position => position.Country),
+            "level" => pagination.IsDescending
+                ? query.OrderByDescending(position => position.Level)
+                : query.OrderBy(position => position.Level),
+            "format" => pagination.IsDescending
+                ? query.OrderByDescending(position => position.Format)
+                : query.OrderBy(position => position.Format),
+            "id" => pagination.IsDescending
+                ? query.OrderByDescending(position => position.Id)
+                : query.OrderBy(position => position.Id),
+            _ => pagination.IsDescending
+                ? query.OrderByDescending(position => position.CreatedAt)
+                : query.OrderBy(position => position.CreatedAt),
+        };
+
         var allIds = await query.Select(position => position.Id).ToListAsync(cancellationToken);
         var filteredIds = await FilterPositionIdsAsync(allIds, user, cancellationToken);
 

@@ -32,14 +32,13 @@ public class UserService(
     {
         var users = await userManager.Users
             .AsNoTracking()
-            .OrderBy(user => user.Email)
             .ToListAsync(cancellationToken);
 
         var userIds = users.Select(user => user.Id).ToList();
         var nameMap = await LoadNameMapAsync(userIds, cancellationToken);
         var roleMap = await LoadRoleMapAsync(userIds, cancellationToken);
 
-        var items = users
+        IEnumerable<UserListItemDto> items = users
             .Select(user =>
             {
                 nameMap.TryGetValue(user.Id, out var names);
@@ -53,8 +52,7 @@ public class UserService(
                     LastName = names.LastName,
                     Role = role ?? string.Empty,
                 };
-            })
-            .AsEnumerable();
+            });
 
         if (!string.IsNullOrWhiteSpace(pagination.Search))
         {
@@ -62,8 +60,28 @@ public class UserService(
             items = items.Where(user =>
                 user.Email.Contains(search, StringComparison.OrdinalIgnoreCase)
                 || user.FirstName.Contains(search, StringComparison.OrdinalIgnoreCase)
-                || user.LastName.Contains(search, StringComparison.OrdinalIgnoreCase));
+                || user.LastName.Contains(search, StringComparison.OrdinalIgnoreCase)
+                || user.Role.Contains(search, StringComparison.OrdinalIgnoreCase));
         }
+
+        items = pagination.NormalizedSortBy switch
+        {
+            "firstname" => pagination.IsDescending
+                ? items.OrderByDescending(user => user.FirstName)
+                : items.OrderBy(user => user.FirstName),
+            "lastname" => pagination.IsDescending
+                ? items.OrderByDescending(user => user.LastName)
+                : items.OrderBy(user => user.LastName),
+            "role" => pagination.IsDescending
+                ? items.OrderByDescending(user => user.Role)
+                : items.OrderBy(user => user.Role),
+            "id" => pagination.IsDescending
+                ? items.OrderByDescending(user => user.Id)
+                : items.OrderBy(user => user.Id),
+            _ => pagination.IsDescending
+                ? items.OrderByDescending(user => user.Email)
+                : items.OrderBy(user => user.Email),
+        };
 
         var filtered = items.ToList();
         var totalCount = filtered.Count;

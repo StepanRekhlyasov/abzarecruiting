@@ -36,10 +36,13 @@ function AttributesTableContent() {
     canLinkToProfile,
     isSelectable,
     linkedAttributeIdSet,
+    sortBy,
+    sortDir,
     setPage,
     setPageSize,
     setSelectedIds,
     setActionError,
+    handleSortChange,
     handleCreateModalClose,
     handleEditModalClose,
     handleCreateSubmit,
@@ -59,21 +62,25 @@ function AttributesTableContent() {
       {
         id: 'name',
         label: t('attributes.columns.name'),
+        sortable: true,
         render: (row) => row.name,
       },
       {
         id: 'description',
         label: t('attributes.columns.description'),
+        sortable: true,
         render: (row) => row.description ?? '—',
       },
       {
         id: 'valueType',
         label: t('attributes.columns.valueType'),
+        sortable: true,
         render: (row) => t(`attributes.valueTypes.${row.valueType}`, row.valueType),
       },
       {
         id: 'inputType',
         label: t('attributes.columns.inputType'),
+        sortable: true,
         render: (row) => t(`attributes.inputTypes.${row.inputType}`, row.inputType),
       },
     ]
@@ -117,6 +124,9 @@ function AttributesTableContent() {
           setPageSize(size)
           setPage(0)
         }}
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onSortChange={handleSortChange}
         selectable={isSelectable}
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}

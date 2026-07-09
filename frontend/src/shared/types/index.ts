@@ -37,4 +37,5 @@ export type {
   AbzaValidationRule,
   PagedResult,
   PaginationParams,
+  SortDirection,
 } from './common.types'

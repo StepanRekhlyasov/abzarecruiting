@@ -51,7 +51,27 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
                 || (attribute.Description != null && attribute.Description.Contains(search)));
         }
 
-        query = query.OrderBy(attribute => attribute.Name);
+        query = pagination.NormalizedSortBy switch
+        {
+            "description" => pagination.IsDescending
+                ? query.OrderByDescending(attribute => attribute.Description)
+                : query.OrderBy(attribute => attribute.Description),
+            "valuetype" => pagination.IsDescending
+                ? query.OrderByDescending(attribute => attribute.ValueType)
+                : query.OrderBy(attribute => attribute.ValueType),
+            "inputtype" => pagination.IsDescending
+                ? query.OrderByDescending(attribute => attribute.InputType)
+                : query.OrderBy(attribute => attribute.InputType),
+            "createdat" => pagination.IsDescending
+                ? query.OrderByDescending(attribute => attribute.CreatedAt)
+                : query.OrderBy(attribute => attribute.CreatedAt),
+            "id" => pagination.IsDescending
+                ? query.OrderByDescending(attribute => attribute.Id)
+                : query.OrderBy(attribute => attribute.Id),
+            _ => pagination.IsDescending
+                ? query.OrderByDescending(attribute => attribute.Name)
+                : query.OrderBy(attribute => attribute.Name),
+        };
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
             .Skip(pagination.Skip)

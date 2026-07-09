@@ -21,6 +21,7 @@ import {
   type UserListItem,
   type UserRole,
 } from '@entities/user'
+import type { SortDirection } from '@shared/types'
 import { profileDetailPath } from '@shared/config/routes'
 import { getErrorKey } from '@shared/lib/errors'
 
@@ -44,6 +45,8 @@ type UsersTableContextValue = {
   page: number
   pageSize: number
   searchInput: string
+  sortBy: string
+  sortDir: SortDirection
   selectedIds: AbzaTableRowId[]
   isLoading: boolean
   actionError: string | null
@@ -58,6 +61,7 @@ type UsersTableContextValue = {
   setPageSize: (size: number) => void
   setSelectedIds: (ids: AbzaTableRowId[]) => void
   setActionError: (error: string | null) => void
+  handleSortChange: (nextSortBy: string, nextSortDir: SortDirection) => void
   handleFilter: () => void
   handleCreateClick: () => void
   handleCreateModalClose: () => void
@@ -84,6 +88,8 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
   const [pageSize, setPageSize] = useState(20)
   const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState('email')
+  const [sortDir, setSortDir] = useState<SortDirection>('asc')
   const [selectedIds, setSelectedIds] = useState<AbzaTableRowId[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -102,6 +108,8 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
           page: page + 1,
           size: pageSize,
           search: searchQuery || undefined,
+          sortBy,
+          sortDir,
         },
         { signal },
       )
@@ -123,7 +131,7 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
         setIsLoading(false)
       }
     }
-  }, [page, pageSize, searchQuery])
+  }, [page, pageSize, searchQuery, sortBy, sortDir])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -135,6 +143,12 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
     setSearchQuery(searchInput.trim())
     setPage(0)
   }, [searchInput])
+
+  const handleSortChange = useCallback((nextSortBy: string, nextSortDir: SortDirection) => {
+    setSortBy(nextSortBy)
+    setSortDir(nextSortDir)
+    setPage(0)
+  }, [])
 
   const handleCreateClick = useCallback(() => {
     setCreateFormError(null)
@@ -238,6 +252,8 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       page,
       pageSize,
       searchInput,
+      sortBy,
+      sortDir,
       selectedIds,
       isLoading,
       actionError,
@@ -252,6 +268,7 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       setPageSize,
       setSelectedIds,
       setActionError,
+      handleSortChange,
       handleFilter,
       handleCreateClick,
       handleCreateModalClose,
@@ -270,6 +287,8 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       page,
       pageSize,
       searchInput,
+      sortBy,
+      sortDir,
       selectedIds,
       isLoading,
       actionError,
@@ -277,6 +296,7 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       createFormError,
       isChangeRoleModalOpen,
       changeRoleFormError,
+      handleSortChange,
       handleFilter,
       handleCreateClick,
       handleCreateModalClose,

@@ -8,10 +8,14 @@ export type PagedResult<T> = {
   size: number
 }
 
+export type SortDirection = 'asc' | 'desc'
+
 export type PaginationParams = {
   page?: number
   size?: number
   search?: string
+  sortBy?: string
+  sortDir?: SortDirection
 }
 
 export type AbzaFieldType = 'email' | 'password' | 'text' | 'select' | 'optionTags'
@@ -55,6 +59,7 @@ export type AbzaTableColumn<T> = {
   render: (row: T) => ReactNode
   width?: number | string
   align?: 'left' | 'center' | 'right'
+  sortable?: boolean
 }
 
 export type AbzaTableRowId = string | number
@@ -69,6 +74,9 @@ export type AbzaTableProps<T> = {
   totalCount: number
   onPageChange: (page: number) => void
   onPageSizeChange?: (pageSize: number) => void
+  sortBy?: string
+  sortDir?: SortDirection
+  onSortChange?: (sortBy: string, sortDir: SortDirection) => void
   selectable?: boolean
   selectedIds?: AbzaTableRowId[]
   onSelectionChange?: (selectedIds: AbzaTableRowId[]) => void

@@ -109,7 +109,20 @@ public class ResumeService(
                 .ToList();
         }
 
-        var ordered = OrderByCandidateName(filtered, defaultAttributes, profileAttributes);
+        var ordered = pagination.NormalizedSortBy switch
+        {
+            "id" => pagination.IsDescending
+                ? filtered.OrderByDescending(resume => resume.Id).ToList()
+                : filtered.OrderBy(resume => resume.Id).ToList(),
+            "createdat" => pagination.IsDescending
+                ? filtered.OrderByDescending(resume => resume.CreatedAt).ToList()
+                : filtered.OrderBy(resume => resume.CreatedAt).ToList(),
+            "published" => pagination.IsDescending
+                ? filtered.OrderByDescending(resume => resume.Published).ToList()
+                : filtered.OrderBy(resume => resume.Published).ToList(),
+            "lastname" => OrderByCandidateName(filtered, defaultAttributes, profileAttributes, lastNameFirst: true, descending: pagination.IsDescending),
+            _ => OrderByCandidateName(filtered, defaultAttributes, profileAttributes, lastNameFirst: false, descending: pagination.IsDescending),
+        };
         var totalCount = ordered.Count;
         var pageItems = ordered.Skip(pagination.Skip).Take(pagination.NormalizedSize).ToList();
         var items = MapList(pageItems, defaultAttributes, profileAttributes);
@@ -230,7 +243,9 @@ public class ResumeService(
     private static List<ResumeEntity> OrderByCandidateName(
         IReadOnlyList<ResumeEntity> resumes,
         IReadOnlyList<AttributeEntity> defaultAttributes,
-        IReadOnlyList<ProfileAttribute> profileAttributes)
+        IReadOnlyList<ProfileAttribute> profileAttributes,
+        bool lastNameFirst = false,
+        bool descending = false)
     {
         if (resumes.Count == 0)
         {
@@ -255,10 +270,22 @@ public class ResumeService(
             return profileAttribute?.ValueString ?? string.Empty;
         }
 
-        return resumes
-            .OrderBy(resume => GetName(resume.CandidateId, firstNameId))
-            .ThenBy(resume => GetName(resume.CandidateId, lastNameId))
-            .ToList();
+        IOrderedEnumerable<ResumeEntity> ordered = lastNameFirst
+            ? resumes.OrderBy(resume => GetName(resume.CandidateId, lastNameId))
+                .ThenBy(resume => GetName(resume.CandidateId, firstNameId))
+            : resumes.OrderBy(resume => GetName(resume.CandidateId, firstNameId))
+                .ThenBy(resume => GetName(resume.CandidateId, lastNameId));
+
+        if (descending)
+        {
+            ordered = lastNameFirst
+                ? resumes.OrderByDescending(resume => GetName(resume.CandidateId, lastNameId))
+                    .ThenByDescending(resume => GetName(resume.CandidateId, firstNameId))
+                : resumes.OrderByDescending(resume => GetName(resume.CandidateId, firstNameId))
+                    .ThenByDescending(resume => GetName(resume.CandidateId, lastNameId));
+        }
+
+        return ordered.ToList();
     }
 
     private IReadOnlyList<ResumeListItemDto> MapList(

@@ -25,7 +25,27 @@ public class TagService(ApplicationDbContext db) : ITagService
         PaginationParams pagination,
         CancellationToken cancellationToken = default)
     {
-        var query = db.Tags.AsNoTracking().OrderBy(tag => tag.Name);
+        IQueryable<TagEntity> query = db.Tags.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(pagination.Search))
+        {
+            var search = pagination.Search.Trim();
+            query = query.Where(tag => tag.Name.Contains(search));
+        }
+
+        query = pagination.NormalizedSortBy switch
+        {
+            "createdat" => pagination.IsDescending
+                ? query.OrderByDescending(tag => tag.CreatedAt)
+                : query.OrderBy(tag => tag.CreatedAt),
+            "id" => pagination.IsDescending
+                ? query.OrderByDescending(tag => tag.Id)
+                : query.OrderBy(tag => tag.Id),
+            _ => pagination.IsDescending
+                ? query.OrderByDescending(tag => tag.Name)
+                : query.OrderBy(tag => tag.Name),
+        };
+
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
             .Skip(pagination.Skip)
