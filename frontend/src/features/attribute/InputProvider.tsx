@@ -145,21 +145,23 @@ function AttributeInput({
       )
     case 'tel':
       return (
-        <PhoneInput
-          value={value}
-          onChange={(phone: string) => onChange(phone)}
-          onBlur={() => onBlur?.()}
-          component={PhoneTextField}
-          variant="outlined"
-          country="ge"
-          disabled={disabled}
-          label={label}
-          specialLabel=""
-          containerStyle={{ width: '100%' }}
-          inputProps={{
-            InputProps: { endAdornment },
-          }}
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <PhoneInput
+              value={value}
+              onChange={(phone: string) => onChange(phone)}
+              onBlur={() => onBlur?.()}
+              component={PhoneTextField}
+              variant="outlined"
+              country="ge"
+              disabled={disabled}
+              label={label}
+              specialLabel=""
+              containerStyle={{ width: '100%' }}
+            />
+          </Box>
+          {tooltip ? <FieldTooltip tooltip={tooltip} /> : null}
+        </Box>
       )
     case 'date':
       return (
