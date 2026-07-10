@@ -11,6 +11,7 @@ import { createLoginFormConfig } from '@shared/config/forms'
 import { i18n } from '@shared/config/i18n'
 import { ROUTES } from '@shared/config/routes'
 import { getErrorKey } from '@shared/lib/errors'
+import { toSubmitValues } from '@shared/lib/helpers'
 import { AppHeader } from '@features/app-header'
 import { AbzaForm, type AbzaFormValues } from '@features/abza-form'
 
@@ -27,10 +28,7 @@ export function LoginPage() {
     setServerError(null)
 
     try {
-      const response = await login({
-        email: values.email,
-        password: values.password,
-      })
+      const response = await login(toSubmitValues(values, ['email', 'password']))
 
       authSucceeded(response)
       navigate(ROUTES.home)

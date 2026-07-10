@@ -31,25 +31,25 @@ public static class AttributeSeeder
             return;
         }
 
-        var existingNames = await db.Attributes
-            .Select(attribute => attribute.Name)
-            .ToListAsync();
-
-        var renamed = await RenameLegacyDefaultAttributesAsync(db, logger);
-        if (renamed)
-        {
-            existingNames = await db.Attributes
-                .Select(attribute => attribute.Name)
-                .ToListAsync();
-        }
+        await RenameLegacyDefaultAttributesAsync(db, logger);
 
         var createdAt = DateTime.UtcNow;
-        var added = false;
+        var changed = false;
+        var defaultNames = DefaultAttributes.Names.ToHashSet();
+        var existingDefaults = (await db.Attributes.ToListAsync())
+            .Where(attribute => defaultNames.Contains(attribute.Name))
+            .ToDictionary(attribute => attribute.Name);
 
         foreach (var definition in DefaultAttributes.All)
         {
-            if (existingNames.Contains(definition.Name))
+            if (existingDefaults.TryGetValue(definition.Name, out var existing))
             {
+                if (existing.Description != definition.Description)
+                {
+                    existing.Description = definition.Description;
+                    changed = true;
+                }
+
                 continue;
             }
 
@@ -62,10 +62,10 @@ public static class AttributeSeeder
                 CreatedAt = createdAt,
                 CreatedById = systemUserId,
             });
-            added = true;
+            changed = true;
         }
 
-        if (added)
+        if (changed)
         {
             await db.SaveChangesAsync();
             logger.LogInformation("Default profile attributes were seeded.");

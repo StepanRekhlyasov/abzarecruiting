@@ -26,15 +26,20 @@ import {
 } from '@entities/attribute'
 import { $session, isCandidate, isRecruiterOrAdmin } from '@entities/user'
 import { getErrorKey } from '@shared/lib/errors'
+import {
+  toSubmitNullableString,
+  toSubmitStringArray,
+  toSubmitValues,
+} from '@shared/lib/helpers'
 
-function toSubmitValues(values: AbzaFormValues) {
-  const valueType = typeof values.valueType === 'string' ? values.valueType : ''
+function toAttributeSubmitValues(values: AbzaFormValues) {
+  const { name, valueType } = toSubmitValues(values, ['name', 'valueType'])
 
   return {
-    name: typeof values.name === 'string' ? values.name : '',
-    description: (typeof values.description === 'string' ? values.description : '') || null,
+    name,
+    description: toSubmitNullableString(values, 'description'),
     valueType,
-    options: valueType === 'select' && Array.isArray(values.options) ? values.options : undefined,
+    options: valueType === 'select' ? toSubmitStringArray(values, 'options') : undefined,
   }
 }
 
@@ -217,7 +222,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       setCreateFormError(null)
 
       try {
-        await createAttribute(toSubmitValues(values))
+        await createAttribute(toAttributeSubmitValues(values))
         setIsCreateModalOpen(false)
         await loadAttributes()
       } catch (error) {
@@ -240,7 +245,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
 
       try {
         const updated = await updateAttribute(editingAttribute.id, {
-          ...toSubmitValues(values),
+          ...toAttributeSubmitValues(values),
           version: editingAttribute.version,
         })
         setRows((currentRows) =>

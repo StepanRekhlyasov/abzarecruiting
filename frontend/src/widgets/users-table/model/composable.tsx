@@ -24,19 +24,25 @@ import {
 import type { SortDirection } from '@shared/types'
 import { profileDetailPath } from '@shared/config/routes'
 import { getErrorKey } from '@shared/lib/errors'
+import { toSubmitString, toSubmitValues } from '@shared/lib/helpers'
 
 function toCreateValues(values: AbzaFormValues) {
+  const submitted = toSubmitValues(values, [
+    'firstName',
+    'lastName',
+    'email',
+    'password',
+    'role',
+  ])
+
   return {
-    firstName: typeof values.firstName === 'string' ? values.firstName : '',
-    lastName: typeof values.lastName === 'string' ? values.lastName : '',
-    email: typeof values.email === 'string' ? values.email : '',
-    password: typeof values.password === 'string' ? values.password : '',
-    role: (typeof values.role === 'string' ? values.role : 'Candidate') as UserRole,
+    ...submitted,
+    role: (submitted.role || 'Candidate') as UserRole,
   }
 }
 
 function toRoleValue(values: AbzaFormValues): UserRole {
-  return (typeof values.role === 'string' ? values.role : 'Candidate') as UserRole
+  return (toSubmitString(values, 'role') || 'Candidate') as UserRole
 }
 
 type UsersTableContextValue = {

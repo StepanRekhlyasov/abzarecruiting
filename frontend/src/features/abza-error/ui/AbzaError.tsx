@@ -2,10 +2,12 @@ import RefreshIcon from '@mui/icons-material/Refresh'
 import Alert from '@mui/material/Alert'
 import IconButton from '@mui/material/IconButton'
 import type { SxProps, Theme } from '@mui/material/styles'
-import { resolveErrorMessage } from '@shared/lib/errors'
+import { resolveErrorMessage, UNKNOWN_ERROR_KEY } from '@shared/lib/errors'
 import './style.css'
 
 export const OLD_VERSION_ERROR_KEY = 'error.oldVersion'
+
+const RELOADABLE_ERROR_KEYS = new Set([OLD_VERSION_ERROR_KEY, UNKNOWN_ERROR_KEY])
 
 export type AbzaErrorProps = {
   error: string | null | undefined
@@ -20,7 +22,7 @@ export function AbzaError({ error, onClose, sx }: AbzaErrorProps) {
     return null
   }
 
-  const isOldVersion = error === OLD_VERSION_ERROR_KEY
+  const showReload = error != null && RELOADABLE_ERROR_KEYS.has(error)
 
   return (
     <Alert
@@ -29,7 +31,7 @@ export function AbzaError({ error, onClose, sx }: AbzaErrorProps) {
       onClose={onClose}
       className="myAlert"
       action={
-        isOldVersion ? (
+        showReload ? (
           <IconButton
             color="inherit"
             size="small"

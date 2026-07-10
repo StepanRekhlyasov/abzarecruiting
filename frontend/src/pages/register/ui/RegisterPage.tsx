@@ -11,6 +11,7 @@ import { createRegisterFormConfig } from '@shared/config/forms'
 import { i18n } from '@shared/config/i18n'
 import { ROUTES } from '@shared/config/routes'
 import { getErrorKey } from '@shared/lib/errors'
+import { toSubmitValues } from '@shared/lib/helpers'
 import { AppHeader } from '@features/app-header'
 import { AbzaForm, type AbzaFormValues } from '@features/abza-form'
 
@@ -27,12 +28,16 @@ export function RegisterPage() {
     setServerError(null)
 
     try {
+      const submitted = toSubmitValues(values, [
+        'email',
+        'password',
+        'firstName',
+        'lastName',
+        'role',
+      ])
       const response = await register({
-        email: values.email,
-        password: values.password,
-        firstName: values.firstName,
-        lastName: values.lastName,
-        role: values.role as UserRole,
+        ...submitted,
+        role: submitted.role as UserRole,
       })
 
       authSucceeded(response)

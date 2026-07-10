@@ -7,7 +7,7 @@ using MySql.EntityFrameworkCore.Metadata;
 namespace Backend.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class initial : Migration
+    public partial class init : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -179,6 +179,7 @@ namespace Backend.Api.Migrations
                     ValueType = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
                     InputType = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Version = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     CreatedById = table.Column<string>(type: "varchar(255)", nullable: false)
                 },
                 constraints: table =>
@@ -206,6 +207,7 @@ namespace Backend.Api.Migrations
                     Level = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
                     Format = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Version = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     CreatedById = table.Column<string>(type: "varchar(255)", nullable: false)
                 },
                 constraints: table =>
@@ -253,6 +255,7 @@ namespace Backend.Api.Migrations
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     Name = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Version = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     CreatedById = table.Column<string>(type: "varchar(255)", nullable: false)
                 },
                 constraints: table =>
@@ -300,7 +303,8 @@ namespace Backend.Api.Migrations
                     ValueText = table.Column<string>(type: "longtext", nullable: true),
                     ValueDate = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     ValueDateFrom = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    ValueDateTo = table.Column<DateTime>(type: "datetime(6)", nullable: true)
+                    ValueDateTo = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    Version = table.Column<int>(type: "int", nullable: false, defaultValue: 0)
                 },
                 constraints: table =>
                 {
@@ -355,7 +359,8 @@ namespace Backend.Api.Migrations
                     CandidateId = table.Column<string>(type: "varchar(255)", nullable: false),
                     PositionId = table.Column<int>(type: "int", nullable: false),
                     Published = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Version = table.Column<int>(type: "int", nullable: false, defaultValue: 0)
                 },
                 constraints: table =>
                 {
@@ -387,6 +392,7 @@ namespace Backend.Api.Migrations
                     Condition = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     CreatedById = table.Column<string>(type: "varchar(255)", nullable: false),
+                    Version = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     TagId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
