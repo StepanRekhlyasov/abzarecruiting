@@ -10,6 +10,10 @@ public interface IProfileService
 {
     Task<ProfileDto?> GetByCandidateIdAsync(string candidateId, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<ProfileAttributeDto>?> GetMeInfoAsync(
+        string candidateId,
+        CancellationToken cancellationToken = default);
+
     Task<bool> AddAttributesAsync(
         string candidateId,
         IEnumerable<int> attributeIds,
@@ -57,6 +61,7 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
                 {
                     Id = attribute.Id,
                     Name = attribute.Name,
+                    Description = attribute.Description,
                     ValueType = attribute.ValueType,
                     InputType = attribute.InputType,
                     Options = attribute.Options
@@ -64,6 +69,7 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
                         .Select(option => option.InputOption)
                         .ToList(),
                     Value = profileAttribute is null ? null : valueMapper.GetComparableValue(profileAttribute, attribute),
+                    Version = profileAttribute?.Version ?? 0,
                 };
             })
             .ToList();
@@ -94,6 +100,73 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
                     .ToList(),
             }).ToList(),
         };
+    }
+
+    public async Task<IReadOnlyList<ProfileAttributeDto>?> GetMeInfoAsync(
+        string candidateId,
+        CancellationToken cancellationToken = default)
+    {
+        var userExists = await db.Users.AsNoTracking().AnyAsync(item => item.Id == candidateId, cancellationToken);
+        if (!userExists)
+        {
+            return null;
+        }
+
+        var isCandidate = await (
+            from userRole in db.UserRoles.AsNoTracking()
+            join role in db.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+            where userRole.UserId == candidateId && role.Name == Roles.Candidate
+            select role.Id
+        ).AnyAsync(cancellationToken);
+
+        if (!isCandidate)
+        {
+            throw new InvalidOperationException("error.profile.notCandidate");
+        }
+
+        var defaultNames = DefaultAttributes.All.Select(item => item.Name).ToHashSet();
+        var attributes = await db.Attributes
+            .AsNoTracking()
+            .Include(attribute => attribute.Options)
+            .ToListAsync(cancellationToken);
+
+        var attributesByName = attributes
+            .Where(attribute => defaultNames.Contains(attribute.Name))
+            .ToDictionary(attribute => attribute.Name, StringComparer.Ordinal);
+        var profileAttributes = await db.ProfileAttributes
+            .AsNoTracking()
+            .Where(item => item.CandidateId == candidateId)
+            .ToListAsync(cancellationToken);
+        var profileAttributesById = profileAttributes.ToDictionary(item => item.AttributeId);
+
+        return DefaultAttributes.All
+            .Select(definition =>
+            {
+                if (!attributesByName.TryGetValue(definition.Name, out var attribute))
+                {
+                    return null;
+                }
+
+                profileAttributesById.TryGetValue(attribute.Id, out var profileAttribute);
+
+                return new ProfileAttributeDto
+                {
+                    Id = attribute.Id,
+                    Name = attribute.Name,
+                    Description = attribute.Description,
+                    ValueType = attribute.ValueType,
+                    InputType = attribute.InputType,
+                    Options = attribute.Options
+                        .OrderBy(option => option.Id)
+                        .Select(option => option.InputOption)
+                        .ToList(),
+                    Value = profileAttribute is null ? null : valueMapper.GetComparableValue(profileAttribute, attribute),
+                    Version = profileAttribute?.Version ?? 0,
+                };
+            })
+            .Where(item => item is not null)
+            .Cast<ProfileAttributeDto>()
+            .ToList();
     }
 
     public async Task<bool> AddAttributesAsync(

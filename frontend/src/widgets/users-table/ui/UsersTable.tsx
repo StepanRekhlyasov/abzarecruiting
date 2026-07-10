@@ -1,11 +1,10 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import Alert from '@mui/material/Alert'
 import { createChangeRoleFormConfig, createUserFormConfig } from '@shared/config/forms'
 import { i18n } from '@shared/config/i18n'
 import { formatDateTime } from '@shared/lib/date'
-import { resolveErrorMessage } from '@shared/lib/errors'
 import type { UserListItem } from '@entities/user'
+import { AbzaError } from '@features/abza-error'
 import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
 import { AbzaTable } from '@features/abza-table'
@@ -45,7 +44,6 @@ function UsersTableContent() {
     changeRoleFormRef,
   } = useUsersTable()
 
-  const resolvedActionError = resolveErrorMessage(actionError)
   const createFormConfig = useMemo(() => createUserFormConfig(t), [i18n.language])
   const changeRoleFormConfig = useMemo(() => createChangeRoleFormConfig(t), [i18n.language])
 
@@ -87,11 +85,7 @@ function UsersTableContent() {
 
   return (
     <>
-      {resolvedActionError && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>
-          {resolvedActionError}
-        </Alert>
-      )}
+      <AbzaError error={actionError} sx={{ mb: 2 }} onClose={() => setActionError(null)} />
 
       <AbzaTable
         columns={columns}

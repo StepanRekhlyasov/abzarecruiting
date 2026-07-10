@@ -48,6 +48,7 @@ public class ProfileAttributeService(ApplicationDbContext db) : IProfileAttribut
             if (existing.TryGetValue(attributeId, out var profileAttribute))
             {
                 profileAttribute.ValueString = value;
+                profileAttribute.Version++;
                 continue;
             }
 
@@ -56,6 +57,7 @@ public class ProfileAttributeService(ApplicationDbContext db) : IProfileAttribut
                 CandidateId = candidateId,
                 AttributeId = attributeId,
                 ValueString = value,
+                Version = 0,
             });
         }
 

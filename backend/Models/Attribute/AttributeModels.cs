@@ -51,8 +51,9 @@ public class DeleteAttributeItem
 
 public class SetProfileAttributeRequest
 {
-    [Required]
-    public string Value { get; set; } = string.Empty;
+    public string? Value { get; set; }
+
+    public int Version { get; set; }
 }
 
 public class DeleteAttributesRequest

@@ -20,6 +20,28 @@ public class ProfileController(IProfileService profileService) : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("{candidateId}/me")]
+    public async Task<ActionResult<IReadOnlyList<ProfileAttributeDto>>> GetMeInfo(
+        string candidateId,
+        CancellationToken cancellationToken)
+    {
+        if (!User.IsAdmin() && User.GetUserId() != candidateId)
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            var attributes = await profileService.GetMeInfoAsync(candidateId, cancellationToken);
+            return attributes is null ? NotFound() : Ok(attributes);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    [Authorize]
     [HttpGet("{candidateId}/attribute-ids")]
     public async Task<ActionResult<IReadOnlyList<int>>> GetLinkedAttributeIds(
         string candidateId,

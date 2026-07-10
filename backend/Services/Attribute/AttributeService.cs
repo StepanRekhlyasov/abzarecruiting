@@ -22,7 +22,7 @@ public interface IAttributeService
 
     Task DeleteBatchAsync(IEnumerable<DeleteAttributeItem> items, CancellationToken cancellationToken = default);
 
-    Task<bool> SetCandidateValueAsync(
+    Task<int?> SetCandidateValueAsync(
         int attributeId,
         string candidateId,
         SetProfileAttributeRequest request,
@@ -219,7 +219,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<bool> SetCandidateValueAsync(
+    public async Task<int?> SetCandidateValueAsync(
         int attributeId,
         string candidateId,
         SetProfileAttributeRequest request,
@@ -228,7 +228,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         var attribute = await db.Attributes.FirstOrDefaultAsync(item => item.Id == attributeId, cancellationToken);
         if (attribute is null || !await db.Users.AnyAsync(user => user.Id == candidateId, cancellationToken))
         {
-            return false;
+            return null;
         }
 
         var profileAttribute = await db.ProfileAttributes
@@ -236,17 +236,28 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
 
         if (profileAttribute is null)
         {
+            if (request.Version != 0)
+            {
+                throw new InvalidOperationException(VersionChangedMessage);
+            }
+
             profileAttribute = new ProfileAttribute
             {
                 AttributeId = attributeId,
                 CandidateId = candidateId,
+                Version = 0,
             };
             db.ProfileAttributes.Add(profileAttribute);
         }
+        else if (profileAttribute.Version != request.Version)
+        {
+            throw new InvalidOperationException(VersionChangedMessage);
+        }
 
         valueMapper.SetValue(profileAttribute, attribute, request.Value);
+        profileAttribute.Version++;
         await db.SaveChangesAsync(cancellationToken);
-        return true;
+        return profileAttribute.Version;
     }
 
     public async Task<bool> DeleteCandidateValueAsync(

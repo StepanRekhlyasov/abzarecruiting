@@ -95,6 +95,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(profileAttribute => profileAttribute.ValueDateTo)
                 .HasColumnType("datetime(6)");
 
+            entity.Property(profileAttribute => profileAttribute.Version)
+                .HasDefaultValue(0);
+
             entity.HasOne(profileAttribute => profileAttribute.Candidate)
                 .WithMany(user => user.ProfileAttributes)
                 .HasForeignKey(profileAttribute => profileAttribute.CandidateId)

@@ -1,0 +1,5 @@
+.myAlert {
+    .MuiAlert-action {
+        margin-left: 0;
+    }
+}

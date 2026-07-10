@@ -8,6 +8,8 @@ export type {
 } from './attribute.types'
 export { ATTRIBUTE_INPUT_TYPES, ATTRIBUTE_VALUE_TYPES } from './attribute.types'
 
+export type { ProfileAttributeDto } from './profile.types'
+
 export type {
   AuthResponse,
   ChangeUsersRoleBatchRequest,

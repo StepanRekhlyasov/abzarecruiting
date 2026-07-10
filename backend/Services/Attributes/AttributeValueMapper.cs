@@ -5,7 +5,7 @@ namespace Backend.Api.Services.Attributes;
 
 public interface IAttributeValueMapper
 {
-    void SetValue(ProfileAttribute profileAttribute, AttributeEntity attribute, string value);
+    void SetValue(ProfileAttribute profileAttribute, AttributeEntity attribute, string? value);
 
     string? GetComparableValue(ProfileAttribute? profileAttribute, AttributeEntity attribute);
 
@@ -14,7 +14,7 @@ public interface IAttributeValueMapper
 
 public class AttributeValueMapper : IAttributeValueMapper
 {
-    public void SetValue(ProfileAttribute profileAttribute, AttributeEntity attribute, string value)
+    public void SetValue(ProfileAttribute profileAttribute, AttributeEntity attribute, string? value)
     {
         profileAttribute.ValueString = null;
         profileAttribute.ValueText = null;
@@ -23,6 +23,11 @@ public class AttributeValueMapper : IAttributeValueMapper
         profileAttribute.ValueDate = null;
         profileAttribute.ValueDateFrom = null;
         profileAttribute.ValueDateTo = null;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
 
         switch (attribute.ValueType.ToLowerInvariant())
         {

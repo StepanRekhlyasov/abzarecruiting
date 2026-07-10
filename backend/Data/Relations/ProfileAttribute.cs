@@ -24,6 +24,8 @@ public class ProfileAttribute
 
     public DateTime? ValueDateTo { get; set; }
 
+    public int Version { get; set; }
+
     public ApplicationUser Candidate { get; set; } = null!;
 
     public AttributeEntity Attribute { get; set; } = null!;

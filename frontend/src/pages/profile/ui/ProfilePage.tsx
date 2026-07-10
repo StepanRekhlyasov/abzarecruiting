@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography'
 import { AppHeader } from '@features/app-header'
 import { $session, isAdmin, isCandidate } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
+import { Profile } from '@widgets/candidate-profile'
 import { UsersTable } from '@widgets/users-table'
 
 export function ProfilePage() {
@@ -43,13 +44,7 @@ export function ProfilePage() {
       <AppHeader />
       <Container maxWidth="lg">
         <Box sx={{ py: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            {t('profile.title')}
-          </Typography>
-
-          <Typography variant="body1" color="text.secondary">
-            {t('profile.placeholder')}
-          </Typography>
+          <Profile candidateId={session.id} />
         </Box>
       </Container>
     </>

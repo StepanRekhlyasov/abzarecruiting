@@ -1,6 +1,5 @@
 import { type RefObject, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import FormControl from '@mui/material/FormControl'
@@ -9,8 +8,8 @@ import InputLabel from '@mui/material/InputLabel'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import TextField from '@mui/material/TextField'
+import { AbzaError } from '@features/abza-error'
 import { OptionTags } from '@shared/ui/inputs'
-import { resolveErrorMessage } from '@shared/lib/errors'
 import { validateAbzaForm } from '../lib/validate'
 import { getStringArrayValue, getStringValue, isFieldVisible } from '../lib/fieldVisibility'
 import type { AbzaFieldConfig, AbzaFormConfig, AbzaFormValues } from '@shared/types'
@@ -50,7 +49,6 @@ export function AbzaForm({
   const [values, setValues] = useState<AbzaFormValues>(() => createInitialValues(config.fields, initialValues))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
-  const resolvedServerError = resolveErrorMessage(serverError)
 
   const validationMessages = {
     required: t('form.errors.required'),
@@ -186,7 +184,7 @@ export function AbzaForm({
 
   return (
     <Box component="form" ref={formRef} onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {resolvedServerError && <Alert severity="error">{resolvedServerError}</Alert>}
+      <AbzaError error={serverError} />
 
       {config.fields.map(renderField)}
 

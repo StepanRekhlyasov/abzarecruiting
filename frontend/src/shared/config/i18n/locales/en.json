@@ -46,6 +46,9 @@
         "changeRole": "Failed to change role",
         "delete": "Failed to delete users"
       }
+    },
+    "meInfo": {
+      "title": "About me"
     }
   },
   "home": {
@@ -196,6 +199,11 @@
       "notFound": "One or more attributes were not found",
       "nameExists": "An attribute with this name already exists",
       "unsupportedValueType": "Unsupported attribute value type"
+    },
+    "profile": {
+      "load": "Failed to load profile",
+      "save": "Failed to save profile changes",
+      "notCandidate": "User is not a candidate"
     }
   }
 }

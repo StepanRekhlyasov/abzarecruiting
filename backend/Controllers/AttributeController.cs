@@ -102,8 +102,15 @@ public class AttributeController(IAttributeService attributeService) : Controlle
             return Forbid();
         }
 
-        var updated = await attributeService.SetCandidateValueAsync(id, candidateId, request, cancellationToken);
-        return updated ? NoContent() : NotFound();
+        try
+        {
+            var version = await attributeService.SetCandidateValueAsync(id, candidateId, request, cancellationToken);
+            return version is null ? NotFound() : Ok(new { version });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [Authorize]
