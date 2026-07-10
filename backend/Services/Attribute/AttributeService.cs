@@ -1,6 +1,7 @@
 using Backend.Api.Data;
 using Backend.Api.Data.Relations;
 using Backend.Api.Data.Entities;
+using Backend.Api.Extensions;
 using Backend.Api.Models.Attribute;
 using Backend.Api.Models.Common;
 using Backend.Api.Services.Attributes;
@@ -51,27 +52,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
                 || (attribute.Description != null && attribute.Description.Contains(search)));
         }
 
-        query = pagination.NormalizedSortBy switch
-        {
-            "description" => pagination.IsDescending
-                ? query.OrderByDescending(attribute => attribute.Description)
-                : query.OrderBy(attribute => attribute.Description),
-            "valuetype" => pagination.IsDescending
-                ? query.OrderByDescending(attribute => attribute.ValueType)
-                : query.OrderBy(attribute => attribute.ValueType),
-            "inputtype" => pagination.IsDescending
-                ? query.OrderByDescending(attribute => attribute.InputType)
-                : query.OrderBy(attribute => attribute.InputType),
-            "createdat" => pagination.IsDescending
-                ? query.OrderByDescending(attribute => attribute.CreatedAt)
-                : query.OrderBy(attribute => attribute.CreatedAt),
-            "id" => pagination.IsDescending
-                ? query.OrderByDescending(attribute => attribute.Id)
-                : query.OrderBy(attribute => attribute.Id),
-            _ => pagination.IsDescending
-                ? query.OrderByDescending(attribute => attribute.Name)
-                : query.OrderBy(attribute => attribute.Name),
-        };
+        query = query.ApplySort(pagination);
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
             .Skip(pagination.Skip)

@@ -1,4 +1,5 @@
 using Backend.Api.Data;
+using Backend.Api.Extensions;
 using Backend.Api.Models.Common;
 using Backend.Api.Models.User;
 using Backend.Api.Services.Profile;
@@ -65,27 +66,7 @@ public class UserService(
                 || user.Role.Contains(search, StringComparison.OrdinalIgnoreCase));
         }
 
-        items = pagination.NormalizedSortBy switch
-        {
-            "firstname" => pagination.IsDescending
-                ? items.OrderByDescending(user => user.FirstName)
-                : items.OrderBy(user => user.FirstName),
-            "lastname" => pagination.IsDescending
-                ? items.OrderByDescending(user => user.LastName)
-                : items.OrderBy(user => user.LastName),
-            "email" => pagination.IsDescending
-                ? items.OrderByDescending(user => user.Email)
-                : items.OrderBy(user => user.Email),
-            "role" => pagination.IsDescending
-                ? items.OrderByDescending(user => user.Role)
-                : items.OrderBy(user => user.Role),
-            "id" => pagination.IsDescending
-                ? items.OrderByDescending(user => user.Id)
-                : items.OrderBy(user => user.Id),
-            _ => pagination.IsDescending
-                ? items.OrderByDescending(user => user.CreatedAt)
-                : items.OrderBy(user => user.CreatedAt),
-        };
+        items = items.ApplySort(pagination);
 
         var filtered = items.ToList();
         var totalCount = filtered.Count;

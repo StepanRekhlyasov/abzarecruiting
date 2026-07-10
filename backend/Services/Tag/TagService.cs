@@ -1,4 +1,5 @@
 using Backend.Api.Data;
+using Backend.Api.Extensions;
 using Backend.Api.Models.Common;
 using Backend.Api.Models.Tag;
 using Microsoft.EntityFrameworkCore;
@@ -33,18 +34,7 @@ public class TagService(ApplicationDbContext db) : ITagService
             query = query.Where(tag => tag.Name.Contains(search));
         }
 
-        query = pagination.NormalizedSortBy switch
-        {
-            "createdat" => pagination.IsDescending
-                ? query.OrderByDescending(tag => tag.CreatedAt)
-                : query.OrderBy(tag => tag.CreatedAt),
-            "id" => pagination.IsDescending
-                ? query.OrderByDescending(tag => tag.Id)
-                : query.OrderBy(tag => tag.Id),
-            _ => pagination.IsDescending
-                ? query.OrderByDescending(tag => tag.Name)
-                : query.OrderBy(tag => tag.Name),
-        };
+        query = query.ApplySort(pagination);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query

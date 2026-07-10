@@ -73,30 +73,7 @@ public class PositionService(
                 || position.Description.Contains(search));
         }
 
-        query = pagination.NormalizedSortBy switch
-        {
-            "name" => pagination.IsDescending
-                ? query.OrderByDescending(position => position.Name)
-                : query.OrderBy(position => position.Name),
-            "company" => pagination.IsDescending
-                ? query.OrderByDescending(position => position.Company)
-                : query.OrderBy(position => position.Company),
-            "country" => pagination.IsDescending
-                ? query.OrderByDescending(position => position.Country)
-                : query.OrderBy(position => position.Country),
-            "level" => pagination.IsDescending
-                ? query.OrderByDescending(position => position.Level)
-                : query.OrderBy(position => position.Level),
-            "format" => pagination.IsDescending
-                ? query.OrderByDescending(position => position.Format)
-                : query.OrderBy(position => position.Format),
-            "id" => pagination.IsDescending
-                ? query.OrderByDescending(position => position.Id)
-                : query.OrderBy(position => position.Id),
-            _ => pagination.IsDescending
-                ? query.OrderByDescending(position => position.CreatedAt)
-                : query.OrderBy(position => position.CreatedAt),
-        };
+        query = query.ApplySort(pagination);
 
         var allIds = await query.Select(position => position.Id).ToListAsync(cancellationToken);
         var filteredIds = await FilterPositionIdsAsync(allIds, user, cancellationToken);
