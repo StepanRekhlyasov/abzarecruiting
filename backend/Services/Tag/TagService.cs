@@ -34,7 +34,7 @@ public class TagService(ApplicationDbContext db) : ITagService
             query = query.Where(tag => tag.Name.Contains(search));
         }
 
-        query = query.ApplySort(pagination);
+        query = query.ApplySort(pagination, tag => tag.Name);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query

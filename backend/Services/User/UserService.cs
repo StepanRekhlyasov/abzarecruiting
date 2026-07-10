@@ -66,7 +66,7 @@ public class UserService(
                 || user.Role.Contains(search, StringComparison.OrdinalIgnoreCase));
         }
 
-        items = items.ApplySort(pagination);
+        items = items.AsQueryable().ApplySort(pagination, user => user.CreatedAt);
 
         var filtered = items.ToList();
         var totalCount = filtered.Count;

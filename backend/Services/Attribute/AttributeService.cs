@@ -52,7 +52,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
                 || (attribute.Description != null && attribute.Description.Contains(search)));
         }
 
-        query = query.ApplySort(pagination);
+        query = query.ApplySort(pagination, attribute => attribute.Name);
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
             .Skip(pagination.Skip)

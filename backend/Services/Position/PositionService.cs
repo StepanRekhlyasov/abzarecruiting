@@ -73,7 +73,7 @@ public class PositionService(
                 || position.Description.Contains(search));
         }
 
-        query = query.ApplySort(pagination);
+        query = query.ApplySort(pagination, position => position.CreatedAt);
 
         var allIds = await query.Select(position => position.Id).ToListAsync(cancellationToken);
         var filteredIds = await FilterPositionIdsAsync(allIds, user, cancellationToken);
