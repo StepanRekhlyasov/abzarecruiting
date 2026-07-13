@@ -53,6 +53,7 @@ export type {
   ResumeCandidateAttributeDto,
   ResumeDto,
   ResumeListItemDto,
+  UpdateResumeRequest,
 } from './resume.types'
 
 export type {

@@ -1,2 +1,14 @@
-export type { ResumeCandidateAttributeDto, ResumeDto, ResumeListItemDto } from '@shared/types'
-export { createResume, deleteResume, fetchResumePositionIds, fetchResumes } from './api/resumeApi'
+export type {
+  ResumeCandidateAttributeDto,
+  ResumeDto,
+  ResumeListItemDto,
+  UpdateResumeRequest,
+} from '@shared/types'
+export {
+  createResume,
+  deleteResume,
+  fetchResume,
+  fetchResumePositionIds,
+  fetchResumes,
+  updateResume,
+} from './api/resumeApi'

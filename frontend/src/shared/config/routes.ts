@@ -6,6 +6,7 @@ export const ROUTES = {
   tags: '/tags',
   positions: '/positions',
   cvs: '/cvs',
+  cvDetail: '/cvs/:id',
   projects: '/projects',
   profile: '/profile',
   profileDetail: '/profile/:candidateId',
@@ -13,4 +14,8 @@ export const ROUTES = {
 
 export function profileDetailPath(candidateId: string) {
   return `/profile/${candidateId}`
+}
+
+export function cvDetailPath(id: number) {
+  return `/cvs/${id}`
 }

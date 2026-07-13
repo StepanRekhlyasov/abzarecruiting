@@ -1,5 +1,11 @@
 import { isAxiosError } from 'axios'
-import type { PagedResult, PaginationParams, ResumeDto, ResumeListItemDto } from '@shared/types'
+import type {
+  PagedResult,
+  PaginationParams,
+  ResumeDto,
+  ResumeListItemDto,
+  UpdateResumeRequest,
+} from '@shared/types'
 import { apiClient } from '@shared/api'
 import { parseApiError } from '@shared/lib/errors'
 
@@ -14,6 +20,24 @@ export async function fetchResumes(
   try {
     const { data } = await apiClient.get<PagedResult<ResumeListItemDto>>('/resume', {
       params,
+      signal: options?.signal,
+    })
+    return data
+  } catch (error) {
+    if (isAxiosError(error) && error.code === 'ERR_CANCELED') {
+      throw error
+    }
+
+    throw new Error(parseApiError(error))
+  }
+}
+
+export async function fetchResume(
+  id: number,
+  options?: FetchResumesOptions,
+): Promise<ResumeDto> {
+  try {
+    const { data } = await apiClient.get<ResumeDto>(`/resume/${id}`, {
       signal: options?.signal,
     })
     return data
@@ -44,6 +68,15 @@ export async function fetchResumePositionIds(options?: FetchResumesOptions): Pro
 export async function createResume(positionId: number): Promise<ResumeDto> {
   try {
     const { data } = await apiClient.post<ResumeDto>(`/resume/position/${positionId}`)
+    return data
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}
+
+export async function updateResume(id: number, request: UpdateResumeRequest): Promise<ResumeDto> {
+  try {
+    const { data } = await apiClient.post<ResumeDto>(`/resume/${id}`, request)
     return data
   } catch (error) {
     throw new Error(parseApiError(error))

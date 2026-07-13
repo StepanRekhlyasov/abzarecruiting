@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import Chip from '@mui/material/Chip'
 import { i18n } from '@shared/config/i18n'
+import { cvDetailPath } from '@shared/config/routes'
 import { formatDateTime } from '@shared/lib/date'
 import { AbzaError } from '@features/abza-error'
 import { AbzaTable } from '@features/abza-table'
@@ -12,6 +14,7 @@ import { CvsTableToolbar } from './Toolbar'
 
 function CvsTableContent() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const {
     rows,
     totalCount,
@@ -104,6 +107,7 @@ function CvsTableContent() {
         selectable={canDeleteResumes}
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
+        onRowClick={(row) => navigate(cvDetailPath(row.id))}
         loading={isLoading}
         emptyMessage={t('cvs.empty')}
         loadingMessage={t('cvs.loading')}

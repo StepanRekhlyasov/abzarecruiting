@@ -1,6 +1,7 @@
 using Backend.Api.Data;
 using Backend.Api.Data.Relations;
 using Backend.Api.Models.Common;
+using Backend.Api.Models.Project;
 using Backend.Api.Models.Resume;
 using Backend.Api.Services.Attributes;
 using Backend.Api.Services.Files;
@@ -9,6 +10,7 @@ using Backend.Api.Services.Profile;
 using Microsoft.EntityFrameworkCore;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 using FileEntity = Backend.Api.Data.Entities.File;
+using ProfileProjectEntity = Backend.Api.Data.Entities.ProfileProject;
 using ResumeEntity = Backend.Api.Data.Entities.Resume;
 
 namespace Backend.Api.Services.Resume;
@@ -59,6 +61,7 @@ public class ResumeService(
 {
     private const string VersionChangedMessage = "error.oldVersion";
     private const string AlreadyExistsMessage = "error.resumes.alreadyExists";
+    private const string IncompleteAttributesMessage = "error.resumes.incompleteAttributes";
 
     public async Task<ResumeDto?> CreateAsync(int positionId, string candidateId, CancellationToken cancellationToken = default)
     {
@@ -325,6 +328,11 @@ public class ResumeService(
             throw new InvalidOperationException(VersionChangedMessage);
         }
 
+        if (request.Published && !resume.Published)
+        {
+            await EnsureCanPublishAsync(resume, cancellationToken);
+        }
+
         resume.Published = request.Published;
         resume.Version++;
         await db.SaveChangesAsync(cancellationToken);
@@ -357,13 +365,127 @@ public class ResumeService(
     public bool CanModify(ResumeEntity resume, string? userId, bool isAdmin) =>
         isAdmin || resume.CandidateId == userId;
 
+    private async Task EnsureCanPublishAsync(ResumeEntity resume, CancellationToken cancellationToken)
+    {
+        var positionAttributeIds = await db.PositionAttributes
+            .AsNoTracking()
+            .Where(item => item.PositionId == resume.PositionId)
+            .Select(item => item.AttributeId)
+            .ToListAsync(cancellationToken);
+
+        var defaultAttributes = await LoadDefaultAttributesAsync(cancellationToken);
+        var positionAttributes = positionAttributeIds.Count == 0
+            ? []
+            : await db.Attributes
+                .AsNoTracking()
+                .Where(attribute => positionAttributeIds.Contains(attribute.Id))
+                .ToListAsync(cancellationToken);
+
+        var requiredAttributes = defaultAttributes
+            .Concat(positionAttributes)
+            .GroupBy(attribute => attribute.Id)
+            .Select(group => group.First())
+            .ToList();
+
+        var profileAttributes = await LoadProfileAttributesAsync([resume.CandidateId], cancellationToken);
+        var profileByAttributeId = profileAttributes.ToDictionary(item => item.AttributeId);
+
+        foreach (var attribute in requiredAttributes)
+        {
+            profileByAttributeId.TryGetValue(attribute.Id, out var profileAttribute);
+            if (!valueMapper.HasValue(profileAttribute, attribute))
+            {
+                throw new InvalidOperationException(IncompleteAttributesMessage);
+            }
+        }
+    }
+
     private async Task<ResumeDto?> MapSingleAsync(ResumeEntity resume, CancellationToken cancellationToken)
     {
         var defaultAttributes = await LoadDefaultAttributesAsync(cancellationToken);
         var profileAttributes = await LoadProfileAttributesAsync([resume.CandidateId], cancellationToken);
         var files = await LoadFilesForAttributesAsync(defaultAttributes, profileAttributes, cancellationToken);
-        return MapList([resume], defaultAttributes, profileAttributes, files).FirstOrDefault();
+        var listItem = MapList([resume], defaultAttributes, profileAttributes, files).FirstOrDefault();
+        if (listItem is null)
+        {
+            return null;
+        }
+
+        var attributes = await profileService.GetMeInfoAsync(resume.CandidateId, cancellationToken) ?? [];
+        var positionAttributeIds = await db.PositionAttributes
+            .AsNoTracking()
+            .Where(item => item.PositionId == resume.PositionId)
+            .Select(item => item.AttributeId)
+            .ToHashSetAsync(cancellationToken);
+
+        var maxProjects = resume.Position?.MaxProjects
+            ?? await db.Positions
+                .AsNoTracking()
+                .Where(position => position.Id == resume.PositionId)
+                .Select(position => position.MaxProjects)
+                .FirstOrDefaultAsync(cancellationToken);
+
+        listItem.Attributes =
+        [
+            .. attributes.Where(attribute => attribute.IsDefault || positionAttributeIds.Contains(attribute.Id)),
+        ];
+        listItem.MaxProjects = maxProjects;
+        listItem.Projects = await SelectMatchingProjectsAsync(
+            resume.CandidateId,
+            resume.PositionId,
+            maxProjects,
+            cancellationToken);
+
+        return listItem;
     }
+
+    private async Task<IReadOnlyList<ProjectDto>> SelectMatchingProjectsAsync(
+        string candidateId,
+        int positionId,
+        int maxProjects,
+        CancellationToken cancellationToken)
+    {
+        var positionTagIds = await db.PositionTags
+            .AsNoTracking()
+            .Where(item => item.PositionId == positionId)
+            .Select(item => item.TagId)
+            .ToListAsync(cancellationToken);
+
+        if (positionTagIds.Count == 0)
+        {
+            return [];
+        }
+
+        var query = db.ProfileProjects
+            .AsNoTracking()
+            .Where(project => project.CandidateId == candidateId)
+            .Where(project => project.ProfileProjectTags.Any(tag => positionTagIds.Contains(tag.TagId)))
+            .Include(project => project.ProfileProjectTags)
+            .ThenInclude(tag => tag.Tag)
+            .OrderByDescending(project => project.CreatedAt)
+            .AsQueryable();
+
+        var projects = maxProjects > 0
+            ? await query.Take(maxProjects).ToListAsync(cancellationToken)
+            : await query.ToListAsync(cancellationToken);
+
+        return projects.Select(MapProject).ToList();
+    }
+
+    private static ProjectDto MapProject(ProfileProjectEntity project) => new()
+    {
+        Id = project.Id,
+        CandidateId = project.CandidateId,
+        Name = project.Name,
+        Description = project.Description,
+        StartAt = project.StartAt,
+        EndAt = project.EndAt,
+        CreatedAt = project.CreatedAt,
+        Tags = project.ProfileProjectTags
+            .Select(tag => new ProjectTagDto { Id = tag.TagId, Name = tag.Tag.Name })
+            .OrderBy(tag => tag.Name)
+            .ToList(),
+    };
 
     private async Task<IReadOnlyDictionary<Guid, FileEntity>> LoadFilesForAttributesAsync(
         IReadOnlyList<AttributeEntity> attributes,
@@ -479,6 +601,7 @@ public class ResumeService(
             CandidateId = resume.CandidateId,
             PositionId = resume.PositionId,
             PositionName = resume.Position?.Name ?? string.Empty,
+            MaxProjects = resume.Position?.MaxProjects ?? 0,
             Published = resume.Published,
             CreatedAt = resume.CreatedAt,
             Version = resume.Version,

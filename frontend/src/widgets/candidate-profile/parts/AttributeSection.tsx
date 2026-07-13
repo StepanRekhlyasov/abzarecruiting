@@ -20,6 +20,7 @@ export type AttributeSectionProps = {
   onAddAttributes?: (attributeIds: number[]) => Promise<void>
   onRemoveAttribute?: (attributeId: number) => Promise<void>
   isAdding?: boolean
+  editable?: boolean
 }
 
 export function AttributeSection({
@@ -33,6 +34,7 @@ export function AttributeSection({
   onAddAttributes,
   onRemoveAttribute,
   isAdding = false,
+  editable = true,
 }: AttributeSectionProps) {
   const { t } = useTranslation()
   const [selectedAttributes, setSelectedAttributes] = useState<AbzaSelectOption[]>([])
@@ -97,8 +99,8 @@ export function AttributeSection({
             value={draftValues[attribute.id] ?? ''}
             onChange={(value) => onChange(attribute.id, value)}
             onBlur={onForceSave}
-            editable={!isAdding}
-            deletable={mode === 'attrs' && Boolean(onRemoveAttribute)}
+            editable={editable && !isAdding}
+            deletable={mode === 'attrs' && editable && Boolean(onRemoveAttribute)}
             onDelete={
               onRemoveAttribute
                 ? () => {

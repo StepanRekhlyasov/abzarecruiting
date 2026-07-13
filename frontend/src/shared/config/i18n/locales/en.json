@@ -331,6 +331,16 @@
     "published": {
       "yes": "Yes",
       "no": "No"
+    },
+    "detail": {
+      "subtitle": "Fill in all required attributes to publish",
+      "attributes": "Attributes",
+      "attributesEmpty": "No attributes for this position",
+      "projects": "Projects",
+      "projectsEmpty": "No matching projects attached",
+      "maxProjects": "max {{count}}",
+      "publish": "Publish",
+      "unpublish": "Unpublish"
     }
   },
   "projects": {
@@ -411,8 +421,10 @@
     "resumes": {
       "load": "Failed to load resumes",
       "create": "Failed to create resume",
+      "update": "Failed to update resume",
       "delete": "Failed to delete resumes",
-      "alreadyExists": "A resume for this position already exists"
+      "alreadyExists": "A resume for this position already exists",
+      "incompleteAttributes": "Fill in all attributes before publishing"
     },
     "projects": {
       "load": "Failed to load projects",

@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using Backend.Api.Models.Profile;
+using Backend.Api.Models.Project;
 
 namespace Backend.Api.Models.Resume;
 
@@ -27,6 +29,8 @@ public class ResumeDto
 
     public string PositionName { get; set; } = string.Empty;
 
+    public int MaxProjects { get; set; }
+
     public bool Published { get; set; }
 
     public DateTime CreatedAt { get; set; }
@@ -34,6 +38,10 @@ public class ResumeDto
     public int Version { get; set; }
 
     public IReadOnlyList<ResumeCandidateAttributeDto> CandidateAttributes { get; set; } = [];
+
+    public IReadOnlyList<ProfileAttributeDto> Attributes { get; set; } = [];
+
+    public IReadOnlyList<ProjectDto> Projects { get; set; } = [];
 }
 
 public class ResumeListItemDto : ResumeDto;
