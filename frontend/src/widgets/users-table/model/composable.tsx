@@ -57,21 +57,19 @@ type UsersTableContextValue = {
   isLoading: boolean
   actionError: string | null
   isCreateModalOpen: boolean
-  createFormError: string | null
   isChangeRoleModalOpen: boolean
-  changeRoleFormError: string | null
   createFormRef: RefObject<HTMLFormElement | null>
   changeRoleFormRef: RefObject<HTMLFormElement | null>
   setSearchInput: (value: string) => void
   setPage: (page: number) => void
   setPageSize: (size: number) => void
   setSelectedIds: (ids: AbzaTableRowId[]) => void
+  setIsCreateModalOpen: (open: boolean) => void
+  setIsChangeRoleModalOpen: (open: boolean) => void
   setActionError: (error: string | null) => void
   handleSortChange: (nextSortBy: string, nextSortDir: SortDirection) => void
   handleFilter: () => void
   handleCreateClick: () => void
-  handleCreateModalClose: () => void
-  handleChangeRoleModalClose: () => void
   handleCreateSubmit: (values: AbzaFormValues) => Promise<void>
   handleChangeRoleSubmit: (values: AbzaFormValues) => Promise<void>
   handleCreateModalSubmit: () => void
@@ -100,9 +98,7 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [createFormError, setCreateFormError] = useState<string | null>(null)
   const [isChangeRoleModalOpen, setIsChangeRoleModalOpen] = useState(false)
-  const [changeRoleFormError, setChangeRoleFormError] = useState<string | null>(null)
 
   const loadUsers = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
@@ -157,32 +153,18 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
   }, [])
 
   const handleCreateClick = useCallback(() => {
-    setCreateFormError(null)
     setIsCreateModalOpen(true)
-  }, [])
-
-  const handleCreateModalClose = useCallback(() => {
-    setIsCreateModalOpen(false)
-    setCreateFormError(null)
-  }, [])
-
-  const handleChangeRoleModalClose = useCallback(() => {
-    setIsChangeRoleModalOpen(false)
-    setChangeRoleFormError(null)
   }, [])
 
   const handleCreateSubmit = useCallback(
     async (values: AbzaFormValues) => {
       setIsLoading(true)
-      setCreateFormError(null)
 
       try {
         await createUser(toCreateValues(values))
         setIsCreateModalOpen(false)
         setPage(0)
         await loadUsers()
-      } catch (error) {
-        setCreateFormError(getErrorKey(error, 'profile.users.errors.create'))
       } finally {
         setIsLoading(false)
       }
@@ -193,7 +175,6 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
   const handleChangeRoleSubmit = useCallback(
     async (values: AbzaFormValues) => {
       setIsLoading(true)
-      setChangeRoleFormError(null)
 
       try {
         await changeUsersRoleBatch({
@@ -203,8 +184,6 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
         setSelectedIds([])
         setIsChangeRoleModalOpen(false)
         await loadUsers()
-      } catch (error) {
-        setChangeRoleFormError(getErrorKey(error, 'profile.users.errors.changeRole'))
       } finally {
         setIsLoading(false)
       }
@@ -228,7 +207,6 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
   )
 
   const handleBulkChangeRoleClick = useCallback(() => {
-    setChangeRoleFormError(null)
     setIsChangeRoleModalOpen(true)
   }, [])
 
@@ -264,21 +242,19 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       isLoading,
       actionError,
       isCreateModalOpen,
-      createFormError,
       isChangeRoleModalOpen,
-      changeRoleFormError,
       createFormRef,
       changeRoleFormRef,
       setSearchInput,
       setPage,
       setPageSize,
       setSelectedIds,
+      setIsCreateModalOpen,
+      setIsChangeRoleModalOpen,
       setActionError,
       handleSortChange,
       handleFilter,
       handleCreateClick,
-      handleCreateModalClose,
-      handleChangeRoleModalClose,
       handleCreateSubmit,
       handleChangeRoleSubmit,
       handleCreateModalSubmit,
@@ -299,14 +275,10 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       isLoading,
       actionError,
       isCreateModalOpen,
-      createFormError,
       isChangeRoleModalOpen,
-      changeRoleFormError,
       handleSortChange,
       handleFilter,
       handleCreateClick,
-      handleCreateModalClose,
-      handleChangeRoleModalClose,
       handleCreateSubmit,
       handleChangeRoleSubmit,
       handleCreateModalSubmit,

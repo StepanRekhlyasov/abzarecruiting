@@ -9,6 +9,7 @@ import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import TextField from '@mui/material/TextField'
 import { AbzaError } from '@features/abza-error'
+import { parseApiError } from '@shared/lib/errors'
 import { OptionTags } from '@shared/ui/inputs'
 import { validateAbzaForm } from '../lib/validate'
 import { getStringArrayValue, getStringValue, isFieldVisible } from '../lib/fieldVisibility'
@@ -18,7 +19,6 @@ type AbzaFormProps = {
   config: AbzaFormConfig
   onSubmit: (values: AbzaFormValues) => void | Promise<void>
   isLoading?: boolean
-  serverError?: string | null
   formRef?: RefObject<HTMLFormElement | null>
   hideSubmitButton?: boolean
   initialValues?: AbzaFormValues
@@ -40,7 +40,6 @@ export function AbzaForm({
   config,
   onSubmit,
   isLoading = false,
-  serverError,
   formRef,
   hideSubmitButton = false,
   initialValues,
@@ -49,6 +48,7 @@ export function AbzaForm({
   const [values, setValues] = useState<AbzaFormValues>(() => createInitialValues(config.fields, initialValues))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [serverError, setServerError] = useState<string | null>(null)
 
   const validationMessages = {
     required: t('form.errors.required'),
@@ -113,7 +113,13 @@ export function AbzaForm({
       return
     }
 
-    await onSubmit(values)
+    setServerError(null)
+
+    try {
+      await onSubmit(values)
+    } catch (error) {
+      setServerError(parseApiError(error))
+    }
   }
 
   const renderField = (field: AbzaFieldConfig) => {
@@ -184,7 +190,7 @@ export function AbzaForm({
 
   return (
     <Box component="form" ref={formRef} onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <AbzaError error={serverError} />
+      <AbzaError error={serverError} onClose={() => setServerError(null)} />
 
       {config.fields.map(renderField)}
 

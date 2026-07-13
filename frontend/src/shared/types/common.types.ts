@@ -96,7 +96,7 @@ export type AbzaModalConfig = {
 export type AbzaModalProps = {
   open: boolean
   config: AbzaModalConfig
-  onClose: () => void
+  onOpenChange: (open: boolean) => void
   onSubmit: () => void | Promise<void>
   children: ReactNode
   isLoading?: boolean

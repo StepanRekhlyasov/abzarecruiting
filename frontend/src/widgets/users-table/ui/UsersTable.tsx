@@ -23,18 +23,16 @@ function UsersTableContent() {
     isLoading,
     actionError,
     isCreateModalOpen,
-    createFormError,
     isChangeRoleModalOpen,
-    changeRoleFormError,
     sortBy,
     sortDir,
     setPage,
     setPageSize,
     setSelectedIds,
+    setIsCreateModalOpen,
+    setIsChangeRoleModalOpen,
     setActionError,
     handleSortChange,
-    handleCreateModalClose,
-    handleChangeRoleModalClose,
     handleCreateSubmit,
     handleChangeRoleSubmit,
     handleCreateModalSubmit,
@@ -119,18 +117,16 @@ function UsersTableContent() {
           submitLabel: t('profile.users.create.submit'),
           cancelLabel: t('profile.users.create.cancel'),
         }}
-        onClose={handleCreateModalClose}
+        onOpenChange={setIsCreateModalOpen}
         onSubmit={handleCreateModalSubmit}
         isLoading={isLoading}
       >
         <AbzaForm
-          key={isCreateModalOpen ? 'create-open' : 'create-closed'}
           formRef={createFormRef}
           hideSubmitButton
           config={createFormConfig}
           onSubmit={handleCreateSubmit}
           isLoading={isLoading}
-          serverError={createFormError}
         />
       </AbzaModal>
 
@@ -141,18 +137,16 @@ function UsersTableContent() {
           submitLabel: t('profile.users.changeRole.submit'),
           cancelLabel: t('profile.users.changeRole.cancel'),
         }}
-        onClose={handleChangeRoleModalClose}
+        onOpenChange={setIsChangeRoleModalOpen}
         onSubmit={handleChangeRoleModalSubmit}
         isLoading={isLoading}
       >
         <AbzaForm
-          key={isChangeRoleModalOpen ? 'role-open' : 'role-closed'}
           formRef={changeRoleFormRef}
           hideSubmitButton
           config={changeRoleFormConfig}
           onSubmit={handleChangeRoleSubmit}
           isLoading={isLoading}
-          serverError={changeRoleFormError}
         />
       </AbzaModal>
     </>

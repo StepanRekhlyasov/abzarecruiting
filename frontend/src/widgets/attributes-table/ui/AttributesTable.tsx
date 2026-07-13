@@ -28,9 +28,7 @@ function AttributesTableContent() {
     isLoading,
     actionError,
     isCreateModalOpen,
-    createFormError,
     isEditModalOpen,
-    editFormError,
     editingAttribute,
     canManageAttributes,
     canLinkToProfile,
@@ -41,10 +39,10 @@ function AttributesTableContent() {
     setPage,
     setPageSize,
     setSelectedIds,
+    setIsCreateModalOpen,
+    setIsEditModalOpen,
     setActionError,
     handleSortChange,
-    handleCreateModalClose,
-    handleEditModalClose,
     handleCreateSubmit,
     handleEditSubmit,
     handleCreateModalSubmit,
@@ -150,7 +148,7 @@ function AttributesTableContent() {
           submitLabel: t('attributes.create.submit'),
           cancelLabel: t('attributes.create.cancel'),
         }}
-        onClose={handleCreateModalClose}
+        onOpenChange={setIsCreateModalOpen}
         onSubmit={handleCreateModalSubmit}
         isLoading={isLoading}
       >
@@ -160,7 +158,6 @@ function AttributesTableContent() {
           config={formConfig}
           onSubmit={handleCreateSubmit}
           isLoading={isLoading}
-          serverError={createFormError}
         />
       </AbzaModal>
 
@@ -171,19 +168,20 @@ function AttributesTableContent() {
           submitLabel: t('attributes.edit.submit'),
           cancelLabel: t('attributes.edit.cancel'),
         }}
-        onClose={handleEditModalClose}
+        onOpenChange={setIsEditModalOpen}
         onSubmit={handleEditModalSubmit}
         isLoading={isLoading}
       >
-        <AbzaForm
-          formRef={editFormRef}
-          hideSubmitButton
-          config={formConfig}
-          initialValues={editingAttribute ? attributeToFormValues(editingAttribute) : undefined}
-          onSubmit={handleEditSubmit}
-          isLoading={isLoading}
-          serverError={editFormError}
-        />
+        {editingAttribute ? (
+          <AbzaForm
+            formRef={editFormRef}
+            hideSubmitButton
+            config={formConfig}
+            initialValues={attributeToFormValues(editingAttribute)}
+            onSubmit={handleEditSubmit}
+            isLoading={isLoading}
+          />
+        ) : null}
       </AbzaModal>
     </>
   )

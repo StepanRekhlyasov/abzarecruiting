@@ -10,7 +10,6 @@ import { authSucceeded, register, type UserRole } from '@entities/user'
 import { createRegisterFormConfig } from '@shared/config/forms'
 import { i18n } from '@shared/config/i18n'
 import { ROUTES } from '@shared/config/routes'
-import { getErrorKey } from '@shared/lib/errors'
 import { toSubmitValues } from '@shared/lib/helpers'
 import { AppHeader } from '@features/app-header'
 import { AbzaForm, type AbzaFormValues } from '@features/abza-form'
@@ -19,13 +18,11 @@ export function RegisterPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
-  const [serverError, setServerError] = useState<string | null>(null)
 
   const formConfig = useMemo(() => createRegisterFormConfig(t), [i18n.language])
 
   const handleSubmit = async (values: AbzaFormValues) => {
     setIsLoading(true)
-    setServerError(null)
 
     try {
       const submitted = toSubmitValues(values, [
@@ -42,8 +39,6 @@ export function RegisterPage() {
 
       authSucceeded(response)
       navigate(ROUTES.home)
-    } catch (error) {
-      setServerError(getErrorKey(error))
     } finally {
       setIsLoading(false)
     }
@@ -67,7 +62,6 @@ export function RegisterPage() {
               config={formConfig}
               onSubmit={handleSubmit}
               isLoading={isLoading}
-              serverError={serverError}
             />
 
             <Typography variant="body2" sx={{ mt: 3, textAlign: 'center' }}>

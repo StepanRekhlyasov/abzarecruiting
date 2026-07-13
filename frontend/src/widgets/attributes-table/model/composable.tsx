@@ -55,9 +55,7 @@ type AttributesTableContextValue = {
   isLoading: boolean
   actionError: string | null
   isCreateModalOpen: boolean
-  createFormError: string | null
   isEditModalOpen: boolean
-  editFormError: string | null
   editingAttribute: AttributeDto | null
   canManageAttributes: boolean
   canLinkToProfile: boolean
@@ -69,12 +67,12 @@ type AttributesTableContextValue = {
   setPage: (page: number) => void
   setPageSize: (size: number) => void
   setSelectedIds: (ids: AbzaTableRowId[]) => void
+  setIsCreateModalOpen: (open: boolean) => void
+  setIsEditModalOpen: (open: boolean) => void
   setActionError: (error: string | null) => void
   handleSortChange: (nextSortBy: string, nextSortDir: SortDirection) => void
   handleFilter: () => void
   handleCreateClick: () => void
-  handleCreateModalClose: () => void
-  handleEditModalClose: () => void
   handleCreateSubmit: (values: AbzaFormValues) => Promise<void>
   handleEditSubmit: (values: AbzaFormValues) => Promise<void>
   handleCreateModalSubmit: () => void
@@ -104,9 +102,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [createFormError, setCreateFormError] = useState<string | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [editFormError, setEditFormError] = useState<string | null>(null)
   const [editingAttribute, setEditingAttribute] = useState<AttributeDto | null>(null)
   const [linkedAttributeIds, setLinkedAttributeIds] = useState<number[]>([])
 
@@ -185,6 +181,12 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
     return () => controller.abort()
   }, [loadLinkedAttributeIds])
 
+  useEffect(() => {
+    if (!isEditModalOpen) {
+      setEditingAttribute(null)
+    }
+  }, [isEditModalOpen])
+
   const handleFilter = useCallback(() => {
     setSearchQuery(searchInput.trim())
     setPage(0)
@@ -197,36 +199,17 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
   }, [])
 
   const handleCreateClick = useCallback(() => {
-    setCreateFormError(null)
     setIsCreateModalOpen(true)
   }, [])
-
-  const handleCreateModalClose = useCallback(() => {
-    if (!isLoading) {
-      setIsCreateModalOpen(false)
-      setCreateFormError(null)
-    }
-  }, [isLoading])
-
-  const handleEditModalClose = useCallback(() => {
-    if (!isLoading) {
-      setIsEditModalOpen(false)
-      setEditingAttribute(null)
-      setEditFormError(null)
-    }
-  }, [isLoading])
 
   const handleCreateSubmit = useCallback(
     async (values: AbzaFormValues) => {
       setIsLoading(true)
-      setCreateFormError(null)
 
       try {
         await createAttribute(toAttributeSubmitValues(values))
         setIsCreateModalOpen(false)
         await loadAttributes()
-      } catch (error) {
-        setCreateFormError(getErrorKey(error, 'error.attributes.create'))
       } finally {
         setIsLoading(false)
       }
@@ -241,7 +224,6 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       }
 
       setIsLoading(true)
-      setEditFormError(null)
 
       try {
         const updated = await updateAttribute(editingAttribute.id, {
@@ -252,9 +234,6 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
           currentRows.map((row) => (row.id === updated.id ? updated : row)),
         )
         setIsEditModalOpen(false)
-        setEditingAttribute(null)
-      } catch (error) {
-        setEditFormError(getErrorKey(error, 'error.attributes.update'))
       } finally {
         setIsLoading(false)
       }
@@ -277,7 +256,6 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       }
 
       setEditingAttribute(row)
-      setEditFormError(null)
       setIsEditModalOpen(true)
     },
     [canManageAttributes],
@@ -308,7 +286,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
     } finally {
       setIsLoading(false)
     }
-  }, [rows, selectedIds])  
+  }, [rows, selectedIds])
 
   const handleLinkSelected = useCallback(async () => {
     if (!session?.id || selectedIds.length === 0) {
@@ -368,9 +346,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       isLoading,
       actionError,
       isCreateModalOpen,
-      createFormError,
       isEditModalOpen,
-      editFormError,
       editingAttribute,
       canManageAttributes,
       canLinkToProfile,
@@ -382,12 +358,12 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       setPage,
       setPageSize,
       setSelectedIds,
+      setIsCreateModalOpen,
+      setIsEditModalOpen,
       setActionError,
       handleSortChange,
       handleFilter,
       handleCreateClick,
-      handleCreateModalClose,
-      handleEditModalClose,
       handleCreateSubmit,
       handleEditSubmit,
       handleCreateModalSubmit,
@@ -409,9 +385,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       isLoading,
       actionError,
       isCreateModalOpen,
-      createFormError,
       isEditModalOpen,
-      editFormError,
       editingAttribute,
       canManageAttributes,
       canLinkToProfile,
@@ -420,8 +394,6 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       handleSortChange,
       handleFilter,
       handleCreateClick,
-      handleCreateModalClose,
-      handleEditModalClose,
       handleCreateSubmit,
       handleEditSubmit,
       handleCreateModalSubmit,

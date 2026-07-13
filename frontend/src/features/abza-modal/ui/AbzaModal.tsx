@@ -8,18 +8,26 @@ import type { AbzaModalProps } from '@shared/types'
 export function AbzaModal({
   open,
   config,
-  onClose,
+  onOpenChange,
   onSubmit,
   children,
   isLoading = false,
   maxWidth = 'sm',
 }: AbzaModalProps) {
+  const handleClose = () => {
+    if (isLoading) {
+      return
+    }
+
+    onOpenChange(false)
+  }
+
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth={maxWidth}>
+    <Dialog open={open} onClose={handleClose} fullWidth maxWidth={maxWidth}>
       <DialogTitle>{config.title}</DialogTitle>
-      <DialogContent dividers>{children}</DialogContent>
+      <DialogContent dividers>{open ? children : null}</DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={isLoading}>
+        <Button onClick={handleClose} disabled={isLoading}>
           {config.cancelLabel}
         </Button>
         <Button variant="contained" onClick={onSubmit} disabled={isLoading}>
