@@ -94,6 +94,39 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
     }
 
     [Authorize]
+    [HttpGet("{id:int}/pdf")]
+    public async Task<IActionResult> DownloadPdf(
+        int id,
+        [FromQuery] string? lang,
+        CancellationToken cancellationToken)
+    {
+        var result = await resumeService.GeneratePdfForViewerAsync(
+            id,
+            User.GetUserId(),
+            User.IsAdmin(),
+            User.IsRecruiter(),
+            lang,
+            cancellationToken);
+
+        if (result.NotFound)
+        {
+            return NotFound();
+        }
+
+        if (result.Forbidden)
+        {
+            return Forbid();
+        }
+
+        if (result.NotPublished)
+        {
+            return BadRequest(new { message = "error.resumes.notPublished" });
+        }
+
+        return File(result.Content!, "application/pdf", result.FileName);
+    }
+
+    [Authorize]
     [HttpPost("{id:int}")]
     public async Task<ActionResult<ResumeDto>> Update(
         int id,

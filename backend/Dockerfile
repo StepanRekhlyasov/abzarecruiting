@@ -1,5 +1,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS base
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends fontconfig fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
 COPY Backend.Api.csproj ./
 RUN dotnet restore Backend.Api.csproj
 COPY . ./
@@ -13,6 +16,9 @@ CMD ["dotnet", "watch", "run", "--non-interactive", "--no-launch-profile", "--pr
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS production-stage
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends fontconfig fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=build-stage /app/out .
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "Backend.Api.dll"]

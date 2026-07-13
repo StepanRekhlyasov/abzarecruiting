@@ -10,6 +10,7 @@ import {
 import { isAxiosError } from 'axios'
 import { useUnit } from 'effector-react'
 import {
+  downloadResumePdf,
   fetchResume,
   updateResume,
   type ResumeDto,
@@ -18,6 +19,7 @@ import {
   setCandidateAttributeValue,
 } from '@entities/profile'
 import { $session, isAdmin } from '@entities/user'
+import { i18n } from '@shared/config/i18n'
 import { getErrorKey } from '@shared/lib/errors'
 import {
   toPersistedAttributeValue,
@@ -36,6 +38,7 @@ type ResumeDetailContextValue = {
   actionError: string | null
   canEdit: boolean
   isAutosaveActive: boolean
+  isDownloading: boolean
   setActionError: (error: string | null) => void
   setAutosaveActive: (active: boolean) => void
   saveAttributeValue: (
@@ -44,6 +47,7 @@ type ResumeDetailContextValue = {
     version: number,
   ) => Promise<number>
   togglePublished: () => Promise<void>
+  downloadPdf: () => Promise<void>
   reloadResume: () => Promise<void>
 }
 
@@ -61,6 +65,7 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isAutosaveActive, setAutosaveActive] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
 
   const canEdit = Boolean(
     resume && session && (isAdmin(session) || session.id === resume.candidateId),
@@ -140,6 +145,24 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
     }
   }, [resume])
 
+  const downloadPdf = useCallback(async () => {
+    if (!resume?.published) {
+      return
+    }
+
+    setIsDownloading(true)
+    setActionError(null)
+
+    try {
+      await downloadResumePdf(resume.id, i18n.language)
+    } catch (downloadError) {
+      setActionError(getErrorKey(downloadError, 'error.resumes.download'))
+      throw downloadError
+    } finally {
+      setIsDownloading(false)
+    }
+  }, [resume])
+
   const value = useMemo(
     () => ({
       resume,
@@ -151,10 +174,12 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
       actionError,
       canEdit,
       isAutosaveActive,
+      isDownloading,
       setActionError,
       setAutosaveActive,
       saveAttributeValue,
       togglePublished,
+      downloadPdf,
       reloadResume: () => loadResume(),
     }),
     [
@@ -165,8 +190,10 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
       actionError,
       canEdit,
       isAutosaveActive,
+      isDownloading,
       saveAttributeValue,
       togglePublished,
+      downloadPdf,
       loadResume,
     ],
   )

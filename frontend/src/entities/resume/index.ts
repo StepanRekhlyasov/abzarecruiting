@@ -7,6 +7,7 @@ export type {
 export {
   createResume,
   deleteResume,
+  downloadResumePdf,
   fetchResume,
   fetchResumePositionIds,
   fetchResumes,

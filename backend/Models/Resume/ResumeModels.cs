@@ -67,3 +67,34 @@ public sealed class ResumeGetResult
 
     public static ResumeGetResult Ok(ResumeDto dto) => new(dto, false, false);
 }
+
+public sealed class ResumePdfResult
+{
+    private ResumePdfResult(byte[]? content, string? fileName, bool notFound, bool forbidden, bool notPublished)
+    {
+        Content = content;
+        FileName = fileName;
+        NotFound = notFound;
+        Forbidden = forbidden;
+        NotPublished = notPublished;
+    }
+
+    public byte[]? Content { get; }
+
+    public string? FileName { get; }
+
+    public bool NotFound { get; }
+
+    public bool Forbidden { get; }
+
+    public bool NotPublished { get; }
+
+    public static ResumePdfResult NotFoundResult() => new(null, null, true, false, false);
+
+    public static ResumePdfResult ForbiddenResult() => new(null, null, false, true, false);
+
+    public static ResumePdfResult NotPublishedResult() => new(null, null, false, false, true);
+
+    public static ResumePdfResult Ok(byte[] content, string fileName) =>
+        new(content, fileName, false, false, false);
+}

@@ -63,7 +63,7 @@ export function ResumeProjectsSection({ projects }: ResumeProjectsSectionProps) 
           ) : null}
 
           {project.tags.length > 0 ? (
-            <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+            <Stack direction="row" spacing={0.75} useFlexGap sx={{ flexWrap: 'wrap' }}>
               {project.tags.map((tag) => (
                 <Chip key={tag.id} size="small" label={tag.name} />
               ))}

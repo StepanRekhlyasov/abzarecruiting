@@ -333,14 +333,21 @@
       "no": "No"
     },
     "detail": {
-      "subtitle": "Fill in all required attributes to publish",
+      "forPosition": "Resume for position: {{name}}",
       "attributes": "Attributes",
       "attributesEmpty": "No attributes for this position",
       "projects": "Projects",
       "projectsEmpty": "No matching projects attached",
       "maxProjects": "max {{count}}",
       "publish": "Publish",
-      "unpublish": "Unpublish"
+      "unpublish": "Unpublish",
+      "publishHint": "Fill in all required attributes to publish",
+      "downloadPdf": "Download PDF",
+      "labels": {
+        "email": "email",
+        "phone": "tel.",
+        "photo": "Profile photo"
+      }
     }
   },
   "projects": {
@@ -424,7 +431,9 @@
       "update": "Failed to update resume",
       "delete": "Failed to delete resumes",
       "alreadyExists": "A resume for this position already exists",
-      "incompleteAttributes": "Fill in all attributes before publishing"
+      "incompleteAttributes": "Fill in all attributes before publishing",
+      "notPublished": "PDF download is available only for published resumes",
+      "download": "Failed to download PDF"
     },
     "projects": {
       "load": "Failed to load projects",

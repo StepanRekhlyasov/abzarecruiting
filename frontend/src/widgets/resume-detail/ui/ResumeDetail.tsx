@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import DownloadIcon from '@mui/icons-material/Download'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import SaveIcon from '@mui/icons-material/Save'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import IconButton from '@mui/material/IconButton'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { useTranslation } from 'react-i18next'
 import { AbzaError } from '@features/abza-error'
@@ -54,6 +57,27 @@ function hasAllAttributeValues(
   )
 }
 
+function withResumeAttributeLabels(
+  attributes: ProfileAttributeDto[],
+  t: (key: string) => string,
+): ProfileAttributeDto[] {
+  return attributes.map((attribute) => {
+    if (attribute.name === 'Email') {
+      return { ...attribute, name: t('cvs.detail.labels.email') }
+    }
+
+    if (attribute.name === 'Phone number') {
+      return { ...attribute, name: t('cvs.detail.labels.phone') }
+    }
+
+    if (attribute.name === 'Profile photo') {
+      return { ...attribute, name: t('cvs.detail.labels.photo') }
+    }
+
+    return attribute
+  })
+}
+
 function ResumeDetailContent() {
   const { t } = useTranslation()
   const {
@@ -66,10 +90,12 @@ function ResumeDetailContent() {
     actionError,
     canEdit,
     isAutosaveActive,
+    isDownloading,
     setActionError,
     setAutosaveActive,
     saveAttributeValue,
     togglePublished,
+    downloadPdf,
   } = useResumeDetail()
 
   const [draft, setDraft] = useState<Record<number, AttributeDraftValue>>({})
@@ -86,6 +112,10 @@ function ResumeDetailContent() {
   const dirtyIds = getDirtyIds(draft, savedRef.current)
   const isDirty = dirtyIds.length > 0
   const allFilled = hasAllAttributeValues(attributes, draft)
+  const displayAttributes = useMemo(
+    () => withResumeAttributeLabels(attributes, t),
+    [attributes, t],
+  )
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -256,16 +286,11 @@ function ResumeDetailContent() {
           gap: 2,
         }}
       >
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
-          <Typography variant="h5" component="h1">
-            {resume.positionName}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {t('cvs.detail.subtitle')}
-          </Typography>
-        </Box>
+        <Typography variant="h5" component="h1" sx={{ minWidth: 0 }}>
+          {t('cvs.detail.forPosition', { name: resume.positionName })}
+        </Typography>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           {canEdit && isAutosaveActive ? (
             <IconButton
               color="primary"
@@ -278,14 +303,36 @@ function ResumeDetailContent() {
           ) : null}
 
           {canEdit ? (
-            <Button
-              variant="contained"
-              onClick={() => void handlePublishClick()}
-              disabled={publishDisabled}
-              sx={{ boxShadow: 'none' }}
-            >
-              {resume.published ? t('cvs.detail.unpublish') : t('cvs.detail.publish')}
-            </Button>
+            <>
+              {!resume.published ? (
+                <Tooltip title={t('cvs.detail.publishHint')}>
+                  <InfoOutlinedIcon color="action" fontSize="small" sx={{ mr: 0.5 }} />
+                </Tooltip>
+              ) : null}
+              <Button
+                variant="contained"
+                onClick={() => void handlePublishClick()}
+                disabled={publishDisabled}
+                sx={{ boxShadow: 'none' }}
+              >
+                {resume.published ? t('cvs.detail.unpublish') : t('cvs.detail.publish')}
+              </Button>
+            </>
+          ) : null}
+
+          {resume.published ? (
+            <Tooltip title={t('cvs.detail.downloadPdf')}>
+              <span>
+                <IconButton
+                  color="primary"
+                  onClick={() => void downloadPdf()}
+                  disabled={isDownloading}
+                  aria-label={t('cvs.detail.downloadPdf')}
+                >
+                  {isDownloading ? <CircularProgress size={20} /> : <DownloadIcon />}
+                </IconButton>
+              </span>
+            </Tooltip>
           ) : null}
         </Box>
       </Box>
@@ -296,7 +343,7 @@ function ResumeDetailContent() {
         </Typography>
         <AttributeSection
           mode="default"
-          attributes={attributes}
+          attributes={displayAttributes}
           draftValues={draft}
           onChange={handleChange}
           onForceSave={() => {

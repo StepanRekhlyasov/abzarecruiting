@@ -1,6 +1,8 @@
+using Backend.Api.Configuration;
 using Backend.Api.Data;
 using Backend.Api.Data.Relations;
 using Backend.Api.Models.Common;
+using Backend.Api.Models.Files;
 using Backend.Api.Models.Project;
 using Backend.Api.Models.Resume;
 using Backend.Api.Services.Attributes;
@@ -8,6 +10,7 @@ using Backend.Api.Services.Files;
 using Backend.Api.Services.Position;
 using Backend.Api.Services.Profile;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 using FileEntity = Backend.Api.Data.Entities.File;
 using ProfileProjectEntity = Backend.Api.Data.Entities.ProfileProject;
@@ -48,6 +51,14 @@ public interface IResumeService
 
     Task<bool> DeleteAsync(int id, int version, CancellationToken cancellationToken = default);
 
+    Task<ResumePdfResult> GeneratePdfForViewerAsync(
+        int id,
+        string? userId,
+        bool isAdmin,
+        bool isRecruiter,
+        string? locale = null,
+        CancellationToken cancellationToken = default);
+
     bool CanView(ResumeEntity resume, string? userId, bool isAdmin, bool isRecruiter);
 
     bool CanModify(ResumeEntity resume, string? userId, bool isAdmin);
@@ -57,11 +68,14 @@ public class ResumeService(
     ApplicationDbContext db,
     IPositionRestrictionEvaluator restrictionEvaluator,
     IAttributeValueMapper valueMapper,
-    IProfileService profileService) : IResumeService
+    IProfileService profileService,
+    IOptions<FileStorageSettings> fileStorageOptions,
+    IWebHostEnvironment environment) : IResumeService
 {
     private const string VersionChangedMessage = "error.oldVersion";
     private const string AlreadyExistsMessage = "error.resumes.alreadyExists";
     private const string IncompleteAttributesMessage = "error.resumes.incompleteAttributes";
+    private readonly FileStorageSettings _fileStorage = fileStorageOptions.Value;
 
     public async Task<ResumeDto?> CreateAsync(int positionId, string candidateId, CancellationToken cancellationToken = default)
     {
@@ -355,6 +369,78 @@ public class ResumeService(
         db.Resumes.Remove(resume);
         await db.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    public async Task<ResumePdfResult> GeneratePdfForViewerAsync(
+        int id,
+        string? userId,
+        bool isAdmin,
+        bool isRecruiter,
+        string? locale = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await GetByIdForViewerAsync(id, userId, isAdmin, isRecruiter, cancellationToken);
+        if (result.NotFound)
+        {
+            return ResumePdfResult.NotFoundResult();
+        }
+
+        if (result.Forbidden || result.Dto is null)
+        {
+            return ResumePdfResult.ForbiddenResult();
+        }
+
+        if (!result.Dto.Published)
+        {
+            return ResumePdfResult.NotPublishedResult();
+        }
+
+        var photoBytes = TryLoadPhotoBytes(result.Dto);
+        var content = ResumePdfGenerator.Generate(result.Dto, photoBytes, locale);
+        var fileName = ResumePdfGenerator.BuildFileName(result.Dto, locale);
+        return ResumePdfResult.Ok(content, fileName);
+    }
+
+    private byte[]? TryLoadPhotoBytes(ResumeDto resume)
+    {
+        var photo = resume.Attributes.FirstOrDefault(attribute => attribute.Name == DefaultAttributes.Photo);
+        if (photo?.Value is not FileAttributeValueDto file || string.IsNullOrWhiteSpace(file.Url))
+        {
+            return null;
+        }
+
+        var absolutePath = ResolveStoredFilePath(file.Url);
+        if (absolutePath is null || !System.IO.File.Exists(absolutePath))
+        {
+            return null;
+        }
+
+        return System.IO.File.ReadAllBytes(absolutePath);
+    }
+
+    private string? ResolveStoredFilePath(string url)
+    {
+        var requestPath = _fileStorage.RequestPath.TrimEnd('/');
+        var relativeUrl = url.StartsWith(requestPath, StringComparison.OrdinalIgnoreCase)
+            ? url[requestPath.Length..].TrimStart('/')
+            : url.TrimStart('/');
+
+        if (string.IsNullOrWhiteSpace(relativeUrl))
+        {
+            return null;
+        }
+
+        var rootPath = Path.IsPathRooted(_fileStorage.RootPath)
+            ? _fileStorage.RootPath
+            : Path.GetFullPath(Path.Combine(environment.ContentRootPath, _fileStorage.RootPath));
+
+        var absolutePath = Path.GetFullPath(Path.Combine(rootPath, relativeUrl.Replace('/', Path.DirectorySeparatorChar)));
+        if (!absolutePath.StartsWith(rootPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return absolutePath;
     }
 
     public bool CanView(ResumeEntity resume, string? userId, bool isAdmin, bool isRecruiter) =>
