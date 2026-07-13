@@ -3,6 +3,7 @@ using Backend.Api.Data.Relations;
 using Backend.Api.Models.Profile;
 using Backend.Api.Services.Attributes;
 using Microsoft.EntityFrameworkCore;
+using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 
 namespace Backend.Api.Services.Profile;
 
@@ -70,6 +71,7 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
                         .ToList(),
                     Value = profileAttribute is null ? null : valueMapper.GetComparableValue(profileAttribute, attribute),
                     Version = profileAttribute?.Version ?? 0,
+                    IsDefault = defaultNames.Contains(attribute.Name),
                 };
             })
             .ToList();
@@ -139,7 +141,28 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
             .ToListAsync(cancellationToken);
         var profileAttributesById = profileAttributes.ToDictionary(item => item.AttributeId);
 
-        return DefaultAttributes.All
+        ProfileAttributeDto MapAttribute(AttributeEntity attribute, bool isDefault)
+        {
+            profileAttributesById.TryGetValue(attribute.Id, out var profileAttribute);
+
+            return new ProfileAttributeDto
+            {
+                Id = attribute.Id,
+                Name = attribute.Name,
+                Description = attribute.Description,
+                ValueType = attribute.ValueType,
+                InputType = attribute.InputType,
+                Options = attribute.Options
+                    .OrderBy(option => option.Id)
+                    .Select(option => option.InputOption)
+                    .ToList(),
+                Value = profileAttribute is null ? null : valueMapper.GetComparableValue(profileAttribute, attribute),
+                Version = profileAttribute?.Version ?? 0,
+                IsDefault = isDefault,
+            };
+        }
+
+        var defaultAttributes = DefaultAttributes.All
             .Select(definition =>
             {
                 if (!attributesByName.TryGetValue(definition.Name, out var attribute))
@@ -147,26 +170,19 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
                     return null;
                 }
 
-                profileAttributesById.TryGetValue(attribute.Id, out var profileAttribute);
-
-                return new ProfileAttributeDto
-                {
-                    Id = attribute.Id,
-                    Name = attribute.Name,
-                    Description = attribute.Description,
-                    ValueType = attribute.ValueType,
-                    InputType = attribute.InputType,
-                    Options = attribute.Options
-                        .OrderBy(option => option.Id)
-                        .Select(option => option.InputOption)
-                        .ToList(),
-                    Value = profileAttribute is null ? null : valueMapper.GetComparableValue(profileAttribute, attribute),
-                    Version = profileAttribute?.Version ?? 0,
-                };
+                return MapAttribute(attribute, isDefault: true);
             })
             .Where(item => item is not null)
-            .Cast<ProfileAttributeDto>()
-            .ToList();
+            .Cast<ProfileAttributeDto>();
+
+        var addedAttributes = attributes
+            .Where(attribute =>
+                !defaultNames.Contains(attribute.Name) &&
+                profileAttributesById.ContainsKey(attribute.Id))
+            .OrderBy(attribute => attribute.Name)
+            .Select(attribute => MapAttribute(attribute, isDefault: false));
+
+        return defaultAttributes.Concat(addedAttributes).ToList();
     }
 
     public async Task<bool> AddAttributesAsync(

@@ -113,6 +113,7 @@ public class UserService(
             {
                 [DefaultAttributes.FirstName] = request.FirstName,
                 [DefaultAttributes.LastName] = request.LastName,
+                [DefaultAttributes.Email] = request.Email,
             });
         }
         catch (InvalidOperationException)

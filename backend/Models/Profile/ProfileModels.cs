@@ -19,6 +19,8 @@ public class ProfileAttributeDto
     public string? Value { get; set; }
 
     public int Version { get; set; }
+
+    public bool IsDefault { get; set; }
 }
 
 public class ProfileProjectTagDto

@@ -59,6 +59,7 @@ publish/
 *.publishproj
 App_Data/*.mdf
 App_Data/*.ldf
+uploads/
 
 ## Secrets and local config
 appsettings.*.local.json

@@ -102,12 +102,16 @@ restoreSessionFx.fail.watch(({ error }) => {
 appStarted.watch(() => {
   const token = getAccessToken()
 
-  if (token) {
-    restoreSessionFx()
+  if (!token) {
+    if (getSession()) {
+      logout()
+    }
     return
   }
 
-  if (getSession()) {
-    logout()
+  if (restoreSessionFx.pending.getState()) {
+    return
   }
+
+  void restoreSessionFx()
 })

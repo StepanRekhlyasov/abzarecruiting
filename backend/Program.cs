@@ -12,11 +12,14 @@ using Backend.Api.Services.Project;
 using Backend.Api.Services.Restriction;
 using Backend.Api.Services.Resume;
 using Backend.Api.Services.Tag;
+using Backend.Api.Services.Files;
 using Backend.Api.Services.User;
 using Backend.Api.WebSockets;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Microsoft.Extensions.Options;
@@ -26,6 +29,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 builder.Services.Configure<DefaultAttributesSettings>(
     builder.Configuration.GetSection(DefaultAttributesSettings.SectionName));
+builder.Services.Configure<FileStorageSettings>(
+    builder.Configuration.GetSection(FileStorageSettings.SectionName));
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = FileStorageSettings.DefaultMaxFileSizeBytes;
+});
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = FileStorageSettings.DefaultMaxFileSizeBytes;
+});
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
@@ -86,6 +99,7 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<IResumeService, ResumeService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddSingleton<IFileStorageService, FileStorageService>();
 builder.Services.AddSingleton<NotificationWebSocketHandler>();
 
 builder.Services.AddControllers();
@@ -155,8 +169,19 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+var fileStorageSettings = app.Services.GetRequiredService<IOptions<FileStorageSettings>>().Value;
+var uploadsRootPath = Path.IsPathRooted(fileStorageSettings.RootPath)
+    ? fileStorageSettings.RootPath
+    : Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, fileStorageSettings.RootPath));
+Directory.CreateDirectory(uploadsRootPath);
+
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsRootPath),
+    RequestPath = fileStorageSettings.RequestPath.TrimEnd('/'),
+});
 app.UseWebSockets();
 app.UseAuthentication();
 app.UseAuthorization();

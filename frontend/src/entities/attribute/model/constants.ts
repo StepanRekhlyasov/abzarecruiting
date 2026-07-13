@@ -14,6 +14,7 @@ export const INPUT_TYPES_BY_VALUE_TYPE: Record<AttributeValueType, readonly Attr
   select: ['select'],
   period: ['period'],
   image: ['image'],
+  file: ['file'],
 }
 
 export function getInputTypesForValueType(valueType: string): AttributeInputType[] {

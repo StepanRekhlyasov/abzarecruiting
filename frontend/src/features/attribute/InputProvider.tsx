@@ -1,20 +1,35 @@
-import { useState, type ComponentType, type MouseEvent, type ReactNode } from 'react'
+import { useRef, useState, type ChangeEvent, type ComponentType, type MouseEvent, type ReactNode } from 'react'
+import AttachFileIcon from '@mui/icons-material/AttachFile'
 import BackspaceIcon from '@mui/icons-material/Backspace'
+import ClearIcon from '@mui/icons-material/Clear'
+import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlined'
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import Checkbox from '@mui/material/Checkbox'
+import CircularProgress from '@mui/material/CircularProgress'
 import FormControl from '@mui/material/FormControl'
 import FormControlLabel from '@mui/material/FormControlLabel'
+import FormHelperText from '@mui/material/FormHelperText'
 import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
 import InputLabel from '@mui/material/InputLabel'
+import Link from '@mui/material/Link'
 import MenuItem from '@mui/material/MenuItem'
 import Popover from '@mui/material/Popover'
 import Select from '@mui/material/Select'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import PhoneInputImport from 'react-phone-input-material-ui'
-import type { ProfileAttributeDto } from '@shared/types'
+import { useTranslation } from 'react-i18next'
+import { uploadFile } from '@shared/api/uploadApi'
+import { parseApiError, resolveErrorMessage } from '@shared/lib/errors'
+import {
+  MAX_ATTRIBUTE_FILE_SIZE_BYTES,
+  parseFileAttributeValue,
+  serializeFileAttributeValue,
+  type ProfileAttributeDto,
+} from '@shared/types'
 import 'react-phone-input-material-ui/lib/style.css'
 
 type PhoneInputModule = {
@@ -91,6 +106,160 @@ function tooltipAdornment(tooltip?: string | null): ReactNode {
     <InputAdornment position="end">
       <FieldTooltip tooltip={tooltip} />
     </InputAdornment>
+  )
+}
+
+function FileAttributeInput({
+  kind,
+  label,
+  value,
+  onChange,
+  onBlur,
+  disabled,
+  tooltip,
+}: {
+  kind: 'image' | 'file'
+  label: string
+  value: string
+  onChange: (value: string) => void
+  onBlur?: () => void
+  disabled: boolean
+  tooltip?: string | null
+}) {
+  const { t } = useTranslation()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const parsed = parseFileAttributeValue(value)
+  const accept = kind === 'image' ? 'image/*' : undefined
+
+  const handlePick = () => {
+    inputRef.current?.click()
+  }
+
+  const handleClear = () => {
+    setError(null)
+    onChange('')
+    onBlur?.()
+    if (inputRef.current) {
+      inputRef.current.value = ''
+    }
+  }
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    if (file.size > MAX_ATTRIBUTE_FILE_SIZE_BYTES) {
+      setError(t('error.files.tooLarge'))
+      return
+    }
+
+    if (kind === 'image' && !file.type.startsWith('image/')) {
+      setError(t('error.files.invalidImageType'))
+      return
+    }
+
+    setIsUploading(true)
+    setError(null)
+
+    try {
+      const uploaded = await uploadFile(file, kind)
+      onChange(
+        serializeFileAttributeValue({
+          url: uploaded.url,
+          fileName: uploaded.fileName,
+        }),
+      )
+      onBlur?.()
+    } catch (uploadError) {
+      setError(resolveErrorMessage(parseApiError(uploadError)) ?? t('error.files.upload'))
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 0 }}>
+          {label}
+        </Typography>
+        {tooltip ? <FieldTooltip tooltip={tooltip} /> : null}
+      </Box>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        hidden
+        disabled={disabled || isUploading}
+        onChange={(event) => {
+          void handleFileChange(event)
+        }}
+      />
+
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={
+            isUploading ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : kind === 'image' ? (
+              <CloudUploadIcon />
+            ) : (
+              <AttachFileIcon />
+            )
+          }
+          onClick={handlePick}
+          disabled={disabled || isUploading}
+        >
+          {parsed
+            ? t(kind === 'image' ? 'attributes.file.replaceImage' : 'attributes.file.replaceFile')
+            : t(kind === 'image' ? 'attributes.file.uploadImage' : 'attributes.file.uploadFile')}
+        </Button>
+
+        {parsed && !disabled ? (
+          <IconButton size="small" onClick={handleClear} aria-label={t('attributes.file.clear')} disabled={isUploading}>
+            <ClearIcon fontSize="small" />
+          </IconButton>
+        ) : null}
+
+        <Typography variant="caption" color="text.secondary">
+          {t('attributes.file.maxSize')}
+        </Typography>
+      </Box>
+
+      {parsed ? (
+        kind === 'image' ? (
+          <Box
+            component="img"
+            src={parsed.url}
+            alt={parsed.fileName}
+            sx={{
+              mt: 0.5,
+              maxWidth: 240,
+              maxHeight: 160,
+              objectFit: 'contain',
+              borderRadius: 1,
+              border: 1,
+              borderColor: 'divider',
+            }}
+          />
+        ) : (
+          <Link href={parsed.url} target="_blank" rel="noopener noreferrer" underline="hover" variant="body2">
+            {parsed.fileName}
+          </Link>
+        )
+      ) : null}
+
+      {error ? <FormHelperText error>{error}</FormHelperText> : null}
+    </Box>
   )
 }
 
@@ -270,16 +439,39 @@ function AttributeInput({
       )
     case 'image':
       return (
+        <FileAttributeInput
+          kind="image"
+          label={label}
+          value={value}
+          onChange={onChange}
+          onBlur={onBlur}
+          disabled={disabled}
+          tooltip={tooltip}
+        />
+      )
+    case 'file':
+      return (
+        <FileAttributeInput
+          kind="file"
+          label={label}
+          value={value}
+          onChange={onChange}
+          onBlur={onBlur}
+          disabled={disabled}
+          tooltip={tooltip}
+        />
+      )
+    case 'email':
+      return (
         <TextField
           fullWidth
-          type="url"
+          type="email"
           label={label}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           onBlur={onBlur}
           disabled={disabled}
           size="small"
-          placeholder="https://"
           slotProps={{ input: { endAdornment } }}
         />
       )

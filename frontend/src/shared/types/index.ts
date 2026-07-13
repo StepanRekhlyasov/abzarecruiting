@@ -4,9 +4,16 @@ export type {
   AttributeValueType,
   CreateAttributeRequest,
   DeleteAttributeItem,
+  FileAttributeValue,
   UpdateAttributeRequest,
 } from './attribute.types'
-export { ATTRIBUTE_INPUT_TYPES, ATTRIBUTE_VALUE_TYPES } from './attribute.types'
+export {
+  ATTRIBUTE_INPUT_TYPES,
+  ATTRIBUTE_VALUE_TYPES,
+  MAX_ATTRIBUTE_FILE_SIZE_BYTES,
+  parseFileAttributeValue,
+  serializeFileAttributeValue,
+} from './attribute.types'
 
 export type { ProfileAttributeDto } from './profile.types'
 

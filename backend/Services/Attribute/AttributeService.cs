@@ -306,6 +306,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
             "select" => "select",
             "period" => "period",
             "image" => "image",
+            "file" => "file",
             _ => throw new InvalidOperationException("error.attributes.unsupportedValueType"),
         };
     }

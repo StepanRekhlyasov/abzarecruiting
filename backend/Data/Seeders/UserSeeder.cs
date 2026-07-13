@@ -81,6 +81,7 @@ public static class UserSeeder
             {
                 [DefaultAttributes.FirstName] = firstName,
                 [DefaultAttributes.LastName] = lastName,
+                [DefaultAttributes.Email] = email,
             });
         }
         catch (InvalidOperationException exception)

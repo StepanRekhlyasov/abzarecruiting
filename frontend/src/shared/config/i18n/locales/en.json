@@ -49,6 +49,10 @@
     },
     "meInfo": {
       "title": "About me"
+    },
+    "addedAttributes": {
+      "title": "Added attributes",
+      "empty": "No additional attributes linked to the profile"
     }
   },
   "home": {
@@ -126,17 +130,28 @@
       "date": "Date",
       "select": "Select",
       "period": "Period",
-      "image": "Image"
+      "image": "Image",
+      "file": "File"
     },
     "inputTypes": {
       "text": "Text field",
       "textarea": "Textarea",
+      "email": "Email",
       "image": "Image",
+      "file": "File",
       "number": "Number",
       "checkbox": "Checkbox",
       "date": "Date",
       "select": "Select",
       "period": "Period"
+    },
+    "file": {
+      "uploadImage": "Upload image",
+      "replaceImage": "Replace image",
+      "uploadFile": "Attach file",
+      "replaceFile": "Replace file",
+      "clear": "Remove file",
+      "maxSize": "Max 10 MB"
     },
     "actions": {
       "add": "Add attribute",
@@ -199,6 +214,15 @@
       "notFound": "One or more attributes were not found",
       "nameExists": "An attribute with this name already exists",
       "unsupportedValueType": "Unsupported attribute value type"
+    },
+    "files": {
+      "missing": "File is required",
+      "empty": "File is empty",
+      "tooLarge": "File size must be 10 MB or less",
+      "invalidImageType": "Only image files are allowed",
+      "invalidName": "Invalid file name",
+      "unsupportedKind": "Unsupported upload kind",
+      "upload": "Failed to upload file"
     },
     "profile": {
       "load": "Failed to load profile",

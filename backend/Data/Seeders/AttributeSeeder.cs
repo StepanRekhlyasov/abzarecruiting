@@ -50,6 +50,18 @@ public static class AttributeSeeder
                     changed = true;
                 }
 
+                if (existing.ValueType != definition.ValueType)
+                {
+                    existing.ValueType = definition.ValueType;
+                    changed = true;
+                }
+
+                if (existing.InputType != definition.InputType)
+                {
+                    existing.InputType = definition.InputType;
+                    changed = true;
+                }
+
                 continue;
             }
 
@@ -73,10 +85,12 @@ public static class AttributeSeeder
 
         try
         {
+            var systemUser = await userManager.FindByIdAsync(systemUserId);
             await profileAttributeService.SetStringValuesAsync(systemUserId, new Dictionary<string, string>
             {
                 [DefaultAttributes.FirstName] = SystemUserFirstName,
                 [DefaultAttributes.LastName] = SystemUserLastName,
+                [DefaultAttributes.Email] = systemUser?.Email ?? settings.Value.SystemUserEmail ?? string.Empty,
             });
         }
         catch (InvalidOperationException exception)

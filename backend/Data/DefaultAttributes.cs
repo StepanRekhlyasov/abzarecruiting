@@ -4,6 +4,7 @@ public static class DefaultAttributes
 {
     public const string FirstName = "First name";
     public const string LastName = "Last name";
+    public const string Email = "Email";
     public const string Phone = "Phone number";
     public const string Bio = "Biography";
     public const string Location = "Location";
@@ -13,6 +14,7 @@ public static class DefaultAttributes
     [
         FirstName,
         LastName,
+        Email,
         Phone,
         Bio,
         Location,
@@ -23,16 +25,18 @@ public static class DefaultAttributes
     [
         new(FirstName, "string", "text", null),
         new(LastName, "string", "text", null),
+        new(Email, "string", "email", null),
         new(Phone, "string", "tel", null),
         new(Bio, "text", "textarea", null),
         new(Location, "string", "text", null),
-        new(Photo, "string", "image", null),
+        new(Photo, "image", "image", null),
     ];
 
     private static readonly Dictionary<string, string> LegacyNames = new(StringComparer.Ordinal)
     {
         ["firstName"] = FirstName,
         ["lastName"] = LastName,
+        ["email"] = Email,
         ["phone"] = Phone,
         ["bio"] = Bio,
         ["location"] = Location,

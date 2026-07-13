@@ -7,4 +7,5 @@ export type ProfileAttributeDto = {
   options: string[]
   value: string | null
   version: number
+  isDefault: boolean
 }
