@@ -103,7 +103,7 @@ function ProjectsTableContent() {
           row.tags.length === 0 ? (
             '—'
           ) : (
-            <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
+            <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
               {row.tags.map((tag) => (
                 <Chip key={tag.id} size="small" label={tag.name} />
               ))}
