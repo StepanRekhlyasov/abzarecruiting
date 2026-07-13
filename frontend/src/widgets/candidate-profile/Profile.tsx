@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SaveIcon from '@mui/icons-material/Save'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
+import IconButton from '@mui/material/IconButton'
 import Typography from '@mui/material/Typography'
 import { useTranslation } from 'react-i18next'
 import { AbzaError } from '@features/abza-error'
 import { CandidateProfileProvider, useCandidateProfile } from './model'
 import { AttributeSection } from './parts/AttributeSection'
 
-const AUTOSAVE_INTERVAL_MS = 5000
+const AUTOSAVE_DELAY_MS = 5000
 
 type ProfileProps = {
   candidateId: string
@@ -22,18 +23,10 @@ function toVersionMap(attributes: { id: number; version: number }[]) {
   return Object.fromEntries(attributes.map((attribute) => [attribute.id, attribute.version]))
 }
 
-function hasPendingDirty(
-  dirtyIds: Set<number>,
-  draftValues: Record<number, string>,
-  savedValues: Record<number, string>,
-) {
-  for (const attributeId of dirtyIds) {
-    if ((draftValues[attributeId] ?? '') !== (savedValues[attributeId] ?? '')) {
-      return true
-    }
-  }
-
-  return false
+function getDirtyIds(draft: Record<number, string>, saved: Record<number, string>) {
+  return Object.keys(draft)
+    .map(Number)
+    .filter((attributeId) => (draft[attributeId] ?? '') !== (saved[attributeId] ?? ''))
 }
 
 function ProfileContent() {
@@ -49,15 +42,16 @@ function ProfileContent() {
     saveAttributeValue,
   } = useCandidateProfile()
 
-  const [draftValues, setDraftValues] = useState<Record<number, string>>({})
+  const [draft, setDraft] = useState<Record<number, string>>({})
   const [autosaveEnabled, setAutosaveEnabled] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
 
-  const draftValuesRef = useRef(draftValues)
-  const savedValuesRef = useRef<Record<number, string>>({})
+  const draftRef = useRef(draft)
+  const savedRef = useRef<Record<number, string>>({})
   const versionsRef = useRef<Record<number, number>>({})
-  const dirtyIdsRef = useRef(new Set<number>())
-  const savingRef = useRef(false)
+  const timerRef = useRef<number | null>(null)
   const autosaveEnabledRef = useRef(true)
+  const savingRef = useRef(false)
 
   const defaultAttributes = useMemo(
     () => meAttributes.filter((attribute) => attribute.isDefault),
@@ -68,17 +62,77 @@ function ProfileContent() {
     [meAttributes],
   )
 
-  const syncAutosaveActive = useCallback(() => {
-    const pending =
-      autosaveEnabledRef.current &&
-      (savingRef.current ||
-        hasPendingDirty(dirtyIdsRef.current, draftValuesRef.current, savedValuesRef.current))
-    setAutosaveActive(pending)
-  }, [setAutosaveActive])
+  const dirtyIds = getDirtyIds(draft, savedRef.current)
+  const isDirty = dirtyIds.length > 0
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+  }, [])
+
+  const flush = useCallback(async () => {
+    clearTimer()
+
+    if (!autosaveEnabledRef.current || savingRef.current) {
+      return
+    }
+
+    const ids = getDirtyIds(draftRef.current, savedRef.current)
+    if (ids.length === 0) {
+      setAutosaveActive(false)
+      return
+    }
+
+    savingRef.current = true
+    setIsSaving(true)
+    setAutosaveActive(true)
+
+    try {
+      for (const attributeId of ids) {
+        if (!autosaveEnabledRef.current) {
+          break
+        }
+
+        const value = draftRef.current[attributeId] ?? ''
+        const saved = savedRef.current[attributeId] ?? ''
+
+        if (value === saved) {
+          continue
+        }
+
+        const version = versionsRef.current[attributeId] ?? 0
+        const nextVersion = await saveAttributeValue(attributeId, value, version)
+        savedRef.current[attributeId] = value
+        versionsRef.current[attributeId] = nextVersion
+      }
+    } catch (flushError) {
+      autosaveEnabledRef.current = false
+      setAutosaveEnabled(false)
+      setActionError(flushError instanceof Error ? flushError.message : 'error.profile.save')
+    } finally {
+      savingRef.current = false
+      setIsSaving(false)
+      const stillDirty = getDirtyIds(draftRef.current, savedRef.current).length > 0
+      setAutosaveActive(autosaveEnabledRef.current && stillDirty)
+    }
+  }, [clearTimer, saveAttributeValue, setActionError, setAutosaveActive])
+
+  const scheduleAutosave = useCallback(() => {
+    if (!autosaveEnabledRef.current) {
+      return
+    }
+
+    clearTimer()
+    timerRef.current = window.setTimeout(() => {
+      void flush()
+    }, AUTOSAVE_DELAY_MS)
+  }, [clearTimer, flush])
 
   useEffect(() => {
-    draftValuesRef.current = draftValues
-  }, [draftValues])
+    draftRef.current = draft
+  }, [draft])
 
   useEffect(() => {
     autosaveEnabledRef.current = autosaveEnabled
@@ -89,92 +143,35 @@ function ProfileContent() {
       return
     }
 
+    clearTimer()
     const next = toDraftMap(meAttributes)
-    setDraftValues(next)
-    savedValuesRef.current = { ...next }
+    draftRef.current = next
+    setDraft(next)
+    savedRef.current = { ...next }
     versionsRef.current = toVersionMap(meAttributes)
-    dirtyIdsRef.current = new Set()
     setAutosaveEnabled(true)
+    autosaveEnabledRef.current = true
     setActionError(null)
     setAutosaveActive(false)
-  }, [meAttributes, isLoading, setActionError, setAutosaveActive])
-
-  const flushDirty = useCallback(async () => {
-    if (!autosaveEnabledRef.current || savingRef.current || dirtyIdsRef.current.size === 0) {
-      return
-    }
-
-    savingRef.current = true
-    setAutosaveActive(true)
-
-    const ids = [...dirtyIdsRef.current]
-
-    try {
-      for (const attributeId of ids) {
-        if (!autosaveEnabledRef.current) {
-          break
-        }
-
-        const value = draftValuesRef.current[attributeId] ?? ''
-        const saved = savedValuesRef.current[attributeId] ?? ''
-
-        if (value === saved) {
-          dirtyIdsRef.current.delete(attributeId)
-          continue
-        }
-
-        const version = versionsRef.current[attributeId] ?? 0
-        const nextVersion = await saveAttributeValue(attributeId, value, version)
-        savedValuesRef.current[attributeId] = value
-        versionsRef.current[attributeId] = nextVersion
-        dirtyIdsRef.current.delete(attributeId)
-      }
-    } catch (flushError) {
-      autosaveEnabledRef.current = false
-      setAutosaveEnabled(false)
-      setActionError(flushError instanceof Error ? flushError.message : 'error.profile.save')
-    } finally {
-      savingRef.current = false
-      syncAutosaveActive()
-    }
-  }, [saveAttributeValue, setActionError, setAutosaveActive, syncAutosaveActive])
-
-  useEffect(() => {
-    if (!autosaveEnabled) {
-      setAutosaveActive(false)
-      return
-    }
-
-    const timer = window.setInterval(() => {
-      void flushDirty()
-    }, AUTOSAVE_INTERVAL_MS)
-
-    return () => {
-      window.clearInterval(timer)
-    }
-  }, [flushDirty, autosaveEnabled, setAutosaveActive])
+  }, [meAttributes, isLoading, clearTimer, setActionError, setAutosaveActive])
 
   useEffect(() => {
     return () => {
+      clearTimer()
       setAutosaveActive(false)
 
-      if (!autosaveEnabledRef.current || dirtyIdsRef.current.size === 0) {
+      if (!autosaveEnabledRef.current || savingRef.current) {
         return
       }
 
-      const ids = [...dirtyIdsRef.current]
+      const ids = getDirtyIds(draftRef.current, savedRef.current)
       for (const attributeId of ids) {
-        const value = draftValuesRef.current[attributeId] ?? ''
-        const saved = savedValuesRef.current[attributeId] ?? ''
-        if (value === saved) {
-          continue
-        }
-
+        const value = draftRef.current[attributeId] ?? ''
         const version = versionsRef.current[attributeId] ?? 0
         void saveAttributeValue(attributeId, value, version)
       }
     }
-  }, [saveAttributeValue, setAutosaveActive])
+  }, [clearTimer, saveAttributeValue, setAutosaveActive])
 
   useEffect(() => {
     if (!error && !actionError) {
@@ -185,9 +182,9 @@ function ProfileContent() {
   }, [error, actionError])
 
   const handleChange = (attributeId: number, value: string) => {
-    draftValuesRef.current = { ...draftValuesRef.current, [attributeId]: value }
-    setDraftValues(draftValuesRef.current)
-    dirtyIdsRef.current.add(attributeId)
+    const next = { ...draftRef.current, [attributeId]: value }
+    draftRef.current = next
+    setDraft(next)
 
     if (!autosaveEnabledRef.current) {
       autosaveEnabledRef.current = true
@@ -196,15 +193,22 @@ function ProfileContent() {
     }
 
     setAutosaveActive(true)
+    scheduleAutosave()
   }
 
-  const handleBlur = (attributeId: number) => {
-    if (!autosaveEnabled || !dirtyIdsRef.current.has(attributeId)) {
+  const handleManualSave = () => {
+    if (!isDirty && !isSaving) {
       return
     }
 
-    void flushDirty()
+    void flush()
   }
+
+  const handleForceSave = () => {
+    void flush()
+  }
+
+  const canSave = autosaveEnabled && (isDirty || isSaving)
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -212,15 +216,19 @@ function ProfileContent() {
         <Typography variant="h4" component="h1">
           {t('profile.title')}
         </Typography>
-        <SaveIcon
-          aria-label="autosave"
+        <IconButton
+          aria-label={t('profile.save')}
+          onClick={handleManualSave}
+          disabled={!canSave}
+          size="small"
           sx={{
-            fontSize: 34,
-            color: isAutosaveActive ? 'success.main' : 'text.disabled',
-            opacity: isAutosaveActive ? 1 : 0.35,
+            color: isAutosaveActive || isDirty ? 'success.main' : 'text.disabled',
+            opacity: isAutosaveActive || isDirty ? 1 : 0.35,
             transition: 'color 0.2s ease, opacity 0.2s ease',
           }}
-        />
+        >
+          <SaveIcon sx={{ fontSize: 34 }} />
+        </IconButton>
       </Box>
 
       <AbzaError error={error} />
@@ -237,17 +245,17 @@ function ProfileContent() {
               title={t('profile.meInfo.title')}
               mode="default"
               attributes={defaultAttributes}
-              draftValues={draftValues}
+              draftValues={draft}
               onChange={handleChange}
-              onBlur={handleBlur}
+              onForceSave={handleForceSave}
             />
             <AttributeSection
               title={t('profile.addedAttributes.title')}
               mode="attrs"
               attributes={addedAttributes}
-              draftValues={draftValues}
+              draftValues={draft}
               onChange={handleChange}
-              onBlur={handleBlur}
+              onForceSave={handleForceSave}
               emptyMessage={t('profile.addedAttributes.empty')}
             />
           </>

@@ -11,7 +11,7 @@ export type AttributeSectionProps = {
   attributes: ProfileAttributeDto[]
   draftValues: Record<number, string>
   onChange: (attributeId: number, value: string) => void
-  onBlur: (attributeId: number) => void
+  onForceSave?: () => void
   emptyMessage?: string
 }
 
@@ -21,14 +21,11 @@ export function AttributeSection({
   attributes,
   draftValues,
   onChange,
-  onBlur,
+  onForceSave,
   emptyMessage,
 }: AttributeSectionProps) {
   return (
-    <Box
-      data-section-mode={mode}
-      sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
-    >
+    <Box data-section-mode={mode} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Typography variant="h5" component="h4">
         {title}
       </Typography>
@@ -46,7 +43,7 @@ export function AttributeSection({
               attribute={attribute}
               value={draftValues[attribute.id] ?? ''}
               onChange={(value) => onChange(attribute.id, value)}
-              onBlur={() => onBlur(attribute.id)}
+              onBlur={onForceSave}
               editable
               deletable={false}
               tooltip={attribute.description}

@@ -12,6 +12,7 @@
   },
   "profile": {
     "title": "Profile",
+    "save": "Save changes",
     "placeholder": "Profile content will appear here",
     "users": {
       "title": "Users",
