@@ -8,6 +8,7 @@
     "greeting": "Hello, {{name}}!",
     "menu": "Menu",
     "attributes": "Attributes",
+    "tags": "Tags",
     "profile": "Profile"
   },
   "profile": {
@@ -195,6 +196,32 @@
       "unlink": "Failed to remove attributes from profile"
     }
   },
+  "tags": {
+    "title": "Tags",
+    "search": "Search by name",
+    "loading": "Loading...",
+    "empty": "No tags found",
+    "columns": {
+      "name": "Name",
+      "createdAt": "Created at"
+    },
+    "fields": {
+      "name": "Name"
+    },
+    "create": {
+      "title": "New tag",
+      "submit": "Create",
+      "cancel": "Cancel"
+    },
+    "edit": {
+      "title": "Edit tag",
+      "submit": "Save",
+      "cancel": "Cancel"
+    },
+    "form": {
+      "submit": "Create"
+    }
+  },
   "error": {
     "unknown": "Something went wrong. Please try again.",
     "unauthorized": "Unauthorized. Please log in again.",
@@ -219,6 +246,12 @@
       "notFound": "One or more attributes were not found",
       "nameExists": "An attribute with this name already exists",
       "unsupportedValueType": "Unsupported attribute value type"
+    },
+    "tags": {
+      "load": "Failed to load tags",
+      "create": "Failed to create tag",
+      "update": "Failed to update tag",
+      "delete": "Failed to delete tags"
     },
     "files": {
       "missing": "File is required",

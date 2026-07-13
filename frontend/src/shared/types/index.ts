@@ -19,6 +19,8 @@ export {
 
 export type { ProfileAttributeDto } from './profile.types'
 
+export type { CreateTagRequest, TagDto, UpdateTagRequest } from './tag.types'
+
 export type {
   AuthResponse,
   ChangeUsersRoleBatchRequest,

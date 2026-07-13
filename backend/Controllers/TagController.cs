@@ -32,7 +32,7 @@ public class TagController(ITagService tagService) : ControllerBase
         return Ok(tag);
     }
 
-    [Authorize(Roles = Roles.Admin)]
+    [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
     [HttpPost("{id:int}")]
     public async Task<ActionResult<TagDto>> Update(
         int id,
@@ -50,7 +50,7 @@ public class TagController(ITagService tagService) : ControllerBase
         }
     }
 
-    [Authorize(Roles = Roles.Admin)]
+    [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, [FromQuery] int version, CancellationToken cancellationToken)
     {

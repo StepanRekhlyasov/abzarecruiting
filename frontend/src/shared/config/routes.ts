@@ -3,6 +3,7 @@ export const ROUTES = {
   login: '/login',
   register: '/register',
   attributes: '/attributes',
+  tags: '/tags',
   profile: '/profile',
   profileDetail: '/profile/:candidateId',
 } as const

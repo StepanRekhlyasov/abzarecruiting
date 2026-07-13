@@ -25,7 +25,10 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
   const session = useUnit($session)
 
   const navItems = useMemo(() => {
-    const items = [{ to: ROUTES.attributes, labelKey: 'common.attributes' as const }]
+    const items = [
+      { to: ROUTES.attributes, labelKey: 'common.attributes' as const },
+      { to: ROUTES.tags, labelKey: 'common.tags' as const },
+    ]
 
     if (isCandidate(session) || isAdmin(session)) {
       items.push({ to: ROUTES.profile, labelKey: 'common.profile' as const })
