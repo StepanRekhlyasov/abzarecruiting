@@ -6,7 +6,6 @@ import type { AttributeDraftValue, ProfileAttributeDto } from '@shared/types'
 export type AttributeSectionMode = 'default' | 'attrs'
 
 export type AttributeSectionProps = {
-  title: string
   mode: AttributeSectionMode
   attributes: ProfileAttributeDto[]
   draftValues: Record<number, AttributeDraftValue>
@@ -16,7 +15,6 @@ export type AttributeSectionProps = {
 }
 
 export function AttributeSection({
-  title,
   mode,
   attributes,
   draftValues,
@@ -25,10 +23,7 @@ export function AttributeSection({
   emptyMessage,
 }: AttributeSectionProps) {
   return (
-    <Box data-section-mode={mode} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Typography variant="h5" component="h4">
-        {title}
-      </Typography>
+    <Box data-section-mode={mode} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
       {attributes.length === 0 ? (
         emptyMessage ? (
           <Typography variant="body2" color="text.secondary">
@@ -36,20 +31,18 @@ export function AttributeSection({
           </Typography>
         ) : null
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-          {attributes.map((attribute) => (
-            <InputProvider
-              key={attribute.id}
-              attribute={attribute}
-              value={draftValues[attribute.id] ?? ''}
-              onChange={(value) => onChange(attribute.id, value)}
-              onBlur={onForceSave}
-              editable
-              deletable={false}
-              tooltip={attribute.description}
-            />
-          ))}
-        </Box>
+        attributes.map((attribute) => (
+          <InputProvider
+            key={attribute.id}
+            attribute={attribute}
+            value={draftValues[attribute.id] ?? ''}
+            onChange={(value) => onChange(attribute.id, value)}
+            onBlur={onForceSave}
+            editable
+            deletable={false}
+            tooltip={attribute.description}
+          />
+        ))
       )}
     </Box>
   )

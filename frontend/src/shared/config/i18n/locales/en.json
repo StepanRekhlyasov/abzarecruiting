@@ -49,11 +49,15 @@
       }
     },
     "meInfo": {
-      "title": "About me"
+      "title": "Information"
     },
     "addedAttributes": {
       "title": "Added attributes",
       "empty": "No additional attributes linked to the profile"
+    },
+    "projects": {
+      "title": "Projects",
+      "empty": "Projects section will appear here"
     }
   },
   "home": {

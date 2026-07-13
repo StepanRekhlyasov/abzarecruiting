@@ -3,6 +3,8 @@ import SaveIcon from '@mui/icons-material/Save'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
 import IconButton from '@mui/material/IconButton'
+import Tab from '@mui/material/Tab'
+import Tabs from '@mui/material/Tabs'
 import Typography from '@mui/material/Typography'
 import { useTranslation } from 'react-i18next'
 import { AbzaError } from '@features/abza-error'
@@ -15,6 +17,8 @@ import { CandidateProfileProvider, useCandidateProfile } from './model'
 import { AttributeSection } from './parts/AttributeSection'
 
 const AUTOSAVE_DELAY_MS = 5000
+
+type ProfileTab = 'info' | 'attributes' | 'projects'
 
 type ProfileProps = {
   candidateId: string
@@ -56,6 +60,7 @@ function ProfileContent() {
     saveAttributeValue,
   } = useCandidateProfile()
 
+  const [activeTab, setActiveTab] = useState<ProfileTab>('info')
   const [draft, setDraft] = useState<Record<number, AttributeDraftValue>>({})
   const [autosaveEnabled, setAutosaveEnabled] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -78,6 +83,7 @@ function ProfileContent() {
 
   const dirtyIds = getDirtyIds(draft, savedRef.current)
   const isDirty = dirtyIds.length > 0
+  const showSaveButton = activeTab === 'info' || activeTab === 'attributes'
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -225,24 +231,26 @@ function ProfileContent() {
   const canSave = autosaveEnabled && (isDirty || isSaving)
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Typography variant="h4" component="h1">
           {t('profile.title')}
         </Typography>
-        <IconButton
-          aria-label={t('profile.save')}
-          onClick={handleManualSave}
-          disabled={!canSave}
-          size="small"
-          sx={{
-            color: isAutosaveActive || isDirty ? 'success.main' : 'text.disabled',
-            opacity: isAutosaveActive || isDirty ? 1 : 0.35,
-            transition: 'color 0.2s ease, opacity 0.2s ease',
-          }}
-        >
-          <SaveIcon sx={{ fontSize: 34 }} />
-        </IconButton>
+        {showSaveButton ? (
+          <IconButton
+            aria-label={t('profile.save')}
+            onClick={handleManualSave}
+            disabled={!canSave}
+            size="small"
+            sx={{
+              color: isAutosaveActive || isDirty ? 'success.main' : 'text.disabled',
+              opacity: isAutosaveActive || isDirty ? 1 : 0.35,
+              transition: 'color 0.2s ease, opacity 0.2s ease',
+            }}
+          >
+            <SaveIcon sx={{ fontSize: 34 }} />
+          </IconButton>
+        ) : null}
       </Box>
 
       <AbzaError error={error} />
@@ -254,25 +262,45 @@ function ProfileContent() {
             <CircularProgress size={32} />
           </Box>
         ) : (
-          <>
-            <AttributeSection
-              title={t('profile.meInfo.title')}
-              mode="default"
-              attributes={defaultAttributes}
-              draftValues={draft}
-              onChange={handleChange}
-              onForceSave={handleForceSave}
-            />
-            <AttributeSection
-              title={t('profile.addedAttributes.title')}
-              mode="attrs"
-              attributes={addedAttributes}
-              draftValues={draft}
-              onChange={handleChange}
-              onForceSave={handleForceSave}
-              emptyMessage={t('profile.addedAttributes.empty')}
-            />
-          </>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            <Tabs
+              value={activeTab}
+              onChange={(_, value: ProfileTab) => setActiveTab(value)}
+              variant="scrollable"
+              allowScrollButtonsMobile
+            >
+              <Tab value="info" label={t('profile.meInfo.title')} />
+              <Tab value="attributes" label={t('profile.addedAttributes.title')} />
+              <Tab value="projects" label={t('profile.projects.title')} />
+            </Tabs>
+
+            {activeTab === 'info' ? (
+              <AttributeSection
+                mode="default"
+                attributes={defaultAttributes}
+                draftValues={draft}
+                onChange={handleChange}
+                onForceSave={handleForceSave}
+              />
+            ) : null}
+
+            {activeTab === 'attributes' ? (
+              <AttributeSection
+                mode="attrs"
+                attributes={addedAttributes}
+                draftValues={draft}
+                onChange={handleChange}
+                onForceSave={handleForceSave}
+                emptyMessage={t('profile.addedAttributes.empty')}
+              />
+            ) : null}
+
+            {activeTab === 'projects' ? (
+              <Typography variant="body2" color="text.secondary">
+                {t('profile.projects.empty')}
+              </Typography>
+            ) : null}
+          </Box>
         )
       ) : null}
     </Box>
