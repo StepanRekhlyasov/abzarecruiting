@@ -1,6 +1,7 @@
 using Backend.Api.Data.Entities;
 using Backend.Api.Data.Relations;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
+using FileEntity = Backend.Api.Data.Entities.File;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +25,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ProfileProjectTag> ProfileProjectTags => Set<ProfileProjectTag>();
     public DbSet<PositionTag> PositionTags => Set<PositionTag>();
     public DbSet<PositionAttribute> PositionAttributes => Set<PositionAttribute>();
+    public DbSet<FileEntity> Files => Set<FileEntity>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -289,6 +291,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany(attribute => attribute.PositionAttributes)
                 .HasForeignKey(positionAttribute => positionAttribute.AttributeId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<FileEntity>(entity =>
+        {
+            entity.HasKey(file => file.Uid);
+
+            entity.Property(file => file.Url)
+                .HasMaxLength(2048)
+                .IsRequired();
+
+            entity.Property(file => file.Name)
+                .HasMaxLength(256)
+                .IsRequired();
         });
     }
 }

@@ -5,6 +5,7 @@ using Backend.Api.Extensions;
 using Backend.Api.Models.Attribute;
 using Backend.Api.Models.Common;
 using Backend.Api.Services.Attributes;
+using Backend.Api.Services.Files;
 using Microsoft.EntityFrameworkCore;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 
@@ -252,6 +253,16 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         else if (profileAttribute.Version != request.Version)
         {
             throw new InvalidOperationException(VersionChangedMessage);
+        }
+
+        if (FileAttributeValueResolver.IsFileValueType(attribute.ValueType)
+            && !string.IsNullOrWhiteSpace(request.Value))
+        {
+            if (!Guid.TryParse(request.Value, out var fileUid)
+                || !await db.Files.AnyAsync(file => file.Uid == fileUid, cancellationToken))
+            {
+                throw new InvalidOperationException("error.files.notFound");
+            }
         }
 
         valueMapper.SetValue(profileAttribute, attribute, request.Value);

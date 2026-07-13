@@ -26,8 +26,9 @@ import { uploadFile } from '@shared/api/uploadApi'
 import { parseApiError, resolveErrorMessage } from '@shared/lib/errors'
 import {
   MAX_ATTRIBUTE_FILE_SIZE_BYTES,
-  parseFileAttributeValue,
-  serializeFileAttributeValue,
+  isFileAttributeValue,
+  type AttributeDraftValue,
+  type FileAttributeValue,
   type ProfileAttributeDto,
 } from '@shared/types'
 import 'react-phone-input-material-ui/lib/style.css'
@@ -48,8 +49,8 @@ function PhoneTextField(props: Record<string, unknown>) {
 
 export type InputProviderProps = {
   attribute: ProfileAttributeDto
-  value: string
-  onChange: (value: string) => void
+  value: AttributeDraftValue
+  onChange: (value: AttributeDraftValue) => void
   onBlur?: () => void
   editable?: boolean
   deletable?: boolean
@@ -120,8 +121,8 @@ function FileAttributeInput({
 }: {
   kind: 'image' | 'file'
   label: string
-  value: string
-  onChange: (value: string) => void
+  value: AttributeDraftValue
+  onChange: (value: AttributeDraftValue) => void
   onBlur?: () => void
   disabled: boolean
   tooltip?: string | null
@@ -130,7 +131,7 @@ function FileAttributeInput({
   const inputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const parsed = parseFileAttributeValue(value)
+  const parsed: FileAttributeValue | null = isFileAttributeValue(value) ? value : null
   const accept = kind === 'image' ? 'image/*' : undefined
 
   const handlePick = () => {
@@ -169,12 +170,11 @@ function FileAttributeInput({
 
     try {
       const uploaded = await uploadFile(file, kind)
-      onChange(
-        serializeFileAttributeValue({
-          url: uploaded.url,
-          fileName: uploaded.fileName,
-        }),
-      )
+      onChange({
+        uid: uploaded.uid,
+        url: uploaded.url,
+        name: uploaded.name,
+      })
       onBlur?.()
     } catch (uploadError) {
       setError(resolveErrorMessage(parseApiError(uploadError)) ?? t('error.files.upload'))
@@ -240,7 +240,7 @@ function FileAttributeInput({
           <Box
             component="img"
             src={parsed.url}
-            alt={parsed.fileName}
+            alt={parsed.name}
             sx={{
               mt: 0.5,
               maxWidth: 240,
@@ -253,7 +253,7 @@ function FileAttributeInput({
           />
         ) : (
           <Link href={parsed.url} target="_blank" rel="noopener noreferrer" underline="hover" variant="body2">
-            {parsed.fileName}
+            {parsed.name}
           </Link>
         )
       ) : null}
@@ -272,8 +272,8 @@ function AttributeInput({
   tooltip,
 }: {
   attribute: ProfileAttributeDto
-  value: string
-  onChange: (value: string) => void
+  value: AttributeDraftValue
+  onChange: (value: AttributeDraftValue) => void
   onBlur?: () => void
   disabled: boolean
   tooltip?: string | null
@@ -281,6 +281,7 @@ function AttributeInput({
   const inputType = attribute.inputType.toLowerCase()
   const label = attribute.name
   const endAdornment = tooltipAdornment(tooltip)
+  const stringValue = typeof value === 'string' ? value : ''
 
   switch (inputType) {
     case 'textarea':
@@ -290,7 +291,7 @@ function AttributeInput({
           multiline
           minRows={3}
           label={label}
-          value={value}
+          value={stringValue}
           onChange={(event) => onChange(event.target.value)}
           onBlur={onBlur}
           disabled={disabled}
@@ -304,7 +305,7 @@ function AttributeInput({
           fullWidth
           type="number"
           label={label}
-          value={value}
+          value={stringValue}
           onChange={(event) => onChange(event.target.value)}
           onBlur={onBlur}
           disabled={disabled}
@@ -317,7 +318,7 @@ function AttributeInput({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <PhoneInput
-              value={value}
+              value={stringValue}
               onChange={(phone: string) => onChange(phone)}
               onBlur={() => onBlur?.()}
               component={PhoneTextField}
@@ -338,7 +339,7 @@ function AttributeInput({
           fullWidth
           type="date"
           label={label}
-          value={value ? value.slice(0, 10) : ''}
+          value={stringValue ? stringValue.slice(0, 10) : ''}
           onChange={(event) => onChange(event.target.value)}
           onBlur={onBlur}
           disabled={disabled}
@@ -355,7 +356,7 @@ function AttributeInput({
           <FormControlLabel
             control={
               <Checkbox
-                checked={value.toLowerCase() === 'true'}
+                checked={stringValue.toLowerCase() === 'true'}
                 onChange={(event) => {
                   onChange(event.target.checked ? 'True' : 'False')
                   onBlur?.()
@@ -377,7 +378,7 @@ function AttributeInput({
               labelId={`attribute-${attribute.id}-label`}
               label={label}
               displayEmpty
-              value={value}
+              value={stringValue}
               onChange={(event) => onChange(String(event.target.value))}
               onBlur={onBlur}
             >
@@ -408,9 +409,9 @@ function AttributeInput({
             fullWidth
             type="date"
             label={`${label} (from)`}
-            value={value.split('|')[0] ?? ''}
+            value={stringValue.split('|')[0] ?? ''}
             onChange={(event) => {
-              const to = value.split('|')[1] ?? ''
+              const to = stringValue.split('|')[1] ?? ''
               onChange(`${event.target.value}|${to}`)
             }}
             onBlur={onBlur}
@@ -422,9 +423,9 @@ function AttributeInput({
             fullWidth
             type="date"
             label={`${label} (to)`}
-            value={value.split('|')[1] ?? ''}
+            value={stringValue.split('|')[1] ?? ''}
             onChange={(event) => {
-              const from = value.split('|')[0] ?? ''
+              const from = stringValue.split('|')[0] ?? ''
               onChange(`${from}|${event.target.value}`)
             }}
             onBlur={onBlur}
@@ -467,7 +468,7 @@ function AttributeInput({
           fullWidth
           type="email"
           label={label}
-          value={value}
+          value={stringValue}
           onChange={(event) => onChange(event.target.value)}
           onBlur={onBlur}
           disabled={disabled}
@@ -482,7 +483,7 @@ function AttributeInput({
           fullWidth
           type="text"
           label={label}
-          value={value}
+          value={stringValue}
           onChange={(event) => onChange(event.target.value)}
           onBlur={onBlur}
           disabled={disabled}

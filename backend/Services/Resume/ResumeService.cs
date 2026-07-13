@@ -3,9 +3,11 @@ using Backend.Api.Data.Relations;
 using Backend.Api.Models.Common;
 using Backend.Api.Models.Resume;
 using Backend.Api.Services.Attributes;
+using Backend.Api.Services.Files;
 using Backend.Api.Services.Position;
 using Microsoft.EntityFrameworkCore;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
+using FileEntity = Backend.Api.Data.Entities.File;
 using ResumeEntity = Backend.Api.Data.Entities.Resume;
 
 namespace Backend.Api.Services.Resume;
@@ -125,7 +127,8 @@ public class ResumeService(
         };
         var totalCount = ordered.Count;
         var pageItems = ordered.Skip(pagination.Skip).Take(pagination.NormalizedSize).ToList();
-        var items = MapList(pageItems, defaultAttributes, profileAttributes);
+        var files = await LoadFilesForAttributesAsync(defaultAttributes, profileAttributes, cancellationToken);
+        var items = MapList(pageItems, defaultAttributes, profileAttributes, files);
 
         return new PagedResult<ResumeListItemDto>
         {
@@ -219,7 +222,22 @@ public class ResumeService(
     {
         var defaultAttributes = await LoadDefaultAttributesAsync(cancellationToken);
         var profileAttributes = await LoadProfileAttributesAsync([resume.CandidateId], cancellationToken);
-        return MapList([resume], defaultAttributes, profileAttributes).FirstOrDefault();
+        var files = await LoadFilesForAttributesAsync(defaultAttributes, profileAttributes, cancellationToken);
+        return MapList([resume], defaultAttributes, profileAttributes, files).FirstOrDefault();
+    }
+
+    private async Task<IReadOnlyDictionary<Guid, FileEntity>> LoadFilesForAttributesAsync(
+        IReadOnlyList<AttributeEntity> attributes,
+        IReadOnlyList<ProfileAttribute> profileAttributes,
+        CancellationToken cancellationToken)
+    {
+        var storedValues = attributes
+            .Where(attribute => FileAttributeValueResolver.IsFileValueType(attribute.ValueType))
+            .SelectMany(attribute => profileAttributes
+                .Where(item => item.AttributeId == attribute.Id)
+                .Select(item => valueMapper.GetComparableValue(item, attribute)));
+
+        return await FileAttributeValueResolver.LoadFilesAsync(db, storedValues, cancellationToken);
     }
 
     private Task<List<AttributeEntity>> LoadDefaultAttributesAsync(CancellationToken cancellationToken)
@@ -291,7 +309,8 @@ public class ResumeService(
     private IReadOnlyList<ResumeListItemDto> MapList(
         IReadOnlyList<ResumeEntity> resumes,
         IReadOnlyList<AttributeEntity> defaultAttributes,
-        IReadOnlyList<ProfileAttribute> profileAttributes) =>
+        IReadOnlyList<ProfileAttribute> profileAttributes,
+        IReadOnlyDictionary<Guid, FileEntity> files) =>
         [.. resumes.Select(resume => new ResumeListItemDto
         {
             Id = resume.Id,
@@ -308,12 +327,14 @@ public class ResumeService(
                         .FirstOrDefault(item =>
                             item.CandidateId == resume.CandidateId && item.AttributeId == attribute.Id);
 
+                    var storedValue = profileAttribute is null
+                        ? null
+                        : valueMapper.GetComparableValue(profileAttribute, attribute);
+
                     return new ResumeCandidateAttributeDto
                     {
                         Name = attribute.Name,
-                        Value = profileAttribute is null
-                            ? null
-                            : valueMapper.GetComparableValue(profileAttribute, attribute),
+                        Value = FileAttributeValueResolver.ToDisplayValue(attribute.ValueType, storedValue, files),
                     };
                 }),
             ],

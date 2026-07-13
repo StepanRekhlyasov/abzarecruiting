@@ -2,8 +2,10 @@ using Backend.Api.Data;
 using Backend.Api.Data.Relations;
 using Backend.Api.Models.Profile;
 using Backend.Api.Services.Attributes;
+using Backend.Api.Services.Files;
 using Microsoft.EntityFrameworkCore;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
+using FileEntity = Backend.Api.Data.Entities.File;
 
 namespace Backend.Api.Services.Profile;
 
@@ -53,26 +55,17 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
             .Where(item => item.CandidateId == candidateId)
             .ToListAsync(cancellationToken);
 
-        var attributeDtos = allAttributes
+        var visibleAttributes = allAttributes
             .Where(attribute => defaultNames.Contains(attribute.Name) || profileAttributes.Any(item => item.AttributeId == attribute.Id))
+            .ToList();
+
+        var files = await LoadFilesForAttributesAsync(visibleAttributes, profileAttributes, cancellationToken);
+
+        var attributeDtos = visibleAttributes
             .Select(attribute =>
             {
                 var profileAttribute = profileAttributes.FirstOrDefault(item => item.AttributeId == attribute.Id);
-                return new ProfileAttributeDto
-                {
-                    Id = attribute.Id,
-                    Name = attribute.Name,
-                    Description = attribute.Description,
-                    ValueType = attribute.ValueType,
-                    InputType = attribute.InputType,
-                    Options = attribute.Options
-                        .OrderBy(option => option.Id)
-                        .Select(option => option.InputOption)
-                        .ToList(),
-                    Value = profileAttribute is null ? null : valueMapper.GetComparableValue(profileAttribute, attribute),
-                    Version = profileAttribute?.Version ?? 0,
-                    IsDefault = defaultNames.Contains(attribute.Name),
-                };
+                return MapAttribute(attribute, profileAttribute, defaultNames.Contains(attribute.Name), files);
             })
             .ToList();
 
@@ -141,48 +134,37 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
             .ToListAsync(cancellationToken);
         var profileAttributesById = profileAttributes.ToDictionary(item => item.AttributeId);
 
-        ProfileAttributeDto MapAttribute(AttributeEntity attribute, bool isDefault)
-        {
-            profileAttributesById.TryGetValue(attribute.Id, out var profileAttribute);
-
-            return new ProfileAttributeDto
-            {
-                Id = attribute.Id,
-                Name = attribute.Name,
-                Description = attribute.Description,
-                ValueType = attribute.ValueType,
-                InputType = attribute.InputType,
-                Options = attribute.Options
-                    .OrderBy(option => option.Id)
-                    .Select(option => option.InputOption)
-                    .ToList(),
-                Value = profileAttribute is null ? null : valueMapper.GetComparableValue(profileAttribute, attribute),
-                Version = profileAttribute?.Version ?? 0,
-                IsDefault = isDefault,
-            };
-        }
-
         var defaultAttributes = DefaultAttributes.All
-            .Select(definition =>
-            {
-                if (!attributesByName.TryGetValue(definition.Name, out var attribute))
-                {
-                    return null;
-                }
-
-                return MapAttribute(attribute, isDefault: true);
-            })
-            .Where(item => item is not null)
-            .Cast<ProfileAttributeDto>();
+            .Select(definition => attributesByName.GetValueOrDefault(definition.Name))
+            .Where(attribute => attribute is not null)
+            .Cast<AttributeEntity>()
+            .ToList();
 
         var addedAttributes = attributes
             .Where(attribute =>
                 !defaultNames.Contains(attribute.Name) &&
                 profileAttributesById.ContainsKey(attribute.Id))
             .OrderBy(attribute => attribute.Name)
-            .Select(attribute => MapAttribute(attribute, isDefault: false));
+            .ToList();
 
-        return defaultAttributes.Concat(addedAttributes).ToList();
+        var visibleAttributes = defaultAttributes.Concat(addedAttributes).ToList();
+        var files = await LoadFilesForAttributesAsync(visibleAttributes, profileAttributes, cancellationToken);
+
+        var defaultDtos = defaultAttributes
+            .Select(attribute =>
+            {
+                profileAttributesById.TryGetValue(attribute.Id, out var profileAttribute);
+                return MapAttribute(attribute, profileAttribute, isDefault: true, files);
+            });
+
+        var addedDtos = addedAttributes
+            .Select(attribute =>
+            {
+                profileAttributesById.TryGetValue(attribute.Id, out var profileAttribute);
+                return MapAttribute(attribute, profileAttribute, isDefault: false, files);
+            });
+
+        return defaultDtos.Concat(addedDtos).ToList();
     }
 
     public async Task<bool> AddAttributesAsync(
@@ -297,5 +279,51 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
             .Select(item => item.AttributeId)
             .Distinct()
             .ToListAsync(cancellationToken);
+    }
+
+    private ProfileAttributeDto MapAttribute(
+        AttributeEntity attribute,
+        ProfileAttribute? profileAttribute,
+        bool isDefault,
+        IReadOnlyDictionary<Guid, FileEntity> files)
+    {
+        var storedValue = profileAttribute is null
+            ? null
+            : valueMapper.GetComparableValue(profileAttribute, attribute);
+
+        return new ProfileAttributeDto
+        {
+            Id = attribute.Id,
+            Name = attribute.Name,
+            Description = attribute.Description,
+            ValueType = attribute.ValueType,
+            InputType = attribute.InputType,
+            Options = attribute.Options
+                .OrderBy(option => option.Id)
+                .Select(option => option.InputOption)
+                .ToList(),
+            Value = FileAttributeValueResolver.ToDisplayValue(attribute.ValueType, storedValue, files),
+            Version = profileAttribute?.Version ?? 0,
+            IsDefault = isDefault,
+        };
+    }
+
+    private async Task<IReadOnlyDictionary<Guid, FileEntity>> LoadFilesForAttributesAsync(
+        IEnumerable<AttributeEntity> attributes,
+        IReadOnlyList<ProfileAttribute> profileAttributes,
+        CancellationToken cancellationToken)
+    {
+        var profileAttributesById = profileAttributes.ToDictionary(item => item.AttributeId);
+        var storedValues = attributes
+            .Where(attribute => FileAttributeValueResolver.IsFileValueType(attribute.ValueType))
+            .Select(attribute =>
+            {
+                profileAttributesById.TryGetValue(attribute.Id, out var profileAttribute);
+                return profileAttribute is null
+                    ? null
+                    : valueMapper.GetComparableValue(profileAttribute, attribute);
+            });
+
+        return await FileAttributeValueResolver.LoadFilesAsync(db, storedValues, cancellationToken);
     }
 }

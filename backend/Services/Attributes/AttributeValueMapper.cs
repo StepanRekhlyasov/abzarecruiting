@@ -43,6 +43,15 @@ public class AttributeValueMapper : IAttributeValueMapper
             case "date":
                 profileAttribute.ValueDate = DateTime.Parse(value);
                 break;
+            case "image":
+            case "file":
+                if (!Guid.TryParse(value, out var fileUid))
+                {
+                    throw new InvalidOperationException("error.files.invalidUid");
+                }
+
+                profileAttribute.ValueString = fileUid.ToString();
+                break;
             default:
                 profileAttribute.ValueString = value;
                 break;

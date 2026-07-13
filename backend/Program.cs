@@ -99,7 +99,7 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<IResumeService, ResumeService>();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddSingleton<IFileStorageService, FileStorageService>();
+builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddSingleton<NotificationWebSocketHandler>();
 
 builder.Services.AddControllers();

@@ -34,8 +34,9 @@ public class FileController(IFileStorageService fileStorageService) : Controller
             var uploaded = await fileStorageService.SaveAsync(file, uploadKind, cancellationToken);
             return Ok(new UploadFileResponse
             {
+                Uid = uploaded.Uid,
                 Url = uploaded.Url,
-                FileName = uploaded.FileName,
+                Name = uploaded.Name,
                 ContentType = uploaded.ContentType,
                 Size = uploaded.Size,
             });

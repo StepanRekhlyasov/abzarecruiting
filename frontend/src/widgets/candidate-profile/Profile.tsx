@@ -6,6 +6,11 @@ import IconButton from '@mui/material/IconButton'
 import Typography from '@mui/material/Typography'
 import { useTranslation } from 'react-i18next'
 import { AbzaError } from '@features/abza-error'
+import {
+  toComparableAttributeValue,
+  type AttributeDraftValue,
+  type ProfileAttributeDto,
+} from '@shared/types'
 import { CandidateProfileProvider, useCandidateProfile } from './model'
 import { AttributeSection } from './parts/AttributeSection'
 
@@ -15,18 +20,27 @@ type ProfileProps = {
   candidateId: string
 }
 
-function toDraftMap(attributes: { id: number; value: string | null }[]) {
-  return Object.fromEntries(attributes.map((attribute) => [attribute.id, attribute.value ?? '']))
+function toDraftMap(attributes: ProfileAttributeDto[]) {
+  return Object.fromEntries(
+    attributes.map((attribute) => [attribute.id, (attribute.value ?? '') as AttributeDraftValue]),
+  )
 }
 
 function toVersionMap(attributes: { id: number; version: number }[]) {
   return Object.fromEntries(attributes.map((attribute) => [attribute.id, attribute.version]))
 }
 
-function getDirtyIds(draft: Record<number, string>, saved: Record<number, string>) {
+function getDirtyIds(
+  draft: Record<number, AttributeDraftValue>,
+  saved: Record<number, AttributeDraftValue>,
+) {
   return Object.keys(draft)
     .map(Number)
-    .filter((attributeId) => (draft[attributeId] ?? '') !== (saved[attributeId] ?? ''))
+    .filter(
+      (attributeId) =>
+        toComparableAttributeValue(draft[attributeId]) !==
+        toComparableAttributeValue(saved[attributeId]),
+    )
 }
 
 function ProfileContent() {
@@ -42,12 +56,12 @@ function ProfileContent() {
     saveAttributeValue,
   } = useCandidateProfile()
 
-  const [draft, setDraft] = useState<Record<number, string>>({})
+  const [draft, setDraft] = useState<Record<number, AttributeDraftValue>>({})
   const [autosaveEnabled, setAutosaveEnabled] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
 
   const draftRef = useRef(draft)
-  const savedRef = useRef<Record<number, string>>({})
+  const savedRef = useRef<Record<number, AttributeDraftValue>>({})
   const versionsRef = useRef<Record<number, number>>({})
   const timerRef = useRef<number | null>(null)
   const autosaveEnabledRef = useRef(true)
@@ -98,7 +112,7 @@ function ProfileContent() {
         const value = draftRef.current[attributeId] ?? ''
         const saved = savedRef.current[attributeId] ?? ''
 
-        if (value === saved) {
+        if (toComparableAttributeValue(value) === toComparableAttributeValue(saved)) {
           continue
         }
 
@@ -181,7 +195,7 @@ function ProfileContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [error, actionError])
 
-  const handleChange = (attributeId: number, value: string) => {
+  const handleChange = (attributeId: number, value: AttributeDraftValue) => {
     const next = { ...draftRef.current, [attributeId]: value }
     draftRef.current = next
     setDraft(next)

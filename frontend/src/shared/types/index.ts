@@ -1,4 +1,5 @@
 export type {
+  AttributeDraftValue,
   AttributeDto,
   AttributeInputType,
   AttributeValueType,
@@ -11,8 +12,9 @@ export {
   ATTRIBUTE_INPUT_TYPES,
   ATTRIBUTE_VALUE_TYPES,
   MAX_ATTRIBUTE_FILE_SIZE_BYTES,
-  parseFileAttributeValue,
-  serializeFileAttributeValue,
+  isFileAttributeValue,
+  toComparableAttributeValue,
+  toPersistedAttributeValue,
 } from './attribute.types'
 
 export type { ProfileAttributeDto } from './profile.types'

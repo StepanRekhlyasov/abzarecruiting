@@ -14,7 +14,7 @@ public class ResumeCandidateAttributeDto
 {
     public string Name { get; set; } = string.Empty;
 
-    public string? Value { get; set; }
+    public object? Value { get; set; }
 }
 
 public class ResumeDto

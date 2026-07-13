@@ -1,7 +1,7 @@
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { InputProvider } from '@features/attribute'
-import type { ProfileAttributeDto } from '@shared/types'
+import type { AttributeDraftValue, ProfileAttributeDto } from '@shared/types'
 
 export type AttributeSectionMode = 'default' | 'attrs'
 
@@ -9,8 +9,8 @@ export type AttributeSectionProps = {
   title: string
   mode: AttributeSectionMode
   attributes: ProfileAttributeDto[]
-  draftValues: Record<number, string>
-  onChange: (attributeId: number, value: string) => void
+  draftValues: Record<number, AttributeDraftValue>
+  onChange: (attributeId: number, value: AttributeDraftValue) => void
   onForceSave?: () => void
   emptyMessage?: string
 }

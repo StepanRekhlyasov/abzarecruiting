@@ -222,6 +222,8 @@
       "tooLarge": "File size must be 10 MB or less",
       "invalidImageType": "Only image files are allowed",
       "invalidName": "Invalid file name",
+      "invalidUid": "Invalid file identifier",
+      "notFound": "File was not found",
       "unsupportedKind": "Unsupported upload kind",
       "upload": "Failed to upload file"
     },

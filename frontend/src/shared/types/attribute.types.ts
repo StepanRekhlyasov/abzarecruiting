@@ -53,57 +53,40 @@ export type AttributeValueType = (typeof ATTRIBUTE_VALUE_TYPES)[number]
 export type AttributeInputType = (typeof ATTRIBUTE_INPUT_TYPES)[number]
 
 export type FileAttributeValue = {
+  uid: string
   url: string
-  fileName: string
+  name: string
 }
+
+export type AttributeDraftValue = string | FileAttributeValue
 
 export const MAX_ATTRIBUTE_FILE_SIZE_BYTES = 10 * 1024 * 1024
 
-export function serializeFileAttributeValue(value: FileAttributeValue): string {
-  return JSON.stringify(value)
+export function isFileAttributeValue(value: unknown): value is FileAttributeValue {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const candidate = value as Partial<FileAttributeValue>
+  return (
+    typeof candidate.uid === 'string' &&
+    candidate.uid.length > 0 &&
+    typeof candidate.url === 'string' &&
+    candidate.url.length > 0 &&
+    typeof candidate.name === 'string' &&
+    candidate.name.length > 0
+  )
 }
 
-export function parseFileAttributeValue(value: string | null | undefined): FileAttributeValue | null {
-  if (!value?.trim()) {
-    return null
+export function toComparableAttributeValue(value: AttributeDraftValue | null | undefined): string {
+  if (isFileAttributeValue(value)) {
+    return value.uid
   }
 
-  const trimmed = value.trim()
-
-  if (trimmed.startsWith('{')) {
-    try {
-      const parsed = JSON.parse(trimmed) as Partial<FileAttributeValue>
-      if (typeof parsed.url === 'string' && parsed.url.length > 0) {
-        return {
-          url: parsed.url,
-          fileName:
-            typeof parsed.fileName === 'string' && parsed.fileName.length > 0
-              ? parsed.fileName
-              : fileNameFromUrl(parsed.url),
-        }
-      }
-    } catch {
-      return null
-    }
-  }
-
-  if (trimmed.startsWith('/') || /^https?:\/\//i.test(trimmed)) {
-    return {
-      url: trimmed,
-      fileName: fileNameFromUrl(trimmed),
-    }
-  }
-
-  return null
+  return typeof value === 'string' ? value : ''
 }
 
-function fileNameFromUrl(url: string): string {
-  try {
-    const path = url.includes('://') ? new URL(url).pathname : url
-    const segment = path.split('/').filter(Boolean).at(-1)
-    return segment ? decodeURIComponent(segment) : 'file'
-  } catch {
-    return 'file'
-  }
+export function toPersistedAttributeValue(value: AttributeDraftValue | null | undefined): string | null {
+  const comparable = toComparableAttributeValue(value)
+  return comparable === '' ? null : comparable
 }
-

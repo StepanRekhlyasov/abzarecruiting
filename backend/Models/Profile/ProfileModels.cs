@@ -16,7 +16,7 @@ public class ProfileAttributeDto
 
     public IList<string> Options { get; set; } = [];
 
-    public string? Value { get; set; }
+    public object? Value { get; set; }
 
     public int Version { get; set; }
 

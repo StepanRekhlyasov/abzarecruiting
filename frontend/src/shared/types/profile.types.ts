@@ -1,3 +1,5 @@
+import type { FileAttributeValue } from './attribute.types'
+
 export type ProfileAttributeDto = {
   id: number
   name: string
@@ -5,7 +7,7 @@ export type ProfileAttributeDto = {
   valueType: string
   inputType: string
   options: string[]
-  value: string | null
+  value: string | FileAttributeValue | null
   version: number
   isDefault: boolean
 }

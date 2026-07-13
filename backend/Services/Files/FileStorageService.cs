@@ -1,7 +1,9 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using Backend.Api.Configuration;
+using Backend.Api.Data;
 using Microsoft.Extensions.Options;
+using FileEntity = Backend.Api.Data.Entities.File;
 
 namespace Backend.Api.Services.Files;
 
@@ -11,7 +13,7 @@ public enum UploadKind
     File,
 }
 
-public record UploadedFileDto(string Url, string FileName, string ContentType, long Size);
+public record UploadedFileDto(Guid Uid, string Url, string Name, string ContentType, long Size);
 
 public interface IFileStorageService
 {
@@ -20,7 +22,8 @@ public interface IFileStorageService
 
 public class FileStorageService(
     IOptions<FileStorageSettings> options,
-    IWebHostEnvironment environment) : IFileStorageService
+    IWebHostEnvironment environment,
+    ApplicationDbContext db) : IFileStorageService
 {
     private static readonly Regex ConsecutiveUnderscores = new("_{2,}", RegexOptions.Compiled);
 
@@ -68,7 +71,8 @@ public class FileStorageService(
 
         var safeFileName = SanitizeFileName(originalFileName);
         var extension = Path.GetExtension(safeFileName);
-        var storedName = $"{Guid.NewGuid():N}{extension}";
+        var uid = Guid.NewGuid();
+        var storedName = $"{uid:N}{extension}";
         var relativeFolder = Path.Combine(
             DateTime.UtcNow.ToString("yyyy"),
             DateTime.UtcNow.ToString("MM"));
@@ -78,7 +82,7 @@ public class FileStorageService(
         Directory.CreateDirectory(absoluteFolder);
 
         var absolutePath = Path.Combine(absoluteFolder, storedName);
-        await using (var stream = File.Create(absolutePath))
+        await using (var stream = System.IO.File.Create(absolutePath))
         {
             await file.CopyToAsync(stream, cancellationToken);
         }
@@ -86,7 +90,15 @@ public class FileStorageService(
         var requestPath = _settings.RequestPath.TrimEnd('/');
         var url = $"{requestPath}/{relativeFolder.Replace('\\', '/')}/{storedName}";
 
-        return new UploadedFileDto(url, safeFileName, contentType, file.Length);
+        db.Files.Add(new FileEntity
+        {
+            Uid = uid,
+            Url = url,
+            Name = safeFileName,
+        });
+        await db.SaveChangesAsync(cancellationToken);
+
+        return new UploadedFileDto(uid, url, safeFileName, contentType, file.Length);
     }
 
     private string ResolveRootPath()

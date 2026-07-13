@@ -14,6 +14,7 @@ import {
   type ProfileAttributeDto,
 } from '@entities/profile'
 import { getErrorKey } from '@shared/lib/errors'
+import { toPersistedAttributeValue, type AttributeDraftValue } from '@shared/types'
 
 type CandidateProfileContextValue = {
   candidateId: string
@@ -24,7 +25,11 @@ type CandidateProfileContextValue = {
   isAutosaveActive: boolean
   setActionError: (error: string | null) => void
   setAutosaveActive: (active: boolean) => void
-  saveAttributeValue: (attributeId: number, value: string, version: number) => Promise<number>
+  saveAttributeValue: (
+    attributeId: number,
+    value: AttributeDraftValue,
+    version: number,
+  ) => Promise<number>
 }
 
 const CandidateProfileContext = createContext<CandidateProfileContextValue | null>(null)
@@ -78,11 +83,11 @@ export function CandidateProfileProvider({ candidateId, children }: CandidatePro
   }, [candidateId])
 
   const saveAttributeValue = useCallback(
-    async (attributeId: number, value: string, version: number) => {
+    async (attributeId: number, value: AttributeDraftValue, version: number) => {
       return setCandidateAttributeValue(
         attributeId,
         candidateId,
-        value === '' ? null : value,
+        toPersistedAttributeValue(value),
         version,
       )
     },
