@@ -57,11 +57,15 @@
     },
     "addedAttributes": {
       "title": "Added attributes",
-      "empty": "No additional attributes linked to the profile"
+      "empty": "No additional attributes linked to the profile",
+      "select": "Attributes",
+      "add": "Add"
     },
     "projects": {
       "title": "Projects",
-      "empty": "Projects section will appear here"
+      "empty": "No projects added yet",
+      "add": "Add project",
+      "present": "present"
     }
   },
   "home": {

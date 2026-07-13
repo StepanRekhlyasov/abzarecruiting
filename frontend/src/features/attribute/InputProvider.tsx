@@ -1,7 +1,7 @@
 import { useRef, useState, type ChangeEvent, type ComponentType, type MouseEvent, type ReactNode } from 'react'
 import AttachFileIcon from '@mui/icons-material/AttachFile'
-import BackspaceIcon from '@mui/icons-material/Backspace'
 import ClearIcon from '@mui/icons-material/Clear'
+import CloseIcon from '@mui/icons-material/Close'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlined'
 import Box from '@mui/material/Box'
@@ -521,7 +521,7 @@ export function InputProvider({
       </Box>
       {deletable ? (
         <IconButton color="error" onClick={onDelete} disabled={disabled} aria-label="delete">
-          <BackspaceIcon />
+          <CloseIcon />
         </IconButton>
       ) : null}
     </Box>

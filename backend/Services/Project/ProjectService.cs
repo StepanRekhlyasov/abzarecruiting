@@ -14,6 +14,7 @@ public interface IProjectService
         PaginationParams pagination,
         string userId,
         bool isAdmin,
+        string? candidateIdFilter = null,
         CancellationToken cancellationToken = default);
 
     Task<ProjectDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
@@ -37,6 +38,7 @@ public class ProjectService(ApplicationDbContext db) : IProjectService
         PaginationParams pagination,
         string userId,
         bool isAdmin,
+        string? candidateIdFilter = null,
         CancellationToken cancellationToken = default)
     {
         var query = db.ProfileProjects
@@ -48,6 +50,10 @@ public class ProjectService(ApplicationDbContext db) : IProjectService
         if (!isAdmin)
         {
             query = query.Where(project => project.CandidateId == userId);
+        }
+        else if (!string.IsNullOrWhiteSpace(candidateIdFilter))
+        {
+            query = query.Where(project => project.CandidateId == candidateIdFilter);
         }
 
         if (!string.IsNullOrWhiteSpace(pagination.Search))

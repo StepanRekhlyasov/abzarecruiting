@@ -17,6 +17,7 @@ public class ProjectController(IProjectService projectService, ApplicationDbCont
     [HttpGet]
     public async Task<ActionResult<PagedResult<ProjectDto>>> GetList(
         [FromQuery] PaginationParams pagination,
+        [FromQuery] string? candidateId,
         CancellationToken cancellationToken)
     {
         if (!User.IsAdmin() && !User.IsCandidate())
@@ -28,6 +29,7 @@ public class ProjectController(IProjectService projectService, ApplicationDbCont
             pagination,
             User.GetUserId()!,
             User.IsAdmin(),
+            candidateId,
             cancellationToken);
 
         return Ok(result);

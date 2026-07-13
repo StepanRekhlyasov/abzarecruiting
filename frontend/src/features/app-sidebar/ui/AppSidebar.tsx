@@ -27,10 +27,13 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
   const navItems = useMemo(() => {
     const items = [
       { to: ROUTES.attributes, labelKey: 'common.attributes' as const },
-      { to: ROUTES.tags, labelKey: 'common.tags' as const },
       { to: ROUTES.positions, labelKey: 'common.positions' as const },
       { to: ROUTES.cvs, labelKey: 'common.cvs' as const },
     ]
+
+    if (!isCandidate(session)) {
+      items.splice(1, 0, { to: ROUTES.tags, labelKey: 'common.tags' as const })
+    }
 
     if (isCandidate(session) || isAdmin(session)) {
       items.push({ to: ROUTES.projects, labelKey: 'common.projects' as const })

@@ -11,6 +11,7 @@ import { parseApiError } from '@shared/lib/errors'
 
 type FetchProjectsOptions = {
   signal?: AbortSignal
+  candidateId?: string
 }
 
 export async function fetchProjects(
@@ -19,7 +20,10 @@ export async function fetchProjects(
 ): Promise<PagedResult<ProjectDto>> {
   try {
     const { data } = await apiClient.get<PagedResult<ProjectDto>>('/project', {
-      params,
+      params: {
+        ...params,
+        candidateId: options?.candidateId,
+      },
       signal: options?.signal,
     })
     return data

@@ -8,13 +8,20 @@ import Tabs from '@mui/material/Tabs'
 import Typography from '@mui/material/Typography'
 import { useTranslation } from 'react-i18next'
 import { AbzaError } from '@features/abza-error'
+import { AbzaForm } from '@features/abza-form'
+import { AbzaModal } from '@features/abza-modal'
+import { createProjectFormConfig } from '@shared/config/forms'
+import { i18n } from '@shared/config/i18n'
+import { projectToFormValues, type ProjectDto } from '@entities/project'
 import {
   toComparableAttributeValue,
+  type AbzaFormValues,
   type AttributeDraftValue,
   type ProfileAttributeDto,
 } from '@shared/types'
 import { CandidateProfileProvider, useCandidateProfile } from './model'
 import { AttributeSection } from './parts/AttributeSection'
+import { ProjectsSection } from './parts/ProjectsSection'
 
 const AUTOSAVE_DELAY_MS = 5000
 
@@ -51,19 +58,31 @@ function ProfileContent() {
   const { t } = useTranslation()
   const {
     meAttributes,
+    projects,
     isLoading,
+    isMutating,
     error,
     actionError,
     setActionError,
     isAutosaveActive,
     setAutosaveActive,
     saveAttributeValue,
+    loadAttributeOptions,
+    loadTagOptions,
+    addAttributesToProfile,
+    removeAttributesFromProfile,
+    createCandidateProject,
+    updateCandidateProject,
   } = useCandidateProfile()
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('info')
   const [draft, setDraft] = useState<Record<number, AttributeDraftValue>>({})
   const [autosaveEnabled, setAutosaveEnabled] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false)
+  const [editingProject, setEditingProject] = useState<ProjectDto | null>(null)
+  const createFormRef = useRef<HTMLFormElement>(null)
+  const editFormRef = useRef<HTMLFormElement>(null)
 
   const draftRef = useRef(draft)
   const savedRef = useRef<Record<number, AttributeDraftValue>>({})
@@ -79,6 +98,11 @@ function ProfileContent() {
   const addedAttributes = useMemo(
     () => meAttributes.filter((attribute) => !attribute.isDefault),
     [meAttributes],
+  )
+
+  const projectFormConfig = useMemo(
+    () => createProjectFormConfig(t, { loadTagOptions, showCandidateSelect: false }),
+    [i18n.language, loadTagOptions],
   )
 
   const dirtyIds = getDirtyIds(draft, savedRef.current)
@@ -228,6 +252,29 @@ function ProfileContent() {
     void flush()
   }
 
+  const handleAddAttributes = async (attributeIds: number[]) => {
+    await addAttributesToProfile(attributeIds)
+  }
+
+  const handleRemoveAttribute = async (attributeId: number) => {
+    clearTimer()
+    await removeAttributesFromProfile([attributeId])
+  }
+
+  const handleCreateProject = async (values: AbzaFormValues) => {
+    await createCandidateProject(values)
+    setIsCreateProjectOpen(false)
+  }
+
+  const handleEditProject = async (values: AbzaFormValues) => {
+    if (!editingProject) {
+      return
+    }
+
+    await updateCandidateProject(editingProject.id, values, editingProject)
+    setEditingProject(null)
+  }
+
   const canSave = autosaveEnabled && (isDirty || isSaving)
 
   return (
@@ -292,17 +339,75 @@ function ProfileContent() {
                 onChange={handleChange}
                 onForceSave={handleForceSave}
                 emptyMessage={t('profile.addedAttributes.empty')}
+                loadAttributeOptions={loadAttributeOptions}
+                onAddAttributes={handleAddAttributes}
+                onRemoveAttribute={handleRemoveAttribute}
+                isAdding={isMutating}
               />
             ) : null}
 
             {activeTab === 'projects' ? (
-              <Typography variant="body2" color="text.secondary">
-                {t('profile.projects.empty')}
-              </Typography>
+              <ProjectsSection
+                projects={projects}
+                onAddClick={() => setIsCreateProjectOpen(true)}
+                onEditClick={setEditingProject}
+                disabled={isMutating}
+              />
             ) : null}
           </Box>
         )
       ) : null}
+
+      <AbzaModal
+        open={isCreateProjectOpen}
+        config={{
+          title: t('projects.create.title'),
+          submitLabel: t('projects.create.submit'),
+          cancelLabel: t('projects.create.cancel'),
+        }}
+        onOpenChange={setIsCreateProjectOpen}
+        onSubmit={() => createFormRef.current?.requestSubmit()}
+        isLoading={isMutating}
+        maxWidth="sm"
+      >
+        <AbzaForm
+          key={isCreateProjectOpen ? 'create-open' : 'create-closed'}
+          formRef={createFormRef}
+          hideSubmitButton
+          config={projectFormConfig}
+          onSubmit={handleCreateProject}
+          isLoading={isMutating}
+        />
+      </AbzaModal>
+
+      <AbzaModal
+        open={Boolean(editingProject)}
+        config={{
+          title: t('projects.edit.title'),
+          submitLabel: t('projects.edit.submit'),
+          cancelLabel: t('projects.edit.cancel'),
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingProject(null)
+          }
+        }}
+        onSubmit={() => editFormRef.current?.requestSubmit()}
+        isLoading={isMutating}
+        maxWidth="sm"
+      >
+        {editingProject ? (
+          <AbzaForm
+            key={editingProject.id}
+            formRef={editFormRef}
+            hideSubmitButton
+            config={projectFormConfig}
+            initialValues={projectToFormValues(editingProject)}
+            onSubmit={handleEditProject}
+            isLoading={isMutating}
+          />
+        ) : null}
+      </AbzaModal>
     </Box>
   )
 }

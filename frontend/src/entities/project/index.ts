@@ -13,3 +13,10 @@ export {
   updateProject,
   upsertProjectTag,
 } from './api/projectApi'
+export {
+  getTagOptionsFromValues,
+  projectToFormValues,
+  resolveTagIds,
+  syncProjectTags,
+  toProjectPayload,
+} from './lib/projectForm'

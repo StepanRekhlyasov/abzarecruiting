@@ -5,6 +5,7 @@ using Backend.Api.Models.Resume;
 using Backend.Api.Services.Attributes;
 using Backend.Api.Services.Files;
 using Backend.Api.Services.Position;
+using Backend.Api.Services.Profile;
 using Microsoft.EntityFrameworkCore;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 using FileEntity = Backend.Api.Data.Entities.File;
@@ -53,7 +54,8 @@ public interface IResumeService
 public class ResumeService(
     ApplicationDbContext db,
     IPositionRestrictionEvaluator restrictionEvaluator,
-    IAttributeValueMapper valueMapper) : IResumeService
+    IAttributeValueMapper valueMapper,
+    IProfileService profileService) : IResumeService
 {
     private const string VersionChangedMessage = "error.oldVersion";
     private const string AlreadyExistsMessage = "error.resumes.alreadyExists";
@@ -84,6 +86,18 @@ public class ResumeService(
 
         db.Resumes.Add(resume);
         await db.SaveChangesAsync(cancellationToken);
+
+        var positionAttributeIds = await db.PositionAttributes
+            .AsNoTracking()
+            .Where(item => item.PositionId == positionId)
+            .Select(item => item.AttributeId)
+            .ToListAsync(cancellationToken);
+
+        if (positionAttributeIds.Count > 0)
+        {
+            await profileService.AddAttributesAsync(candidateId, positionAttributeIds, cancellationToken);
+        }
+
         return await GetByIdAsync(resume.Id, cancellationToken);
     }
 
