@@ -117,6 +117,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasMaxLength(256)
                 .IsRequired();
 
+            entity.Property(position => position.Description)
+                .HasMaxLength(1024);
+
             entity.Property(position => position.Company)
                 .HasMaxLength(256)
                 .IsRequired();
@@ -135,6 +138,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasMaxLength(32)
                 .IsRequired();
 
+            entity.Property(position => position.MaxProjects)
+                .IsRequired();
+
             entity.Property(position => position.CreatedAt)
                 .HasColumnType("datetime(6)");
 
@@ -146,7 +152,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(position => position.CreatedById)
                 .OnDelete(DeleteBehavior.Restrict);
         });
-
         builder.Entity<PositionRestriction>(entity =>
         {
             entity.Property(restriction => restriction.Condition)
@@ -201,6 +206,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany(position => position.Resumes)
                 .HasForeignKey(resume => resume.PositionId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(resume => new { resume.CandidateId, resume.PositionId })
+                .IsUnique();
         });
 
         builder.Entity<ProfileProject>(entity =>

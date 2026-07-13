@@ -28,9 +28,12 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
     const items = [
       { to: ROUTES.attributes, labelKey: 'common.attributes' as const },
       { to: ROUTES.tags, labelKey: 'common.tags' as const },
+      { to: ROUTES.positions, labelKey: 'common.positions' as const },
+      { to: ROUTES.cvs, labelKey: 'common.cvs' as const },
     ]
 
     if (isCandidate(session) || isAdmin(session)) {
+      items.push({ to: ROUTES.projects, labelKey: 'common.projects' as const })
       items.push({ to: ROUTES.profile, labelKey: 'common.profile' as const })
     }
 

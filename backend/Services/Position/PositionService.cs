@@ -1,11 +1,9 @@
 using System.Security.Claims;
 using Backend.Api.Data;
-using Backend.Api.Data.Entities;
 using Backend.Api.Data.Relations;
 using Backend.Api.Extensions;
 using Backend.Api.Models.Common;
 using Backend.Api.Models.Position;
-using Backend.Api.Services.Position;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Api.Services.Position;
@@ -56,6 +54,7 @@ public class PositionService(
     IPositionRestrictionEvaluator restrictionEvaluator) : IPositionService
 {
     private const string VersionChangedMessage = "error.oldVersion";
+
     public async Task<PagedResult<PositionListItemDto>> GetListAsync(
         PaginationParams pagination,
         ClaimsPrincipal? user,
@@ -84,7 +83,7 @@ public class PositionService(
             .Take(pagination.NormalizedSize)
             .ToList();
 
-        var items = await LoadListItemsAsync(pageIds, keyOnly: true, cancellationToken);
+        var items = await LoadListItemsAsync(pageIds, keyOnly: false, cancellationToken);
 
         return new PagedResult<PositionListItemDto>
         {
@@ -106,22 +105,7 @@ public class PositionService(
         }
 
         var items = await LoadListItemsAsync([id], keyOnly: false, cancellationToken);
-        return items.FirstOrDefault() is { } item
-            ? new PositionDetailDto
-            {
-                Id = item.Id,
-                Name = item.Name,
-                Description = item.Description,
-                Company = item.Company,
-                Country = item.Country,
-                Level = item.Level,
-                Format = item.Format,
-                CreatedAt = item.CreatedAt,
-                Version = item.Version,
-                Attributes = item.Attributes,
-                Tags = item.Tags,
-            }
-            : null;
+        return ToDetailDto(items.FirstOrDefault());
     }
 
     public async Task<PositionDetailDto> CreateAsync(
@@ -135,8 +119,9 @@ public class PositionService(
             Description = request.Description,
             Company = request.Company,
             Country = request.Country,
-            Level = request.Level,
-            Format = request.Format,
+            Level = request.Level ?? Data.Enums.PositionLevel.Junior,
+            Format = request.Format ?? Data.Enums.WorkFormat.Office,
+            MaxProjects = request.MaxProjects,
             CreatedAt = DateTime.UtcNow,
             CreatedById = userId,
         };
@@ -144,7 +129,7 @@ public class PositionService(
         db.Positions.Add(position);
         await db.SaveChangesAsync(cancellationToken);
 
-        return (await GetByIdAsync(position.Id, null, cancellationToken))!;
+        return (await LoadDetailAsync(position.Id, cancellationToken))!;
     }
 
     public async Task<PositionDetailDto?> UpdateAsync(
@@ -167,12 +152,14 @@ public class PositionService(
         position.Description = request.Description;
         position.Company = request.Company;
         position.Country = request.Country;
-        position.Level = request.Level;
-        position.Format = request.Format;
+        position.Level = request.Level ?? Data.Enums.PositionLevel.Junior;
+        position.Format = request.Format ?? Data.Enums.WorkFormat.Office;
+        position.MaxProjects = request.MaxProjects;
         position.Version++;
 
         await db.SaveChangesAsync(cancellationToken);
-        return await GetByIdAsync(id, null, cancellationToken);
+
+        return await LoadDetailAsync(id, cancellationToken);
     }
 
     public async Task<bool> DeleteAsync(int id, int version, CancellationToken cancellationToken = default)
@@ -349,6 +336,31 @@ public class PositionService(
         return !withRestrictions.Contains(positionId);
     }
 
+    private async Task<PositionDetailDto?> LoadDetailAsync(int id, CancellationToken cancellationToken)
+    {
+        var items = await LoadListItemsAsync([id], keyOnly: false, cancellationToken);
+        return ToDetailDto(items.FirstOrDefault());
+    }
+
+    private static PositionDetailDto? ToDetailDto(PositionListItemDto? item) =>
+        item is null
+            ? null
+            : new PositionDetailDto
+            {
+                Id = item.Id,
+                Name = item.Name,
+                Description = item.Description,
+                Company = item.Company,
+                Country = item.Country,
+                Level = item.Level,
+                Format = item.Format,
+                MaxProjects = item.MaxProjects,
+                CreatedAt = item.CreatedAt,
+                Version = item.Version,
+                Attributes = item.Attributes,
+                Tags = item.Tags,
+            };
+
     private async Task<IReadOnlyList<PositionListItemDto>> LoadListItemsAsync(
         IReadOnlyList<int> ids,
         bool keyOnly,
@@ -389,6 +401,7 @@ public class PositionService(
                 Country = position.Country,
                 Level = position.Level,
                 Format = position.Format,
+                MaxProjects = position.MaxProjects,
                 CreatedAt = position.CreatedAt,
                 Version = position.Version,
                 Attributes = attributes

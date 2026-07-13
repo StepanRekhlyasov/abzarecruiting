@@ -12,6 +12,7 @@ export function AbzaModal({
   onSubmit,
   children,
   isLoading = false,
+  submitDisabled = false,
   maxWidth = 'sm',
 }: AbzaModalProps) {
   const handleClose = () => {
@@ -30,7 +31,7 @@ export function AbzaModal({
         <Button onClick={handleClose} disabled={isLoading}>
           {config.cancelLabel}
         </Button>
-        <Button variant="contained" onClick={onSubmit} disabled={isLoading}>
+        <Button variant="contained" onClick={onSubmit} disabled={isLoading || submitDisabled}>
           {config.submitLabel}
         </Button>
       </DialogActions>

@@ -10,10 +10,16 @@ import Select from '@mui/material/Select'
 import TextField from '@mui/material/TextField'
 import { AbzaError } from '@features/abza-error'
 import { parseApiError } from '@shared/lib/errors'
-import { OptionTags } from '@shared/ui/inputs'
+import { AsyncEntitySelect, AsyncEntityTags, OptionTags } from '@shared/ui/inputs'
 import { validateAbzaForm } from '../lib/validate'
-import { getStringArrayValue, getStringValue, isFieldVisible } from '../lib/fieldVisibility'
-import type { AbzaFieldConfig, AbzaFormConfig, AbzaFormValues } from '@shared/types'
+import {
+  getEntityOptionValue,
+  getEntityOptionsValue,
+  getStringArrayValue,
+  getStringValue,
+  isFieldVisible,
+} from '../lib/fieldVisibility'
+import type { AbzaFieldConfig, AbzaFormConfig, AbzaFormValues, AbzaSelectOption } from '@shared/types'
 
 type AbzaFormProps = {
   config: AbzaFormConfig
@@ -26,7 +32,14 @@ type AbzaFormProps = {
 
 function createInitialValues(fields: AbzaFieldConfig[], initialValues?: AbzaFormValues): AbzaFormValues {
   const defaults = Object.fromEntries(
-    fields.map((field) => [field.name, field.type === 'optionTags' ? [] : '']),
+    fields.map((field) => [
+      field.name,
+      field.type === 'optionTags' || field.type === 'asyncEntityTags'
+        ? []
+        : field.type === 'asyncEntitySelect'
+          ? null
+          : '',
+    ]),
   ) as AbzaFormValues
 
   if (!initialValues) {
@@ -54,7 +67,10 @@ export function AbzaForm({
     required: t('form.errors.required'),
     minLength: (min: number) => t('form.errors.minLength', { min }),
     maxLength: (max: number) => t('form.errors.maxLength', { max }),
+    min: (min: number) => t('form.errors.min', { min }),
+    max: (max: number) => t('form.errors.max', { max }),
     email: t('form.errors.email'),
+    number: t('form.errors.number'),
     pattern: (key?: string) => (key ? t(key) : t('form.errors.pattern')),
   }
 
@@ -82,6 +98,32 @@ export function AbzaForm({
 
   const handleOptionsChange = (name: string, options: string[]) => {
     const next = { ...values, [name]: options }
+    setValues(next)
+
+    if (touched[name]) {
+      const field = config.fields.find((item) => item.name === name)
+      if (field) {
+        const nextErrors = validateAbzaForm([field], next, validationMessages)
+        setErrors((prev) => ({ ...prev, [name]: nextErrors[name] ?? '' }))
+      }
+    }
+  }
+
+  const handleEntityOptionsChange = (name: string, options: AbzaSelectOption[]) => {
+    const next = { ...values, [name]: options }
+    setValues(next)
+
+    if (touched[name]) {
+      const field = config.fields.find((item) => item.name === name)
+      if (field) {
+        const nextErrors = validateAbzaForm([field], next, validationMessages)
+        setErrors((prev) => ({ ...prev, [name]: nextErrors[name] ?? '' }))
+      }
+    }
+  }
+
+  const handleEntityOptionChange = (name: string, option: AbzaSelectOption | null) => {
+    const next = { ...values, [name]: option }
     setValues(next)
 
     if (touched[name]) {
@@ -142,6 +184,37 @@ export function AbzaForm({
       )
     }
 
+    if (field.type === 'asyncEntityTags') {
+      return (
+        <AsyncEntityTags
+          key={field.name}
+          label={field.label}
+          value={getEntityOptionsValue(values, field.name)}
+          onChange={(options) => handleEntityOptionsChange(field.name, options)}
+          loadOptions={field.loadOptions ?? (async () => [])}
+          allowCreate={field.allowCreateOptions}
+          disabled={field.disabled || isLoading}
+          error={hasError}
+          helperText={error}
+        />
+      )
+    }
+
+    if (field.type === 'asyncEntitySelect') {
+      return (
+        <AsyncEntitySelect
+          key={field.name}
+          label={field.label}
+          value={getEntityOptionValue(values, field.name)}
+          onChange={(option) => handleEntityOptionChange(field.name, option)}
+          loadOptions={field.loadOptions ?? (async () => [])}
+          disabled={field.disabled || isLoading}
+          error={hasError}
+          helperText={error}
+        />
+      )
+    }
+
     if (field.type === 'select') {
       return (
         <FormControl key={field.name} fullWidth error={hasError}>
@@ -167,7 +240,16 @@ export function AbzaForm({
       )
     }
 
-    const inputType = field.type === 'password' ? 'password' : field.type === 'email' ? 'email' : 'text'
+    const inputType =
+      field.type === 'password'
+        ? 'password'
+        : field.type === 'email'
+          ? 'email'
+          : field.type === 'number'
+            ? 'number'
+            : field.type === 'date'
+              ? 'date'
+              : 'text'
 
     return (
       <TextField
@@ -184,6 +266,20 @@ export function AbzaForm({
         disabled={field.disabled || isLoading}
         onChange={(event) => handleChange(field.name, event.target.value)}
         onBlur={() => handleBlur(field.name)}
+        slotProps={
+          field.type === 'number'
+            ? {
+                htmlInput: {
+                  min: field.validation?.min,
+                  max: field.validation?.max,
+                },
+              }
+            : field.type === 'date'
+              ? {
+                  inputLabel: { shrink: true },
+                }
+              : undefined
+        }
       />
     )
   }

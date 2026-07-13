@@ -18,12 +18,23 @@ export type PaginationParams = {
   sortDir?: SortDirection
 }
 
-export type AbzaFieldType = 'email' | 'password' | 'text' | 'select' | 'optionTags'
+export type AbzaFieldType =
+  | 'email'
+  | 'password'
+  | 'text'
+  | 'number'
+  | 'date'
+  | 'select'
+  | 'optionTags'
+  | 'asyncEntityTags'
+  | 'asyncEntitySelect'
 
 export type AbzaValidationRule = {
   required?: boolean
   minLength?: number
   maxLength?: number
+  min?: number
+  max?: number
   pattern?: RegExp
   patternMessageKey?: string
 }
@@ -31,6 +42,8 @@ export type AbzaValidationRule = {
 export type AbzaSelectOption = {
   value: string
   label: string
+  valueType?: string
+  isNew?: boolean
 }
 
 export type AbzaFieldConfig = {
@@ -39,6 +52,8 @@ export type AbzaFieldConfig = {
   type: AbzaFieldType
   validation?: AbzaValidationRule
   options?: AbzaSelectOption[]
+  loadOptions?: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
+  allowCreateOptions?: boolean
   autoComplete?: string
   disabled?: boolean
   showWhen?: { field: string; value: string }
@@ -49,7 +64,9 @@ export type AbzaFormConfig = {
   submitLabel: string
 }
 
-export type AbzaFormValues = Record<string, string | string[]>
+export type AbzaFormValue = string | string[] | AbzaSelectOption | AbzaSelectOption[] | null
+
+export type AbzaFormValues = Record<string, AbzaFormValue>
 
 export type AbzaFormErrors = Record<string, string>
 
@@ -100,5 +117,6 @@ export type AbzaModalProps = {
   onSubmit: () => void | Promise<void>
   children: ReactNode
   isLoading?: boolean
+  submitDisabled?: boolean
   maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 }

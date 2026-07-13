@@ -12,19 +12,18 @@ public class CreatePositionRequest
     [MaxLength(1024)]
     public string Description { get; set; } = string.Empty;
 
-    [Required]
     [MaxLength(256)]
     public string Company { get; set; } = string.Empty;
 
-    [Required]
     [MaxLength(256)]
     public string Country { get; set; } = string.Empty;
 
-    [Required]
-    public PositionLevel Level { get; set; }
+    public PositionLevel? Level { get; set; }
 
-    [Required]
-    public WorkFormat Format { get; set; }
+    public WorkFormat? Format { get; set; }
+
+    [Range(0, int.MaxValue)]
+    public int MaxProjects { get; set; }
 }
 
 public class UpdatePositionRequest : CreatePositionRequest
@@ -71,6 +70,8 @@ public class PositionListItemDto
 
     public WorkFormat Format { get; set; }
 
+    public int MaxProjects { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public int Version { get; set; }
@@ -95,6 +96,8 @@ public class PositionDetailDto
     public PositionLevel Level { get; set; }
 
     public WorkFormat Format { get; set; }
+
+    public int MaxProjects { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

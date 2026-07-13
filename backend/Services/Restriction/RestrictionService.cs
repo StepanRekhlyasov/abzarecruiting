@@ -8,6 +8,10 @@ namespace Backend.Api.Services.Restriction;
 
 public interface IRestrictionService
 {
+    Task<IReadOnlyList<RestrictionDto>> GetByPositionIdAsync(
+        int positionId,
+        CancellationToken cancellationToken = default);
+
     Task<RestrictionDto?> CreateAsync(CreateRestrictionRequest request, string userId, CancellationToken cancellationToken = default);
 
     Task<RestrictionDto?> UpdateAsync(int id, UpdateRestrictionRequest request, CancellationToken cancellationToken = default);
@@ -18,14 +22,31 @@ public interface IRestrictionService
 public class RestrictionService(ApplicationDbContext db) : IRestrictionService
 {
     private const string VersionChangedMessage = "error.oldVersion";
+
+    public async Task<IReadOnlyList<RestrictionDto>> GetByPositionIdAsync(
+        int positionId,
+        CancellationToken cancellationToken = default)
+    {
+        var items = await db.PositionRestrictions
+            .AsNoTracking()
+            .Include(item => item.Attribute)
+            .Include(item => item.Tag)
+            .Where(item => item.PositionId == positionId)
+            .OrderBy(item => item.Id)
+            .ToListAsync(cancellationToken);
+
+        return items.Select(Map).ToList();
+    }
+
     public async Task<RestrictionDto?> CreateAsync(
         CreateRestrictionRequest request,
         string userId,
         CancellationToken cancellationToken = default)
     {
-        if (!ValidateRequest(request, out var error))
+        var validationError = await ValidateRequestAsync(request, cancellationToken);
+        if (validationError is not null)
         {
-            throw new InvalidOperationException(error);
+            throw new InvalidOperationException(validationError);
         }
 
         if (!await db.Positions.AnyAsync(position => position.Id == request.PositionId, cancellationToken))
@@ -46,7 +67,8 @@ public class RestrictionService(ApplicationDbContext db) : IRestrictionService
 
         db.PositionRestrictions.Add(restriction);
         await db.SaveChangesAsync(cancellationToken);
-        return Map(restriction);
+
+        return await GetMappedAsync(restriction.Id, cancellationToken);
     }
 
     public async Task<RestrictionDto?> UpdateAsync(
@@ -54,9 +76,10 @@ public class RestrictionService(ApplicationDbContext db) : IRestrictionService
         UpdateRestrictionRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (!ValidateRequest(request, out var error))
+        var validationError = await ValidateRequestAsync(request, cancellationToken);
+        if (validationError is not null)
         {
-            throw new InvalidOperationException(error);
+            throw new InvalidOperationException(validationError);
         }
 
         var restriction = await db.PositionRestrictions.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
@@ -78,7 +101,7 @@ public class RestrictionService(ApplicationDbContext db) : IRestrictionService
         restriction.Version++;
 
         await db.SaveChangesAsync(cancellationToken);
-        return Map(restriction);
+        return await GetMappedAsync(id, cancellationToken);
     }
 
     public async Task<bool> DeleteAsync(int id, int version, CancellationToken cancellationToken = default)
@@ -99,36 +122,69 @@ public class RestrictionService(ApplicationDbContext db) : IRestrictionService
         return true;
     }
 
-    private static bool ValidateRequest(CreateRestrictionRequest request, out string error)
+    private async Task<RestrictionDto?> GetMappedAsync(int id, CancellationToken cancellationToken)
+    {
+        var restriction = await db.PositionRestrictions
+            .AsNoTracking()
+            .Include(item => item.Attribute)
+            .Include(item => item.Tag)
+            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+
+        return restriction is null ? null : Map(restriction);
+    }
+
+    private async Task<string?> ValidateRequestAsync(
+        CreateRestrictionRequest request,
+        CancellationToken cancellationToken)
     {
         if (request.Condition == RestrictionCondition.Not)
         {
-            error = "Condition 'Not' is not supported.";
-            return false;
+            return "error.restrictions.conditionNotSupported";
         }
 
         if (request.AttributeId is null && request.TagId is null)
         {
-            error = "Either attributeId or tagId must be provided.";
-            return false;
+            return "error.restrictions.attributeOrTagRequired";
+        }
+
+        if (request.AttributeId.HasValue && request.TagId.HasValue)
+        {
+            return "error.restrictions.attributeAndTagExclusive";
         }
 
         if (request.TagId.HasValue && request.Condition != RestrictionCondition.Exist)
         {
-            error = "Tag restrictions only support the Exist condition.";
-            return false;
+            return "error.restrictions.tagExistOnly";
         }
 
         if (request.AttributeId.HasValue
             && request.Condition is RestrictionCondition.Equal or RestrictionCondition.More or RestrictionCondition.Less
             && string.IsNullOrWhiteSpace(request.TargetValue))
         {
-            error = "TargetValue is required for Equal, More, and Less conditions.";
-            return false;
+            return "error.restrictions.targetValueRequired";
         }
 
-        error = string.Empty;
-        return true;
+        if (request.AttributeId.HasValue
+            && request.Condition is RestrictionCondition.More or RestrictionCondition.Less)
+        {
+            var valueType = await db.Attributes
+                .AsNoTracking()
+                .Where(attribute => attribute.Id == request.AttributeId.Value)
+                .Select(attribute => attribute.ValueType)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (valueType is null)
+            {
+                return "error.attributes.notFound";
+            }
+
+            if (!string.Equals(valueType, "number", StringComparison.OrdinalIgnoreCase))
+            {
+                return "error.restrictions.numericAttributeRequired";
+            }
+        }
+
+        return null;
     }
 
     private static RestrictionDto Map(PositionRestriction restriction) => new()
@@ -136,7 +192,10 @@ public class RestrictionService(ApplicationDbContext db) : IRestrictionService
         Id = restriction.Id,
         PositionId = restriction.PositionId,
         AttributeId = restriction.AttributeId,
+        AttributeName = restriction.Attribute?.Name,
+        AttributeValueType = restriction.Attribute?.ValueType,
         TagId = restriction.TagId,
+        TagName = restriction.Tag?.Name,
         TargetValue = restriction.TargetValue,
         Condition = restriction.Condition,
         CreatedAt = restriction.CreatedAt,

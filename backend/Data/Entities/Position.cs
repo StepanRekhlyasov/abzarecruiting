@@ -12,6 +12,7 @@ public class Position
     public string Country { get; set; } = string.Empty;
     public PositionLevel Level { get; set; }
     public WorkFormat Format { get; set; }
+    public int MaxProjects { get; set; }
     public DateTime CreatedAt { get; set; }
     public int Version { get; set; }
     public string CreatedById { get; set; } = string.Empty;

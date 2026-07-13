@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260710120221_init")]
+    [Migration("20260713152815_init")]
     partial class init
     {
         /// <inheritdoc />
@@ -158,6 +158,27 @@ namespace Backend.Api.Migrations
                     b.ToTable("AttributeOptions");
                 });
 
+            modelBuilder.Entity("Backend.Api.Data.Entities.File", b =>
+                {
+                    b.Property<Guid>("Uid")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("varchar(2048)");
+
+                    b.HasKey("Uid");
+
+                    b.ToTable("Files");
+                });
+
             modelBuilder.Entity("Backend.Api.Data.Entities.Position", b =>
                 {
                     b.Property<int>("Id")
@@ -183,7 +204,8 @@ namespace Backend.Api.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(1024)
+                        .HasColumnType("varchar(1024)");
 
                     b.Property<string>("Format")
                         .IsRequired()
@@ -194,6 +216,9 @@ namespace Backend.Api.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("varchar(32)");
+
+                    b.Property<int>("MaxProjects")
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -273,9 +298,10 @@ namespace Backend.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CandidateId");
-
                     b.HasIndex("PositionId");
+
+                    b.HasIndex("CandidateId", "PositionId")
+                        .IsUnique();
 
                     b.ToTable("Resumes");
                 });

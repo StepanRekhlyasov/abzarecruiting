@@ -6,7 +6,6 @@ using Backend.Api.Services.Resume;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ResumeEntity = Backend.Api.Data.Entities.Resume;
 
 namespace Backend.Api.Controllers;
 
@@ -18,18 +17,55 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
     [HttpPost("position/{positionId:int}")]
     public async Task<ActionResult<ResumeDto>> Create(int positionId, CancellationToken cancellationToken)
     {
-        var resume = await resumeService.CreateAsync(positionId, User.GetUserId()!, cancellationToken);
-        return resume is null ? NotFound() : Ok(resume);
+        try
+        {
+            var resume = await resumeService.CreateAsync(positionId, User.GetUserId()!, cancellationToken);
+            return resume is null ? NotFound() : Ok(resume);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
-    [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
+    [Authorize(Roles = Roles.Candidate)]
+    [HttpGet("position-ids")]
+    public async Task<ActionResult<IReadOnlyList<int>>> GetMyPositionIds(CancellationToken cancellationToken)
+    {
+        var positionIds = await resumeService.GetPositionIdsForCandidateAsync(
+            User.GetUserId()!,
+            cancellationToken);
+        return Ok(positionIds);
+    }
+
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<PagedResult<ResumeListItemDto>>> GetList(
-        [FromQuery] int positionId,
         [FromQuery] PaginationParams pagination,
+        [FromQuery] int? positionId,
         CancellationToken cancellationToken)
     {
-        var result = await resumeService.GetListByPositionAsync(positionId, pagination, cancellationToken);
+        if (positionId.HasValue)
+        {
+            if (!User.IsRecruiterOrAdmin())
+            {
+                return Forbid();
+            }
+
+            var byPosition = await resumeService.GetListByPositionAsync(
+                positionId.Value,
+                pagination,
+                cancellationToken);
+            return Ok(byPosition);
+        }
+
+        var result = await resumeService.GetListForViewerAsync(
+            pagination,
+            User.GetUserId()!,
+            User.IsAdmin(),
+            User.IsRecruiter(),
+            cancellationToken);
+
         return Ok(result);
     }
 

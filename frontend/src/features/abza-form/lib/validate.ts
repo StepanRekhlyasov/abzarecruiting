@@ -1,5 +1,11 @@
 import type { AbzaFieldConfig, AbzaFormErrors, AbzaFormValues } from '@shared/types'
-import { getStringArrayValue, getStringValue, isFieldVisible } from './fieldVisibility'
+import {
+  getEntityOptionValue,
+  getEntityOptionsValue,
+  getStringArrayValue,
+  getStringValue,
+  isFieldVisible,
+} from './fieldVisibility'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -7,7 +13,10 @@ type ValidateOptions = {
   required: string
   minLength: (min: number) => string
   maxLength: (max: number) => string
+  min: (min: number) => string
+  max: (max: number) => string
   email: string
+  number: string
   pattern: (key?: string) => string
 }
 
@@ -29,6 +38,26 @@ export function validateAbzaForm(
       const options = getStringArrayValue(values, field.name)
 
       if (rules?.required && options.length === 0) {
+        errors[field.name] = messages.required
+      }
+
+      continue
+    }
+
+    if (field.type === 'asyncEntityTags') {
+      const options = getEntityOptionsValue(values, field.name)
+
+      if (rules?.required && options.length === 0) {
+        errors[field.name] = messages.required
+      }
+
+      continue
+    }
+
+    if (field.type === 'asyncEntitySelect') {
+      const option = getEntityOptionValue(values, field.name)
+
+      if (rules?.required && !option) {
         errors[field.name] = messages.required
       }
 
@@ -59,6 +88,25 @@ export function validateAbzaForm(
     if (field.type === 'email' && !EMAIL_PATTERN.test(value)) {
       errors[field.name] = messages.email
       continue
+    }
+
+    if (field.type === 'number') {
+      const numericValue = Number(value)
+
+      if (Number.isNaN(numericValue)) {
+        errors[field.name] = messages.number
+        continue
+      }
+
+      if (rules?.min !== undefined && numericValue < rules.min) {
+        errors[field.name] = messages.min(rules.min)
+        continue
+      }
+
+      if (rules?.max !== undefined && numericValue > rules.max) {
+        errors[field.name] = messages.max(rules.max)
+        continue
+      }
     }
 
     if (rules?.pattern && !rules.pattern.test(value)) {

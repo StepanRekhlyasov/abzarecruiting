@@ -58,6 +58,20 @@ namespace Backend.Api.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "Files",
+                columns: table => new
+                {
+                    Uid = table.Column<Guid>(type: "char(36)", nullable: false),
+                    Url = table.Column<string>(type: "varchar(2048)", maxLength: 2048, nullable: false),
+                    Name = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Files", x => x.Uid);
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "AspNetRoleClaims",
                 columns: table => new
                 {
@@ -201,11 +215,12 @@ namespace Backend.Api.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     Name = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
-                    Description = table.Column<string>(type: "longtext", nullable: false),
+                    Description = table.Column<string>(type: "varchar(1024)", maxLength: 1024, nullable: false),
                     Company = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
                     Country = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
                     Level = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
                     Format = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
+                    MaxProjects = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Version = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     CreatedById = table.Column<string>(type: "varchar(255)", nullable: false)
@@ -581,9 +596,10 @@ namespace Backend.Api.Migrations
                 column: "TagId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Resumes_CandidateId",
+                name: "IX_Resumes_CandidateId_PositionId",
                 table: "Resumes",
-                column: "CandidateId");
+                columns: new[] { "CandidateId", "PositionId" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Resumes_PositionId",
@@ -616,6 +632,9 @@ namespace Backend.Api.Migrations
 
             migrationBuilder.DropTable(
                 name: "AttributeOptions");
+
+            migrationBuilder.DropTable(
+                name: "Files");
 
             migrationBuilder.DropTable(
                 name: "PositionAttributes");

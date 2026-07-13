@@ -1,3 +1,4 @@
+using System.Globalization;
 using Backend.Api.Data;
 using Backend.Api.Data.Enums;
 using Backend.Api.Data.Relations;
@@ -115,22 +116,50 @@ public class PositionRestrictionEvaluator(
         IReadOnlyList<string> candidateIds,
         CancellationToken cancellationToken = default)
     {
-        if (candidateIds.Count == 0)
+        var ids = candidateIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+        if (ids.Count == 0)
         {
             return new Dictionary<string, CandidateRestrictionContext>();
         }
 
-        var profileAttributes = await db.ProfileAttributes
-            .AsNoTracking()
-            .Include(profileAttribute => profileAttribute.Attribute)
-            .Where(profileAttribute => candidateIds.Contains(profileAttribute.CandidateId))
-            .ToListAsync(cancellationToken);
+        List<ProfileAttribute> profileAttributes;
+        List<(string CandidateId, int TagId)> tagIdsByCandidate;
 
-        var tagIdsByCandidate = await db.ProfileProjectTags
-            .AsNoTracking()
-            .Where(projectTag => candidateIds.Contains(projectTag.ProfileProject.CandidateId))
-            .Select(projectTag => new { projectTag.ProfileProject.CandidateId, projectTag.TagId })
-            .ToListAsync(cancellationToken);
+        if (ids.Count == 1)
+        {
+            var candidateId = ids[0];
+
+            profileAttributes = await db.ProfileAttributes
+                .AsNoTracking()
+                .Include(profileAttribute => profileAttribute.Attribute)
+                .Where(profileAttribute => profileAttribute.CandidateId == candidateId)
+                .ToListAsync(cancellationToken);
+
+            tagIdsByCandidate = await (
+                from projectTag in db.ProfileProjectTags.AsNoTracking()
+                join project in db.ProfileProjects.AsNoTracking()
+                    on projectTag.ProfileProjectId equals project.Id
+                where project.CandidateId == candidateId
+                select new ValueTuple<string, int>(project.CandidateId, projectTag.TagId)
+            ).ToListAsync(cancellationToken);
+        }
+        else
+        {
+            // MySQL EF provider fails to map parameterized string collections in Contains().
+            profileAttributes = await db.ProfileAttributes
+                .AsNoTracking()
+                .Include(profileAttribute => profileAttribute.Attribute)
+                .Where(profileAttribute => EF.Constant(ids).Contains(profileAttribute.CandidateId))
+                .ToListAsync(cancellationToken);
+
+            tagIdsByCandidate = await (
+                from projectTag in db.ProfileProjectTags.AsNoTracking()
+                join project in db.ProfileProjects.AsNoTracking()
+                    on projectTag.ProfileProjectId equals project.Id
+                where EF.Constant(ids).Contains(project.CandidateId)
+                select new ValueTuple<string, int>(project.CandidateId, projectTag.TagId)
+            ).ToListAsync(cancellationToken);
+        }
 
         var tagsByCandidate = tagIdsByCandidate
             .GroupBy(item => item.CandidateId)
@@ -138,7 +167,7 @@ public class PositionRestrictionEvaluator(
                 group => group.Key,
                 group => group.Select(item => item.TagId).ToHashSet());
 
-        return candidateIds.ToDictionary(
+        return ids.ToDictionary(
             candidateId => candidateId,
             candidateId => new CandidateRestrictionContext(
                 profileAttributes.Where(item => item.CandidateId == candidateId).ToList(),
@@ -278,13 +307,58 @@ public class PositionRestrictionEvaluator(
 
     private bool CompareEqual(ProfileAttribute? profileAttribute, Data.Entities.Attribute? attribute, string? targetValue)
     {
-        if (profileAttribute is null || attribute is null || targetValue is null)
+        if (profileAttribute is null || attribute is null || string.IsNullOrWhiteSpace(targetValue))
         {
             return false;
         }
 
-        var value = attributeValueMapper.GetComparableValue(profileAttribute, attribute);
-        return value == targetValue;
+        var normalizedTarget = targetValue.Trim();
+
+        return attribute.ValueType.ToLowerInvariant() switch
+        {
+            "number" => CompareNumeric(
+                profileAttribute,
+                attribute,
+                normalizedTarget,
+                (left, right) => left == right),
+            "boolean" => CompareBoolean(profileAttribute, normalizedTarget),
+            "date" => CompareDate(profileAttribute, normalizedTarget),
+            _ => string.Equals(
+                attributeValueMapper.GetComparableValue(profileAttribute, attribute)?.Trim(),
+                normalizedTarget,
+                StringComparison.OrdinalIgnoreCase),
+        };
+    }
+
+    private static bool CompareBoolean(ProfileAttribute profileAttribute, string targetValue)
+    {
+        if (profileAttribute.ValueBoolean is null
+            || !bool.TryParse(targetValue, out var expected))
+        {
+            return false;
+        }
+
+        return profileAttribute.ValueBoolean.Value == expected;
+    }
+
+    private static bool CompareDate(ProfileAttribute profileAttribute, string targetValue)
+    {
+        if (profileAttribute.ValueDate is null)
+        {
+            return false;
+        }
+
+        if (!DateTime.TryParse(
+                targetValue,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out var expected)
+            && !DateTime.TryParse(targetValue, CultureInfo.CurrentCulture, DateTimeStyles.None, out expected))
+        {
+            return false;
+        }
+
+        return profileAttribute.ValueDate.Value.Date == expected.Date;
     }
 
     private bool CompareNumeric(
@@ -293,17 +367,40 @@ public class PositionRestrictionEvaluator(
         string? targetValue,
         Func<decimal, decimal, bool> compare)
     {
-        if (profileAttribute is null || attribute is null || targetValue is null)
+        if (profileAttribute is null || attribute is null || string.IsNullOrWhiteSpace(targetValue))
         {
             return false;
         }
 
-        var value = attributeValueMapper.GetComparableValue(profileAttribute, attribute);
-        if (!decimal.TryParse(value, out var left) || !decimal.TryParse(targetValue, out var right))
+        decimal left;
+        if (profileAttribute.ValueNumber is { } numberValue)
+        {
+            left = numberValue;
+        }
+        else if (!TryParseDecimal(
+                     attributeValueMapper.GetComparableValue(profileAttribute, attribute),
+                     out left))
+        {
+            return false;
+        }
+
+        if (!TryParseDecimal(targetValue, out var right))
         {
             return false;
         }
 
         return compare(left, right);
+    }
+
+    private static bool TryParseDecimal(string? value, out decimal result)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            result = default;
+            return false;
+        }
+
+        return decimal.TryParse(value.Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out result)
+            || decimal.TryParse(value.Trim(), NumberStyles.Number, CultureInfo.CurrentCulture, out result);
     }
 }

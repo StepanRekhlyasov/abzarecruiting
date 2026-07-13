@@ -201,7 +201,8 @@ namespace Backend.Api.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(1024)
+                        .HasColumnType("varchar(1024)");
 
                     b.Property<string>("Format")
                         .IsRequired()
@@ -212,6 +213,9 @@ namespace Backend.Api.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("varchar(32)");
+
+                    b.Property<int>("MaxProjects")
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -291,9 +295,10 @@ namespace Backend.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CandidateId");
-
                     b.HasIndex("PositionId");
+
+                    b.HasIndex("CandidateId", "PositionId")
+                        .IsUnique();
 
                     b.ToTable("Resumes");
                 });

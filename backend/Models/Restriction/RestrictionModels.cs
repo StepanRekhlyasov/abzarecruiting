@@ -31,7 +31,13 @@ public class RestrictionDto
 
     public int? AttributeId { get; set; }
 
+    public string? AttributeName { get; set; }
+
+    public string? AttributeValueType { get; set; }
+
     public int? TagId { get; set; }
+
+    public string? TagName { get; set; }
 
     public string? TargetValue { get; set; }
 

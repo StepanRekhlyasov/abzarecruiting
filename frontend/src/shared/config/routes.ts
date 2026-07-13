@@ -4,6 +4,9 @@ export const ROUTES = {
   register: '/register',
   attributes: '/attributes',
   tags: '/tags',
+  positions: '/positions',
+  cvs: '/cvs',
+  projects: '/projects',
   profile: '/profile',
   profileDetail: '/profile/:candidateId',
 } as const

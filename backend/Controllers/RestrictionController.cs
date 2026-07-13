@@ -12,6 +12,15 @@ namespace Backend.Api.Controllers;
 [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
 public class RestrictionController(IRestrictionService restrictionService) : ControllerBase
 {
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyList<RestrictionDto>>> GetByPositionId(
+        [FromQuery] int positionId,
+        CancellationToken cancellationToken)
+    {
+        var items = await restrictionService.GetByPositionIdAsync(positionId, cancellationToken);
+        return Ok(items);
+    }
+
     [HttpPost]
     public async Task<ActionResult<RestrictionDto>> Create(
         [FromBody] CreateRestrictionRequest request,

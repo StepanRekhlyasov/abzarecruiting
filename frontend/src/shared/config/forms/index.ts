@@ -1,4 +1,6 @@
 export { createAttributeFormConfig } from './attributeFormConfig'
 export { createLoginFormConfig, createRegisterFormConfig } from './authFormConfig'
+export { createPositionInfoFormConfig } from './positionFormConfig'
+export { createProjectFormConfig } from './projectFormConfig'
 export { createTagFormConfig } from './tagFormConfig'
 export { createChangeRoleFormConfig, createUserFormConfig } from './userFormConfig'

@@ -9,6 +9,9 @@
     "menu": "Menu",
     "attributes": "Attributes",
     "tags": "Tags",
+    "positions": "Positions",
+    "cvs": "CVs",
+    "projects": "Projects",
     "profile": "Profile"
   },
   "profile": {
@@ -71,11 +74,15 @@
     "decrement": "Decrement"
   },
   "form": {
+    "createOption": "Create \"{{name}}\"",
     "errors": {
       "required": "This field is required",
       "minLength": "Minimum {{min}} characters",
       "maxLength": "Maximum {{max}} characters",
+      "min": "Minimum {{min}}",
+      "max": "Maximum {{max}}",
       "email": "Enter a valid email",
+      "number": "Enter a number",
       "pattern": "Invalid value"
     }
   },
@@ -222,6 +229,143 @@
       "submit": "Create"
     }
   },
+  "positions": {
+    "title": "Positions",
+    "search": "Search by name",
+    "loading": "Loading...",
+    "empty": "No positions found",
+    "tabs": {
+      "info": "Information",
+      "attributes": "Attributes",
+      "restrictions": "Restrictions"
+    },
+    "columns": {
+      "name": "Name",
+      "description": "Description",
+      "company": "Company",
+      "country": "Country",
+      "level": "Level",
+      "format": "Format",
+      "maxProjects": "Max projects",
+      "attributes": "Attributes",
+      "tags": "Tags",
+      "createdAt": "Created at"
+    },
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "company": "Company",
+      "country": "Country",
+      "level": "Level",
+      "format": "Work format",
+      "maxProjects": "Max projects",
+      "attributes": "Attributes",
+      "tags": "Tags"
+    },
+    "levels": {
+      "Junior": "Junior",
+      "Middle": "Middle",
+      "Senior": "Senior"
+    },
+    "formats": {
+      "Office": "Office",
+      "Remote": "Remote",
+      "Hybrid": "Hybrid"
+    },
+    "restrictions": {
+      "requiredTags": "Required tags",
+      "requiredTagsHint": "The candidate must have the selected tags",
+      "tags": "Tags",
+      "attributeConditions": "Attribute conditions",
+      "attributeConditionsHint": "Add conditions for candidate attributes. More/Less are numeric only",
+      "addCondition": "Add",
+      "emptyConditions": "No conditions added",
+      "attribute": "Attribute",
+      "condition": "Condition",
+      "targetValue": "Value",
+      "conditions": {
+        "Exist": "Exists",
+        "Equal": "Equal",
+        "More": "More",
+        "Less": "Less"
+      }
+    },
+    "create": {
+      "title": "New position",
+      "submit": "Create",
+      "cancel": "Cancel"
+    },
+    "edit": {
+      "title": "Edit position",
+      "submit": "Save",
+      "cancel": "Cancel"
+    },
+    "view": {
+      "title": "View position",
+      "createResume": "Create resume",
+      "cancel": "Close"
+    },
+    "toolbar": {
+      "createResume": "Create resume"
+    },
+    "form": {
+      "submit": "Create"
+    }
+  },
+  "cvs": {
+    "title": "CVs",
+    "search": "Search by position",
+    "loading": "Loading...",
+    "empty": "No resumes found",
+    "columns": {
+      "id": "ID",
+      "positionName": "Position",
+      "candidateId": "Candidate",
+      "published": "Published",
+      "createdAt": "Created"
+    },
+    "published": {
+      "yes": "Yes",
+      "no": "No"
+    }
+  },
+  "projects": {
+    "title": "Projects",
+    "search": "Search by name or description",
+    "loading": "Loading...",
+    "empty": "No projects found",
+    "columns": {
+      "name": "Name",
+      "description": "Description",
+      "startAt": "Start date",
+      "endAt": "End date",
+      "tags": "Tags",
+      "candidateId": "Candidate",
+      "createdAt": "Created"
+    },
+    "fields": {
+      "candidateId": "Candidate ID",
+      "candidate": "Candidate",
+      "name": "Name",
+      "description": "Description",
+      "startAt": "Start date",
+      "endAt": "End date",
+      "tags": "Tags"
+    },
+    "create": {
+      "title": "New project",
+      "submit": "Create",
+      "cancel": "Cancel"
+    },
+    "edit": {
+      "title": "Edit project",
+      "submit": "Save",
+      "cancel": "Cancel"
+    },
+    "form": {
+      "submit": "Save"
+    }
+  },
   "error": {
     "unknown": "Something went wrong. Please try again.",
     "unauthorized": "Unauthorized. Please log in again.",
@@ -251,7 +395,34 @@
       "load": "Failed to load tags",
       "create": "Failed to create tag",
       "update": "Failed to update tag",
-      "delete": "Failed to delete tags"
+      "delete": "Failed to delete tags",
+      "notFound": "One or more tags were not found"
+    },
+    "positions": {
+      "load": "Failed to load positions",
+      "create": "Failed to create position",
+      "update": "Failed to update position",
+      "delete": "Failed to delete positions"
+    },
+    "resumes": {
+      "load": "Failed to load resumes",
+      "create": "Failed to create resume",
+      "delete": "Failed to delete resumes",
+      "alreadyExists": "A resume for this position already exists"
+    },
+    "projects": {
+      "load": "Failed to load projects",
+      "create": "Failed to create project",
+      "update": "Failed to update project",
+      "delete": "Failed to delete projects"
+    },
+    "restrictions": {
+      "conditionNotSupported": "Condition Not is not supported",
+      "attributeOrTagRequired": "Either attribute or tag must be provided",
+      "attributeAndTagExclusive": "Attribute and tag cannot be set together",
+      "tagExistOnly": "Tag restrictions only support the Exist condition",
+      "targetValueRequired": "Value is required for Equal, More, and Less conditions",
+      "numericAttributeRequired": "More and Less conditions are only valid for numeric attributes"
     },
     "files": {
       "missing": "File is required",

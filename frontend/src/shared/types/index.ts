@@ -22,6 +22,40 @@ export type { ProfileAttributeDto } from './profile.types'
 export type { CreateTagRequest, TagDto, UpdateTagRequest } from './tag.types'
 
 export type {
+  CreatePositionRequest,
+  PositionAttributeDto,
+  PositionDto,
+  PositionLevel,
+  PositionTagDto,
+  UpdatePositionRequest,
+  WorkFormat,
+} from './position.types'
+export { POSITION_LEVELS, WORK_FORMATS } from './position.types'
+
+export type {
+  CreateProjectRequest,
+  ProjectDto,
+  ProjectTagDto,
+  UpdateProjectRequest,
+} from './project.types'
+
+export type {
+  AttributeConditionDraft,
+  CreateRestrictionRequest,
+  RestrictionCondition,
+  RestrictionDto,
+  TagRestrictionDraft,
+  UpdateRestrictionRequest,
+} from './restriction.types'
+export { RESTRICTION_CONDITIONS } from './restriction.types'
+
+export type {
+  ResumeCandidateAttributeDto,
+  ResumeDto,
+  ResumeListItemDto,
+} from './resume.types'
+
+export type {
   AuthResponse,
   ChangeUsersRoleBatchRequest,
   CreateUserRequest,

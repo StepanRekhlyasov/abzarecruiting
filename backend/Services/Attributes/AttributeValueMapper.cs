@@ -1,3 +1,4 @@
+using System.Globalization;
 using Backend.Api.Data.Relations;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 
@@ -35,13 +36,19 @@ public class AttributeValueMapper : IAttributeValueMapper
                 profileAttribute.ValueText = value;
                 break;
             case "number":
-                profileAttribute.ValueNumber = decimal.Parse(value);
+                if (!decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var number)
+                    && !decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out number))
+                {
+                    throw new InvalidOperationException("error.attributes.unsupportedValueType");
+                }
+
+                profileAttribute.ValueNumber = number;
                 break;
             case "boolean":
                 profileAttribute.ValueBoolean = bool.Parse(value);
                 break;
             case "date":
-                profileAttribute.ValueDate = DateTime.Parse(value);
+                profileAttribute.ValueDate = DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
                 break;
             case "image":
             case "file":
@@ -68,9 +75,14 @@ public class AttributeValueMapper : IAttributeValueMapper
         return attribute.ValueType.ToLowerInvariant() switch
         {
             "text" => profileAttribute.ValueText,
-            "number" => profileAttribute.ValueNumber?.ToString(),
-            "boolean" => profileAttribute.ValueBoolean?.ToString(),
-            "date" => profileAttribute.ValueDate?.ToString("O"),
+            "number" => profileAttribute.ValueNumber?.ToString(CultureInfo.InvariantCulture),
+            "boolean" => profileAttribute.ValueBoolean switch
+            {
+                true => "true",
+                false => "false",
+                null => null,
+            },
+            "date" => profileAttribute.ValueDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             _ => profileAttribute.ValueString,
         };
     }

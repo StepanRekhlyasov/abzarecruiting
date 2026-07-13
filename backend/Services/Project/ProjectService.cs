@@ -2,6 +2,7 @@ using Backend.Api.Data;
 using Backend.Api.Data.Entities;
 using Backend.Api.Data.Relations;
 using Backend.Api.Extensions;
+using Backend.Api.Models.Common;
 using Backend.Api.Models.Project;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,12 @@ namespace Backend.Api.Services.Project;
 
 public interface IProjectService
 {
+    Task<PagedResult<ProjectDto>> GetListForViewerAsync(
+        PaginationParams pagination,
+        string userId,
+        bool isAdmin,
+        CancellationToken cancellationToken = default);
+
     Task<ProjectDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
     Task<ProjectDto?> CreateAsync(CreateProjectRequest request, string userId, bool isAdmin, CancellationToken cancellationToken = default);
@@ -26,6 +33,48 @@ public interface IProjectService
 
 public class ProjectService(ApplicationDbContext db) : IProjectService
 {
+    public async Task<PagedResult<ProjectDto>> GetListForViewerAsync(
+        PaginationParams pagination,
+        string userId,
+        bool isAdmin,
+        CancellationToken cancellationToken = default)
+    {
+        var query = db.ProfileProjects
+            .AsNoTracking()
+            .Include(item => item.ProfileProjectTags)
+            .ThenInclude(item => item.Tag)
+            .AsQueryable();
+
+        if (!isAdmin)
+        {
+            query = query.Where(project => project.CandidateId == userId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(pagination.Search))
+        {
+            var search = pagination.Search.Trim();
+            query = query.Where(project =>
+                project.Name.Contains(search)
+                || project.Description.Contains(search));
+        }
+
+        query = query.ApplySort(pagination, project => project.CreatedAt);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip(pagination.Skip)
+            .Take(pagination.NormalizedSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<ProjectDto>
+        {
+            Items = items.Select(Map).ToList(),
+            TotalCount = totalCount,
+            Page = pagination.NormalizedPage,
+            Size = pagination.NormalizedSize,
+        };
+    }
+
     public async Task<ProjectDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var project = await db.ProfileProjects

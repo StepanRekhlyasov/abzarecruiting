@@ -25,6 +25,8 @@ public class ResumeDto
 
     public int PositionId { get; set; }
 
+    public string PositionName { get; set; } = string.Empty;
+
     public bool Published { get; set; }
 
     public DateTime CreatedAt { get; set; }

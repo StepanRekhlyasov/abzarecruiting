@@ -1,5 +1,6 @@
 using Backend.Api.Data;
 using Backend.Api.Extensions;
+using Backend.Api.Models.Common;
 using Backend.Api.Models.Project;
 using Backend.Api.Services.Project;
 using Microsoft.AspNetCore.Authorization;
@@ -13,6 +14,25 @@ namespace Backend.Api.Controllers;
 [Authorize]
 public class ProjectController(IProjectService projectService, ApplicationDbContext db) : ControllerBase
 {
+    [HttpGet]
+    public async Task<ActionResult<PagedResult<ProjectDto>>> GetList(
+        [FromQuery] PaginationParams pagination,
+        CancellationToken cancellationToken)
+    {
+        if (!User.IsAdmin() && !User.IsCandidate())
+        {
+            return Forbid();
+        }
+
+        var result = await projectService.GetListForViewerAsync(
+            pagination,
+            User.GetUserId()!,
+            User.IsAdmin(),
+            cancellationToken);
+
+        return Ok(result);
+    }
+
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ProjectDto>> GetById(int id, CancellationToken cancellationToken)
     {

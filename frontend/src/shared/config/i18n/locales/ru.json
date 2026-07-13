@@ -9,6 +9,9 @@
     "menu": "Меню",
     "attributes": "Атрибуты",
     "tags": "Теги",
+    "positions": "Позиции",
+    "cvs": "Резюме",
+    "projects": "Проекты",
     "profile": "Профиль"
   },
   "profile": {
@@ -71,11 +74,15 @@
     "decrement": "Уменьшить"
   },
   "form": {
+    "createOption": "Создать «{{name}}»",
     "errors": {
       "required": "Обязательное поле",
       "minLength": "Минимум {{min}} символов",
       "maxLength": "Максимум {{max}} символов",
+      "min": "Минимум {{min}}",
+      "max": "Максимум {{max}}",
       "email": "Введите корректный email",
+      "number": "Введите число",
       "pattern": "Некорректное значение"
     }
   },
@@ -222,6 +229,143 @@
       "submit": "Создать"
     }
   },
+  "positions": {
+    "title": "Позиции",
+    "search": "Поиск по названию",
+    "loading": "Загрузка...",
+    "empty": "Позиции не найдены",
+    "tabs": {
+      "info": "Информация",
+      "attributes": "Атрибуты",
+      "restrictions": "Ограничения"
+    },
+    "columns": {
+      "name": "Название",
+      "description": "Описание",
+      "company": "Компания",
+      "country": "Страна",
+      "level": "Уровень",
+      "format": "Формат",
+      "maxProjects": "Максимум проектов",
+      "attributes": "Атрибуты",
+      "tags": "Теги",
+      "createdAt": "Создана"
+    },
+    "fields": {
+      "name": "Название",
+      "description": "Описание",
+      "company": "Компания",
+      "country": "Страна",
+      "level": "Уровень",
+      "format": "Формат работы",
+      "maxProjects": "Максимум проектов",
+      "attributes": "Атрибуты",
+      "tags": "Теги"
+    },
+    "levels": {
+      "Junior": "Junior",
+      "Middle": "Middle",
+      "Senior": "Senior"
+    },
+    "formats": {
+      "Office": "Офис",
+      "Remote": "Удалёнка",
+      "Hybrid": "Гибрид"
+    },
+    "restrictions": {
+      "requiredTags": "Обязательные теги",
+      "requiredTagsHint": "Кандидат должен иметь выбранные теги",
+      "tags": "Теги",
+      "attributeConditions": "Условия по атрибутам",
+      "attributeConditionsHint": "Добавьте условия для атрибутов кандидата. Больше/Меньше — только для числовых",
+      "addCondition": "Добавить",
+      "emptyConditions": "Условия не добавлены",
+      "attribute": "Атрибут",
+      "condition": "Условие",
+      "targetValue": "Значение",
+      "conditions": {
+        "Exist": "Существует",
+        "Equal": "Равно",
+        "More": "Больше",
+        "Less": "Меньше"
+      }
+    },
+    "create": {
+      "title": "Новая позиция",
+      "submit": "Создать",
+      "cancel": "Отмена"
+    },
+    "edit": {
+      "title": "Редактировать позицию",
+      "submit": "Сохранить",
+      "cancel": "Отмена"
+    },
+    "view": {
+      "title": "Просмотр позиции",
+      "createResume": "Создать резюме",
+      "cancel": "Закрыть"
+    },
+    "toolbar": {
+      "createResume": "Создать резюме"
+    },
+    "form": {
+      "submit": "Создать"
+    }
+  },
+  "cvs": {
+    "title": "Резюме",
+    "search": "Поиск по позиции",
+    "loading": "Загрузка...",
+    "empty": "Резюме не найдены",
+    "columns": {
+      "id": "ID",
+      "positionName": "Позиция",
+      "candidateId": "Кандидат",
+      "published": "Опубликовано",
+      "createdAt": "Создано"
+    },
+    "published": {
+      "yes": "Да",
+      "no": "Нет"
+    }
+  },
+  "projects": {
+    "title": "Проекты",
+    "search": "Поиск по названию или описанию",
+    "loading": "Загрузка...",
+    "empty": "Проекты не найдены",
+    "columns": {
+      "name": "Название",
+      "description": "Описание",
+      "startAt": "Дата начала",
+      "endAt": "Дата конца",
+      "tags": "Теги",
+      "candidateId": "Кандидат",
+      "createdAt": "Создан"
+    },
+    "fields": {
+      "candidateId": "ID кандидата",
+      "candidate": "Кандидат",
+      "name": "Название",
+      "description": "Описание",
+      "startAt": "Дата начала",
+      "endAt": "Дата конца",
+      "tags": "Теги"
+    },
+    "create": {
+      "title": "Новый проект",
+      "submit": "Создать",
+      "cancel": "Отмена"
+    },
+    "edit": {
+      "title": "Редактировать проект",
+      "submit": "Сохранить",
+      "cancel": "Отмена"
+    },
+    "form": {
+      "submit": "Сохранить"
+    }
+  },
   "error": {
     "unknown": "Произошла ошибка. Попробуйте снова.",
     "unauthorized": "Нет доступа. Пожалуйста, войдите заново.",
@@ -251,7 +395,34 @@
       "load": "Не удалось загрузить теги",
       "create": "Не удалось создать тег",
       "update": "Не удалось обновить тег",
-      "delete": "Не удалось удалить теги"
+      "delete": "Не удалось удалить теги",
+      "notFound": "Один или несколько тегов не найдены"
+    },
+    "positions": {
+      "load": "Не удалось загрузить позиции",
+      "create": "Не удалось создать позицию",
+      "update": "Не удалось обновить позицию",
+      "delete": "Не удалось удалить позиции"
+    },
+    "resumes": {
+      "load": "Не удалось загрузить резюме",
+      "create": "Не удалось создать резюме",
+      "delete": "Не удалось удалить резюме",
+      "alreadyExists": "Резюме для этой позиции уже создано"
+    },
+    "projects": {
+      "load": "Не удалось загрузить проекты",
+      "create": "Не удалось создать проект",
+      "update": "Не удалось обновить проект",
+      "delete": "Не удалось удалить проекты"
+    },
+    "restrictions": {
+      "conditionNotSupported": "Условие Not не поддерживается",
+      "attributeOrTagRequired": "Нужно указать атрибут или тег",
+      "attributeAndTagExclusive": "Нельзя указать атрибут и тег одновременно",
+      "tagExistOnly": "Для тегов доступно только условие «Существует»",
+      "targetValueRequired": "Значение обязательно для условий Равно, Больше и Меньше",
+      "numericAttributeRequired": "Условия «Больше» и «Меньше» доступны только для числовых атрибутов"
     },
     "files": {
       "missing": "Файл обязателен",
