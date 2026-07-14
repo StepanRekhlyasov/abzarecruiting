@@ -192,9 +192,6 @@ export function AbzaField({
               label={field.label}
               specialLabel=""
               containerStyle={{ width: '100%' }}
-              disableCountryCode
-              disableInitialCountryGuess
-              disableCountryGuess
             />
           </Box>
           {field.tooltip ? <FieldTooltip tooltip={field.tooltip} /> : null}
