@@ -68,6 +68,7 @@ export function createPositionInfoFormConfig(
         label: t('positions.fields.maxProjects'),
         type: 'number',
         disabled: readOnly,
+        tooltip: t('positions.fields.maxProjectsHint'),
         validation: readOnly ? undefined : { min: 0 },
       },
     ],

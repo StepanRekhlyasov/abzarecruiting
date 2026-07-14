@@ -56,6 +56,7 @@ export type AbzaFieldConfig = {
   allowCreateOptions?: boolean
   autoComplete?: string
   disabled?: boolean
+  tooltip?: string
   showWhen?: { field: string; value: string }
 }
 

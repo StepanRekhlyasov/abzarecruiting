@@ -1,13 +1,18 @@
-import { type RefObject, useState } from 'react'
+import { type MouseEvent, type RefObject, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlined'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import FormControl from '@mui/material/FormControl'
 import FormHelperText from '@mui/material/FormHelperText'
+import IconButton from '@mui/material/IconButton'
+import InputAdornment from '@mui/material/InputAdornment'
 import InputLabel from '@mui/material/InputLabel'
 import MenuItem from '@mui/material/MenuItem'
+import Popover from '@mui/material/Popover'
 import Select from '@mui/material/Select'
 import TextField from '@mui/material/TextField'
+import Typography from '@mui/material/Typography'
 import { AbzaError } from '@features/abza-error'
 import { parseApiError } from '@shared/lib/errors'
 import { AsyncEntitySelect, AsyncEntityTags, OptionTags } from '@shared/ui/inputs'
@@ -28,6 +33,38 @@ type AbzaFormProps = {
   formRef?: RefObject<HTMLFormElement | null>
   hideSubmitButton?: boolean
   initialValues?: AbzaFormValues
+}
+
+function FieldTooltip({ tooltip }: { tooltip: string }) {
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
+
+  return (
+    <>
+      <IconButton
+        size="small"
+        onMouseEnter={(event: MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget)}
+        onMouseLeave={() => setAnchorEl(null)}
+        aria-label={tooltip}
+        edge="end"
+        sx={{ p: 0.25 }}
+      >
+        <ErrorOutlineIcon fontSize="small" color="action" />
+      </IconButton>
+      <Popover
+        open={Boolean(anchorEl)}
+        anchorEl={anchorEl}
+        onClose={() => setAnchorEl(null)}
+        disableRestoreFocus
+        sx={{ pointerEvents: 'none' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+      >
+        <Typography variant="body2" sx={{ p: 1.5, maxWidth: 280 }}>
+          {tooltip}
+        </Typography>
+      </Popover>
+    </>
+  )
 }
 
 function createInitialValues(fields: AbzaFieldConfig[], initialValues?: AbzaFormValues): AbzaFormValues {
@@ -251,6 +288,12 @@ export function AbzaForm({
               ? 'date'
               : 'text'
 
+    const endAdornment = field.tooltip ? (
+      <InputAdornment position="end">
+        <FieldTooltip tooltip={field.tooltip} />
+      </InputAdornment>
+    ) : undefined
+
     return (
       <TextField
         key={field.name}
@@ -266,8 +309,8 @@ export function AbzaForm({
         disabled={field.disabled || isLoading}
         onChange={(event) => handleChange(field.name, event.target.value)}
         onBlur={() => handleBlur(field.name)}
-        slotProps={
-          field.type === 'number'
+        slotProps={{
+          ...(field.type === 'number'
             ? {
                 htmlInput: {
                   min: field.validation?.min,
@@ -278,8 +321,9 @@ export function AbzaForm({
               ? {
                   inputLabel: { shrink: true },
                 }
-              : undefined
-        }
+              : {}),
+          ...(endAdornment ? { input: { endAdornment } } : {}),
+        }}
       />
     )
   }

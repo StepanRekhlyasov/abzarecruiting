@@ -270,6 +270,7 @@
       "level": "Level",
       "format": "Work format",
       "maxProjects": "Max projects",
+      "maxProjectsHint": "Enter 0 for an unlimited number of projects",
       "attributes": "Attributes",
       "tags": "Tags"
     },
