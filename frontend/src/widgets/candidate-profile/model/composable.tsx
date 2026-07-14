@@ -127,14 +127,19 @@ export function CandidateProfileProvider({ candidateId, children }: CandidatePro
 
   const saveAttributeValue = useCallback(
     async (attributeId: number, value: AttributeDraftValue, version: number) => {
+      const attribute = meAttributes.find((item) => item.id === attributeId)
+
       return setCandidateAttributeValue(
         attributeId,
         candidateId,
-        toPersistedAttributeValue(value),
+        toPersistedAttributeValue(value, {
+          valueType: attribute?.valueType,
+          inputType: attribute?.inputType,
+        }),
         version,
       )
     },
-    [candidateId],
+    [candidateId, meAttributes],
   )
 
   const loadAttributeOptions = useCallback(

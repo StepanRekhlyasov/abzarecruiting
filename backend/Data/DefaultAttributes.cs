@@ -23,13 +23,13 @@ public static class DefaultAttributes
 
     public static readonly DefaultAttributeDefinition[] All =
     [
+        new(Photo, "image", "image", null),
         new(FirstName, "string", "text", null),
         new(LastName, "string", "text", null),
         new(Email, "string", "email", null),
         new(Phone, "string", "tel", null),
         new(Bio, "text", "textarea", null),
         new(Location, "string", "text", null),
-        new(Photo, "image", "image", null),
     ];
 
     private static readonly Dictionary<string, string> LegacyNames = new(StringComparer.Ordinal)

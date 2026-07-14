@@ -12,7 +12,9 @@ export {
   ATTRIBUTE_INPUT_TYPES,
   ATTRIBUTE_VALUE_TYPES,
   MAX_ATTRIBUTE_FILE_SIZE_BYTES,
+  formatNumberAttributeValue,
   isFileAttributeValue,
+  toAttributeDraftValue,
   toComparableAttributeValue,
   toPersistedAttributeValue,
 } from './attribute.types'

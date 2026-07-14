@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { AbzaError } from '@features/abza-error'
 import {
   toComparableAttributeValue,
+  toAttributeDraftValue,
   type AttributeDraftValue,
   type ProfileAttributeDto,
 } from '@shared/types'
@@ -27,7 +28,7 @@ type ResumeDetailProps = {
 
 function toDraftMap(attributes: ProfileAttributeDto[]) {
   return Object.fromEntries(
-    attributes.map((attribute) => [attribute.id, (attribute.value ?? '') as AttributeDraftValue]),
+    attributes.map((attribute) => [attribute.id, toAttributeDraftValue(attribute)]),
   )
 }
 

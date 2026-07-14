@@ -15,6 +15,7 @@ import { i18n } from '@shared/config/i18n'
 import { projectToFormValues, type ProjectDto } from '@entities/project'
 import {
   toComparableAttributeValue,
+  toAttributeDraftValue,
   type AbzaFormValues,
   type AttributeDraftValue,
   type ProfileAttributeDto,
@@ -33,7 +34,7 @@ type ProfileProps = {
 
 function toDraftMap(attributes: ProfileAttributeDto[]) {
   return Object.fromEntries(
-    attributes.map((attribute) => [attribute.id, (attribute.value ?? '') as AttributeDraftValue]),
+    attributes.map((attribute) => [attribute.id, toAttributeDraftValue(attribute)]),
   )
 }
 

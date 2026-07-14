@@ -14,7 +14,9 @@ public sealed class ResumePdfStrings
         string page,
         string present,
         string attachedFile,
-        string emptyValue)
+        string emptyValue,
+        string info,
+        string bio)
     {
         ForPosition = forPosition;
         CandidateFallback = candidateFallback;
@@ -28,6 +30,8 @@ public sealed class ResumePdfStrings
         Present = present;
         AttachedFile = attachedFile;
         EmptyValue = emptyValue;
+        Info = info;
+        Bio = bio;
     }
 
     public string ForPosition { get; }
@@ -42,7 +46,8 @@ public sealed class ResumePdfStrings
     public string Present { get; }
     public string AttachedFile { get; }
     public string EmptyValue { get; }
-
+    public string Info { get; }
+    public string Bio { get; }
     public static ResumePdfStrings ForLocale(string? locale)
     {
         var normalized = (locale ?? "ru").Trim().ToLowerInvariant();
@@ -66,7 +71,9 @@ public sealed class ResumePdfStrings
         page: "Стр. ",
         present: "н.в.",
         attachedFile: "Прикреплённый файл",
-        emptyValue: "—");
+        emptyValue: "—",
+        info: "Основная информация",
+        bio: "Биография");
 
     private static readonly ResumePdfStrings English = new(
         forPosition: "Resume for position: {0}",
@@ -80,5 +87,7 @@ public sealed class ResumePdfStrings
         page: "Page ",
         present: "present",
         attachedFile: "Attached file",
-        emptyValue: "—");
+        emptyValue: "—",
+        info: "Main information",
+        bio: "Bio");
 }

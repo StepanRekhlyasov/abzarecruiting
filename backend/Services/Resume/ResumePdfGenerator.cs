@@ -5,7 +5,6 @@ using Backend.Api.Models.Project;
 using Backend.Api.Models.Resume;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
 
 namespace Backend.Api.Services.Resume;
 
@@ -18,6 +17,7 @@ public static class ResumePdfGenerator
         var email = GetAttributeText(resume.Attributes, DefaultAttributes.Email, strings);
         var phone = GetAttributeText(resume.Attributes, DefaultAttributes.Phone, strings);
         var location = GetAttributeText(resume.Attributes, DefaultAttributes.Location, strings);
+        var bio = GetAttributeText(resume.Attributes, DefaultAttributes.Bio, strings);
 
         var otherAttributes = resume.Attributes
             .Where(attribute => !IsHeaderAttribute(attribute.Name))
@@ -37,13 +37,18 @@ public static class ResumePdfGenerator
                     {
                         column.Item().Text(string.Format(strings.ForPosition, resume.PositionName))
                             .SemiBold()
-                            .FontSize(16)
+                            .FontSize(20)
                             .FontColor(Colors.Blue.Darken2);
 
                         column.Item().PaddingTop(8).Text(fullName)
                             .SemiBold()
-                            .FontSize(20)
+                            .FontSize(14)
                             .FontColor(Colors.Grey.Darken3);
+
+                        if (photoBytes is { Length: > 0 })
+                        {
+                            column.Item().PaddingTop(4).Width(120).Height(120).Image(photoBytes).FitArea();
+                        }
 
                         if (HasText(email, strings))
                         {
@@ -60,21 +65,19 @@ public static class ResumePdfGenerator
                             column.Item().PaddingTop(2).Text($"{strings.LocationLabel}: {location}").FontSize(10);
                         }
 
-                        if (photoBytes is { Length: > 0 })
+                        if (HasText(bio, strings))
                         {
-                            column.Item().PaddingTop(10).Text(strings.PhotoLabel).SemiBold().FontSize(10);
-                            column.Item().PaddingTop(4).Width(120).Height(120).Image(photoBytes).FitArea();
+                            column.Item().PaddingTop(2).Text($"{strings.Bio}: {bio}").FontSize(10);
                         }
-
-                        column.Item().PaddingTop(12).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
                     });
 
                     page.Content().PaddingTop(16).Column(column =>
                     {
-                        column.Spacing(14);
 
                         if (otherAttributes.Count > 0)
                         {
+                            column.Item().PaddingTop(12).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+                            column.Spacing(10);
                             column.Item().Text(strings.Attributes).SemiBold().FontSize(14).FontColor(Colors.Blue.Darken2);
                             column.Item().Column(attrs =>
                             {
@@ -92,6 +95,8 @@ public static class ResumePdfGenerator
 
                         if (resume.Projects.Count > 0)
                         {
+                            column.Item().PaddingTop(12).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+                            column.Spacing(10);
                             column.Item().PaddingTop(4).Text(strings.Projects).SemiBold().FontSize(14).FontColor(Colors.Blue.Darken2);
                             column.Item().Column(projects =>
                             {
@@ -165,7 +170,8 @@ public static class ResumePdfGenerator
             or DefaultAttributes.Email
             or DefaultAttributes.Phone
             or DefaultAttributes.Location
-            or DefaultAttributes.Photo;
+            or DefaultAttributes.Photo
+            or DefaultAttributes.Bio;
 
     private static string GetAttributeText(
         IReadOnlyList<ProfileAttributeDto> attributes,

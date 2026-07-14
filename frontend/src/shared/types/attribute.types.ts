@@ -86,7 +86,62 @@ export function toComparableAttributeValue(value: AttributeDraftValue | null | u
   return typeof value === 'string' ? value : ''
 }
 
-export function toPersistedAttributeValue(value: AttributeDraftValue | null | undefined): string | null {
+export function toPersistedAttributeValue(
+  value: AttributeDraftValue | null | undefined,
+  options?: { valueType?: string; inputType?: string },
+): string | null {
   const comparable = toComparableAttributeValue(value)
-  return comparable === '' ? null : comparable
+  if (comparable === '') {
+    return null
+  }
+
+  const isNumber =
+    options?.valueType?.toLowerCase() === 'number' || options?.inputType?.toLowerCase() === 'number'
+
+  if (isNumber) {
+    return formatNumberAttributeValue(comparable)
+  }
+
+  return comparable
+}
+
+export function formatNumberAttributeValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') {
+    return ''
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? String(value) : ''
+  }
+
+  const raw = String(value).trim().replace(',', '.')
+  if (raw === '') {
+    return ''
+  }
+
+  const parsed = Number(raw)
+  if (!Number.isFinite(parsed)) {
+    return raw
+  }
+
+  return String(parsed)
+}
+
+export function toAttributeDraftValue(attribute: {
+  value: string | FileAttributeValue | null
+  valueType: string
+  inputType: string
+}): AttributeDraftValue {
+  if (isFileAttributeValue(attribute.value)) {
+    return attribute.value
+  }
+
+  const isNumber =
+    attribute.valueType.toLowerCase() === 'number' || attribute.inputType.toLowerCase() === 'number'
+
+  if (isNumber) {
+    return formatNumberAttributeValue(attribute.value)
+  }
+
+  return (attribute.value ?? '') as string
 }

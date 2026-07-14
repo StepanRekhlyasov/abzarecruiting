@@ -36,13 +36,12 @@ public class AttributeValueMapper : IAttributeValueMapper
                 profileAttribute.ValueText = value;
                 break;
             case "number":
-                if (!decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var number)
-                    && !decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out number))
+                if (!TryParseNumber(value, out var number))
                 {
                     throw new InvalidOperationException("error.attributes.unsupportedValueType");
                 }
 
-                profileAttribute.ValueNumber = number;
+                profileAttribute.ValueNumber = NormalizeDecimal(number);
                 break;
             case "boolean":
                 profileAttribute.ValueBoolean = bool.Parse(value);
@@ -75,7 +74,9 @@ public class AttributeValueMapper : IAttributeValueMapper
         return attribute.ValueType.ToLowerInvariant() switch
         {
             "text" => profileAttribute.ValueText,
-            "number" => profileAttribute.ValueNumber?.ToString(CultureInfo.InvariantCulture),
+            "number" => profileAttribute.ValueNumber is null
+                ? null
+                : FormatNumber(profileAttribute.ValueNumber.Value),
             "boolean" => profileAttribute.ValueBoolean switch
             {
                 true => "true",
@@ -92,4 +93,21 @@ public class AttributeValueMapper : IAttributeValueMapper
         var value = GetComparableValue(profileAttribute, attribute);
         return !string.IsNullOrWhiteSpace(value);
     }
+
+    private static bool TryParseNumber(string value, out decimal number)
+    {
+        if (decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out number)
+            || decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out number))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string FormatNumber(decimal number) =>
+        number.ToString("G29", CultureInfo.InvariantCulture);
+
+    private static decimal NormalizeDecimal(decimal number) =>
+        decimal.Parse(FormatNumber(number), NumberStyles.Number, CultureInfo.InvariantCulture);
 }

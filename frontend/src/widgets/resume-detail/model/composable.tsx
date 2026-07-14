@@ -113,10 +113,15 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
         throw new Error('error.resumes.load')
       }
 
+      const attribute = resume.attributes.find((item) => item.id === attributeId)
+
       return setCandidateAttributeValue(
         attributeId,
         resume.candidateId,
-        toPersistedAttributeValue(value),
+        toPersistedAttributeValue(value, {
+          valueType: attribute?.valueType,
+          inputType: attribute?.inputType,
+        }),
         version,
       )
     },
