@@ -11,7 +11,7 @@ export type {
   UserListItem,
   UserRole,
 } from '@shared/types'
-export { getSessionDisplayName, isAdmin, isCandidate, isRecruiterOrAdmin } from './model/helpers'
+export { getSessionDisplayName, isAdmin, isCandidate, isRecruiter, isRecruiterOrAdmin } from './model/helpers'
 export { getCurrentUser, isUnauthorizedError, login, register } from './api/authApi'
 export {
   changeUsersRoleBatch,

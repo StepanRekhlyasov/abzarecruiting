@@ -20,7 +20,7 @@ export function ProfileDetailPage() {
   }
 
   if (!candidateId) {
-    return <Navigate to={ROUTES.profile} replace />
+    return <Navigate to={ROUTES.users} replace />
   }
 
   return (

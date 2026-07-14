@@ -1,20 +1,23 @@
 import { Navigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useUnit } from 'effector-react'
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
+import Typography from '@mui/material/Typography'
 import { AppHeader } from '@features/app-header'
-import { $session, isCandidate } from '@entities/user'
+import { $session, isAdmin } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
-import { Profile } from '@widgets/candidate-profile'
+import { UsersTable } from '@widgets/users-table'
 
-export function ProfilePage() {
+export function UsersPage() {
+  const { t } = useTranslation()
   const session = useUnit($session)
 
   if (!session) {
     return <Navigate to={ROUTES.login} replace />
   }
 
-  if (!isCandidate(session)) {
+  if (!isAdmin(session)) {
     return <Navigate to={ROUTES.home} replace />
   }
 
@@ -23,7 +26,11 @@ export function ProfilePage() {
       <AppHeader />
       <Container maxWidth="lg">
         <Box sx={{ py: 4 }}>
-          <Profile candidateId={session.id} />
+          <Typography variant="h4" component="h1" gutterBottom>
+            {t('users.title')}
+          </Typography>
+
+          <UsersTable />
         </Box>
       </Container>
     </>

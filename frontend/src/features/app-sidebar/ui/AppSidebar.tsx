@@ -25,6 +25,10 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
   const session = useUnit($session)
 
   const navItems = useMemo(() => {
+    if (!session) {
+      return [{ to: ROUTES.positions, labelKey: 'common.positions' as const }]
+    }
+
     const items = [
       { to: ROUTES.attributes, labelKey: 'common.attributes' as const },
       { to: ROUTES.positions, labelKey: 'common.positions' as const },
@@ -37,7 +41,14 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
 
     if (isCandidate(session) || isAdmin(session)) {
       items.push({ to: ROUTES.projects, labelKey: 'common.projects' as const })
+    }
+
+    if (isCandidate(session)) {
       items.push({ to: ROUTES.profile, labelKey: 'common.profile' as const })
+    }
+
+    if (isAdmin(session)) {
+      items.push({ to: ROUTES.users, labelKey: 'common.users' as const })
     }
 
     return items

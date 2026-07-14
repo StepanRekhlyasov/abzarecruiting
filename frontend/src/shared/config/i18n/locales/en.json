@@ -12,7 +12,11 @@
     "positions": "Positions",
     "cvs": "CVs",
     "projects": "Projects",
-    "profile": "Profile"
+    "profile": "Profile",
+    "users": "Users"
+  },
+  "users": {
+    "title": "Users"
   },
   "profile": {
     "title": "Profile",

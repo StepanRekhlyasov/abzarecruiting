@@ -10,6 +10,10 @@ export function isRecruiterOrAdmin(user: SessionUser | null): boolean {
   return user?.roles.some((role) => role === 'Recruiter' || role === 'Admin') ?? false
 }
 
+export function isRecruiter(user: SessionUser | null): boolean {
+  return user?.roles.includes('Recruiter') ?? false
+}
+
 export function isCandidate(user: SessionUser | null): boolean {
   return user?.roles.includes('Candidate') ?? false
 }
