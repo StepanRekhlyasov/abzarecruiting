@@ -78,6 +78,7 @@ export function AsyncEntityTags({
       inputValue={inputValue}
       disabled={disabled}
       loading={isLoading}
+      style={{ width: '100%' }}
       filterOptions={(current, params) => {
         const filtered = allowCreate
           ? filter(current, params)

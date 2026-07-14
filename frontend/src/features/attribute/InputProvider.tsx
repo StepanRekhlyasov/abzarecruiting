@@ -323,7 +323,6 @@ function AttributeInput({
               onBlur={() => onBlur?.()}
               component={PhoneTextField}
               variant="outlined"
-              country="ge"
               disabled={disabled}
               label={label}
               specialLabel=""

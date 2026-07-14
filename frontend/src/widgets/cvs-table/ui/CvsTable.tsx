@@ -2,10 +2,13 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import Chip from '@mui/material/Chip'
+import { createResumeFormConfig } from '@shared/config/forms'
 import { i18n } from '@shared/config/i18n'
 import { cvDetailPath } from '@shared/config/routes'
 import { formatDateTime } from '@shared/lib/date'
 import { AbzaError } from '@features/abza-error'
+import { AbzaForm } from '@features/abza-form'
+import { AbzaModal } from '@features/abza-modal'
 import { AbzaTable } from '@features/abza-table'
 import type { AbzaTableColumn } from '@features/abza-table'
 import type { ResumeListItemDto } from '@entities/resume'
@@ -23,16 +26,35 @@ function CvsTableContent() {
     selectedIds,
     isLoading,
     actionError,
+    isCreateModalOpen,
+    canCreateResumes,
     canDeleteResumes,
     showCandidateColumn,
+    showCandidateSelect,
     sortBy,
     sortDir,
+    createFormRef,
+    loadPositionOptions,
+    loadCandidateOptions,
     setPage,
     setPageSize,
     setSelectedIds,
     setActionError,
+    setIsCreateModalOpen,
     handleSortChange,
+    handleCreateSubmit,
+    handleCreateModalSubmit,
   } = useCvsTable()
+
+  const createFormConfig = useMemo(
+    () =>
+      createResumeFormConfig(t, {
+        loadPositionOptions,
+        loadCandidateOptions,
+        showCandidateSelect,
+      }),
+    [i18n.language, loadCandidateOptions, loadPositionOptions, showCandidateSelect],
+  )
 
   const columns = useMemo<AbzaTableColumn<ResumeListItemDto>[]>(() => {
     const next: AbzaTableColumn<ResumeListItemDto>[] = [
@@ -112,13 +134,41 @@ function CvsTableContent() {
         emptyMessage={t('cvs.empty')}
         loadingMessage={t('cvs.loading')}
       />
+
+      {canCreateResumes ? (
+        <AbzaModal
+          open={isCreateModalOpen}
+          config={{
+            title: t('cvs.create.title'),
+            submitLabel: t('cvs.create.submit'),
+            cancelLabel: t('cvs.create.cancel'),
+          }}
+          onOpenChange={setIsCreateModalOpen}
+          onSubmit={handleCreateModalSubmit}
+          isLoading={isLoading}
+          maxWidth="sm"
+        >
+          <AbzaForm
+            key={isCreateModalOpen ? 'create-open' : 'create-closed'}
+            formRef={createFormRef}
+            hideSubmitButton
+            config={createFormConfig}
+            onSubmit={handleCreateSubmit}
+            isLoading={isLoading}
+          />
+        </AbzaModal>
+      ) : null}
     </>
   )
 }
 
-export function CvsTable() {
+type CvsTableProps = {
+  candidateId?: string
+}
+
+export function CvsTable({ candidateId }: CvsTableProps) {
   return (
-    <CvsTableProvider>
+    <CvsTableProvider candidateId={candidateId}>
       <CvsTableContent />
     </CvsTableProvider>
   )

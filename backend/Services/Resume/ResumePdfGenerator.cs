@@ -86,8 +86,8 @@ public static class ResumePdfGenerator
                                 {
                                     attrs.Item().Column(item =>
                                     {
-                                        item.Item().Text(attribute.Name).SemiBold().FontSize(10);
-                                        item.Item().Text(FormatValue(attribute.Value, strings)).FontSize(11);
+                                        item.Item().Text(attribute.Name).SemiBold().FontSize(12);
+                                        item.Item().Text(FormatValue(attribute.Value, strings)).FontSize(10);
                                     });
                                 }
                             });

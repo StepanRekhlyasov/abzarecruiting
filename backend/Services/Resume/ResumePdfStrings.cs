@@ -66,13 +66,13 @@ public sealed class ResumePdfStrings
         phoneLabel: "tel.",
         locationLabel: "location",
         photoLabel: "Фото профиля",
-        attributes: "Атрибуты",
+        attributes: "Информация",
         projects: "Проекты",
         page: "Стр. ",
         present: "н.в.",
         attachedFile: "Прикреплённый файл",
         emptyValue: "—",
-        info: "Основная информация",
+        info: "Личные данные",
         bio: "Биография");
 
     private static readonly ResumePdfStrings English = new(
@@ -82,12 +82,12 @@ public sealed class ResumePdfStrings
         phoneLabel: "tel.",
         locationLabel: "location",
         photoLabel: "Profile photo",
-        attributes: "Attributes",
+        attributes: "Info",
         projects: "Projects",
         page: "Page ",
         present: "present",
         attachedFile: "Attached file",
         emptyValue: "—",
-        info: "Main information",
+        info: "Me",
         bio: "Bio");
 }

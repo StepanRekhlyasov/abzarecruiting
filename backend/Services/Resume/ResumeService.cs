@@ -31,6 +31,7 @@ public interface IResumeService
         string userId,
         bool isAdmin,
         bool isRecruiter,
+        string? candidateIdFilter = null,
         CancellationToken cancellationToken = default);
 
     Task<PagedResult<ResumeListItemDto>> GetListByPositionAsync(
@@ -84,6 +85,18 @@ public class ResumeService(
             return null;
         }
 
+        var isCandidate = await (
+            from userRole in db.UserRoles.AsNoTracking()
+            join role in db.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+            where userRole.UserId == candidateId && role.Name == Roles.Candidate
+            select role.Id
+        ).AnyAsync(cancellationToken);
+
+        if (!isCandidate)
+        {
+            throw new InvalidOperationException("error.profile.notCandidate");
+        }
+
         var alreadyExists = await db.Resumes.AnyAsync(
             resume => resume.CandidateId == candidateId && resume.PositionId == positionId,
             cancellationToken);
@@ -133,6 +146,7 @@ public class ResumeService(
         string userId,
         bool isAdmin,
         bool isRecruiter,
+        string? candidateIdFilter = null,
         CancellationToken cancellationToken = default)
     {
         var query = db.Resumes
@@ -142,7 +156,10 @@ public class ResumeService(
 
         if (isAdmin)
         {
-            // Admin sees all resumes.
+            if (!string.IsNullOrWhiteSpace(candidateIdFilter))
+            {
+                query = query.Where(resume => resume.CandidateId == candidateIdFilter);
+            }
         }
         else if (isRecruiter)
         {

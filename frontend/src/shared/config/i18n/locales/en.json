@@ -57,10 +57,10 @@
       }
     },
     "meInfo": {
-      "title": "Information"
+      "title": "Me"
     },
     "addedAttributes": {
-      "title": "Added attributes",
+      "title": "Info",
       "empty": "No additional attributes linked to the profile",
       "select": "Attributes",
       "add": "Add"
@@ -70,6 +70,9 @@
       "empty": "No projects added yet",
       "add": "Add project",
       "present": "present"
+    },
+    "resumes": {
+      "title": "Resumes"
     }
   },
   "home": {
@@ -332,13 +335,22 @@
       "published": "Published",
       "createdAt": "Created"
     },
+    "fields": {
+      "candidate": "Candidate",
+      "position": "Position"
+    },
+    "create": {
+      "title": "New resume",
+      "submit": "Create",
+      "cancel": "Cancel"
+    },
     "published": {
       "yes": "Yes",
       "no": "No"
     },
     "detail": {
       "forPosition": "Resume for position: {{name}}",
-      "attributes": "Attributes",
+      "attributes": "Info",
       "attributesEmpty": "No attributes for this position",
       "projects": "Projects",
       "projectsEmpty": "No matching projects attached",

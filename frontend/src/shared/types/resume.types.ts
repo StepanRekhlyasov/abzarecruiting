@@ -22,6 +22,11 @@ export type ResumeDto = {
 
 export type ResumeListItemDto = ResumeDto
 
+export type CreateResumeRequest = {
+  positionId: number
+  candidateId?: string | null
+}
+
 export type UpdateResumeRequest = {
   published: boolean
   version: number

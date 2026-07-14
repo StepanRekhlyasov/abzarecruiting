@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import AddIcon from '@mui/icons-material/Add'
 import BackspaceIcon from '@mui/icons-material/Backspace'
 import SearchIcon from '@mui/icons-material/Search'
 import Box from '@mui/material/Box'
@@ -13,8 +14,10 @@ export function CvsTableToolbar() {
     setSearchInput,
     handleFilter,
     isLoading,
+    canCreateResumes,
     canDeleteResumes,
     selectedIds,
+    handleCreateClick,
     handleDeleteSelected,
   } = useCvsTable()
 
@@ -36,6 +39,11 @@ export function CvsTableToolbar() {
       <Button variant="outlined" onClick={handleFilter} disabled={isLoading}>
         <SearchIcon />
       </Button>
+      {canCreateResumes && (
+        <Button variant="contained" onClick={handleCreateClick} disabled={isLoading} sx={{ boxShadow: 'none' }}>
+          <AddIcon />
+        </Button>
+      )}
       {canDeleteResumes && (
         <Button
           variant="contained"

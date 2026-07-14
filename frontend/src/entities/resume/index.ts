@@ -1,4 +1,5 @@
 export type {
+  CreateResumeRequest,
   ResumeCandidateAttributeDto,
   ResumeDto,
   ResumeListItemDto,

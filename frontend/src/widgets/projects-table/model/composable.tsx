@@ -146,6 +146,7 @@ type ProjectsTableContextValue = {
   canAccessProjects: boolean
   canCreateProjects: boolean
   showCandidateColumn: boolean
+  showCandidateSelect: boolean
   createFormRef: RefObject<HTMLFormElement | null>
   editFormRef: RefObject<HTMLFormElement | null>
   loadTagOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
@@ -170,7 +171,11 @@ type ProjectsTableContextValue = {
 
 const ProjectsTableContext = createContext<ProjectsTableContextValue | null>(null)
 
-export function ProjectsTableProvider({ children }: PropsWithChildren) {
+type ProjectsTableProviderProps = PropsWithChildren<{
+  candidateId?: string
+}>
+
+export function ProjectsTableProvider({ candidateId, children }: ProjectsTableProviderProps) {
   const session = useUnit($session)
   const createFormRef = useRef<HTMLFormElement>(null)
   const editFormRef = useRef<HTMLFormElement>(null)
@@ -192,7 +197,8 @@ export function ProjectsTableProvider({ children }: PropsWithChildren) {
 
   const canAccessProjects = isCandidate(session) || isAdmin(session)
   const canCreateProjects = canAccessProjects
-  const showCandidateColumn = isAdmin(session)
+  const showCandidateColumn = isAdmin(session) && !candidateId
+  const showCandidateSelect = showCandidateColumn
   const isAdminUser = isAdmin(session)
 
   const loadTagOptions = useCallback(async (search: string, signal?: AbortSignal) => {
@@ -256,7 +262,7 @@ export function ProjectsTableProvider({ children }: PropsWithChildren) {
           sortBy,
           sortDir,
         },
-        { signal },
+        { signal, candidateId },
       )
 
       if (!signal?.aborted) {
@@ -276,7 +282,7 @@ export function ProjectsTableProvider({ children }: PropsWithChildren) {
         setIsLoading(false)
       }
     }
-  }, [canAccessProjects, page, pageSize, searchQuery, sortBy, sortDir])
+  }, [canAccessProjects, candidateId, page, pageSize, searchQuery, sortBy, sortDir])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -311,7 +317,13 @@ export function ProjectsTableProvider({ children }: PropsWithChildren) {
       setActionError(null)
 
       try {
-        const created = await createProject(toProjectSubmitValues(values, isAdminUser))
+        const payload = showCandidateSelect
+          ? toProjectSubmitValues(values, true)
+          : {
+              ...toProjectSubmitValues(values, false),
+              ...(isAdminUser && candidateId ? { candidateId } : {}),
+            }
+        const created = await createProject(payload)
         const tagIds = await resolveTagIds(getTagOptions(values))
         await syncProjectTags(created.id, tagIds)
         setIsCreateModalOpen(false)
@@ -322,7 +334,7 @@ export function ProjectsTableProvider({ children }: PropsWithChildren) {
         setIsLoading(false)
       }
     },
-    [isAdminUser, loadProjects],
+    [candidateId, isAdminUser, loadProjects, showCandidateSelect],
   )
 
   const handleEditSubmit = useCallback(
@@ -410,6 +422,7 @@ export function ProjectsTableProvider({ children }: PropsWithChildren) {
       canAccessProjects,
       canCreateProjects,
       showCandidateColumn,
+      showCandidateSelect,
       createFormRef,
       editFormRef,
       loadTagOptions,
@@ -448,6 +461,7 @@ export function ProjectsTableProvider({ children }: PropsWithChildren) {
       canAccessProjects,
       canCreateProjects,
       showCandidateColumn,
+      showCandidateSelect,
       loadTagOptions,
       loadCandidateOptions,
       handleSortChange,

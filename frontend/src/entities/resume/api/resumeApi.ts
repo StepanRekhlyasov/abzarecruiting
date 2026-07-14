@@ -1,5 +1,6 @@
 import { isAxiosError } from 'axios'
 import type {
+  CreateResumeRequest,
   PagedResult,
   PaginationParams,
   ResumeDto,
@@ -11,6 +12,8 @@ import { parseApiError } from '@shared/lib/errors'
 
 type FetchResumesOptions = {
   signal?: AbortSignal
+  candidateId?: string
+  positionId?: number
 }
 
 export async function fetchResumes(
@@ -19,7 +22,11 @@ export async function fetchResumes(
 ): Promise<PagedResult<ResumeListItemDto>> {
   try {
     const { data } = await apiClient.get<PagedResult<ResumeListItemDto>>('/resume', {
-      params,
+      params: {
+        ...params,
+        candidateId: options?.candidateId,
+        positionId: options?.positionId,
+      },
       signal: options?.signal,
     })
     return data
@@ -65,9 +72,9 @@ export async function fetchResumePositionIds(options?: FetchResumesOptions): Pro
   }
 }
 
-export async function createResume(positionId: number): Promise<ResumeDto> {
+export async function createResume(request: CreateResumeRequest): Promise<ResumeDto> {
   try {
-    const { data } = await apiClient.post<ResumeDto>(`/resume/position/${positionId}`)
+    const { data } = await apiClient.post<ResumeDto>('/resume', request)
     return data
   } catch (error) {
     throw new Error(parseApiError(error))

@@ -30,6 +30,7 @@ function ProjectsTableContent() {
     canAccessProjects,
     canCreateProjects,
     showCandidateColumn,
+    showCandidateSelect,
     sortBy,
     sortDir,
     loadTagOptions,
@@ -55,9 +56,9 @@ function ProjectsTableContent() {
       createProjectFormConfig(t, {
         loadTagOptions,
         loadCandidateOptions,
-        showCandidateSelect: showCandidateColumn,
+        showCandidateSelect,
       }),
-    [i18n.language, loadCandidateOptions, loadTagOptions, showCandidateColumn],
+    [i18n.language, loadCandidateOptions, loadTagOptions, showCandidateSelect],
   )
 
   const editFormConfig = useMemo(
@@ -214,9 +215,9 @@ function ProjectsTableContent() {
   )
 }
 
-export function ProjectsTable() {
+export function ProjectsTable({ candidateId }: { candidateId?: string }) {
   return (
-    <ProjectsTableProvider>
+    <ProjectsTableProvider candidateId={candidateId}>
       <ProjectsTableContent />
     </ProjectsTableProvider>
   )

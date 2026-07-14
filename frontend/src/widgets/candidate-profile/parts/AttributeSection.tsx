@@ -57,15 +57,7 @@ export function AttributeSection({
   return (
     <Box data-section-mode={mode} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
       {showAddControls ? (
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
-            gap: 1.5,
-            alignItems: { xs: 'stretch', sm: 'flex-start' },
-          }}
-        >
-          <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: 2, alignItems: 'stretch' }}>
             <AsyncEntityTags
               label={t('profile.addedAttributes.select')}
               value={selectedAttributes}
@@ -73,16 +65,14 @@ export function AttributeSection({
               loadOptions={loadAttributeOptions!}
               disabled={isAdding}
             />
+            <Button
+              variant="contained"
+              onClick={() => void handleAdd()}
+              disabled={isAdding || selectedAttributes.length === 0}
+            >
+              {t('profile.addedAttributes.add')}
+            </Button>
           </Box>
-          <Button
-            variant="contained"
-            onClick={() => void handleAdd()}
-            disabled={isAdding || selectedAttributes.length === 0}
-            sx={{ boxShadow: 'none', alignSelf: { sm: 'center' }, whiteSpace: 'nowrap' }}
-          >
-            {t('profile.addedAttributes.add')}
-          </Button>
-        </Box>
       ) : null}
 
       {attributes.length === 0 ? (

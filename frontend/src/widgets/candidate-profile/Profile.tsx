@@ -8,25 +8,20 @@ import Tabs from '@mui/material/Tabs'
 import Typography from '@mui/material/Typography'
 import { useTranslation } from 'react-i18next'
 import { AbzaError } from '@features/abza-error'
-import { AbzaForm } from '@features/abza-form'
-import { AbzaModal } from '@features/abza-modal'
-import { createProjectFormConfig } from '@shared/config/forms'
-import { i18n } from '@shared/config/i18n'
-import { projectToFormValues, type ProjectDto } from '@entities/project'
 import {
   toComparableAttributeValue,
   toAttributeDraftValue,
-  type AbzaFormValues,
   type AttributeDraftValue,
   type ProfileAttributeDto,
 } from '@shared/types'
+import { CvsTable } from '@widgets/cvs-table'
+import { ProjectsTable } from '@widgets/projects-table'
 import { CandidateProfileProvider, useCandidateProfile } from './model'
 import { AttributeSection } from './parts/AttributeSection'
-import { ProjectsSection } from './parts/ProjectsSection'
 
 const AUTOSAVE_DELAY_MS = 5000
 
-type ProfileTab = 'info' | 'attributes' | 'projects'
+type ProfileTab = 'info' | 'attributes' | 'projects' | 'resumes'
 
 type ProfileProps = {
   candidateId: string
@@ -58,8 +53,8 @@ function getDirtyIds(
 function ProfileContent() {
   const { t } = useTranslation()
   const {
+    candidateId,
     meAttributes,
-    projects,
     isLoading,
     isMutating,
     error,
@@ -69,21 +64,14 @@ function ProfileContent() {
     setAutosaveActive,
     saveAttributeValue,
     loadAttributeOptions,
-    loadTagOptions,
     addAttributesToProfile,
     removeAttributesFromProfile,
-    createCandidateProject,
-    updateCandidateProject,
   } = useCandidateProfile()
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('info')
   const [draft, setDraft] = useState<Record<number, AttributeDraftValue>>({})
   const [autosaveEnabled, setAutosaveEnabled] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false)
-  const [editingProject, setEditingProject] = useState<ProjectDto | null>(null)
-  const createFormRef = useRef<HTMLFormElement>(null)
-  const editFormRef = useRef<HTMLFormElement>(null)
 
   const draftRef = useRef(draft)
   const savedRef = useRef<Record<number, AttributeDraftValue>>({})
@@ -99,11 +87,6 @@ function ProfileContent() {
   const addedAttributes = useMemo(
     () => meAttributes.filter((attribute) => !attribute.isDefault),
     [meAttributes],
-  )
-
-  const projectFormConfig = useMemo(
-    () => createProjectFormConfig(t, { loadTagOptions, showCandidateSelect: false }),
-    [i18n.language, loadTagOptions],
   )
 
   const dirtyIds = getDirtyIds(draft, savedRef.current)
@@ -262,21 +245,8 @@ function ProfileContent() {
     await removeAttributesFromProfile([attributeId])
   }
 
-  const handleCreateProject = async (values: AbzaFormValues) => {
-    await createCandidateProject(values)
-    setIsCreateProjectOpen(false)
-  }
-
-  const handleEditProject = async (values: AbzaFormValues) => {
-    if (!editingProject) {
-      return
-    }
-
-    await updateCandidateProject(editingProject.id, values, editingProject)
-    setEditingProject(null)
-  }
-
   const canSave = autosaveEnabled && (isDirty || isSaving)
+  const showStandaloneTable = activeTab === 'projects' || activeTab === 'resumes'
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -305,110 +275,59 @@ function ProfileContent() {
       <AbzaError error={actionError} onClose={() => setActionError(null)} />
 
       {!error ? (
-        isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress size={32} />
-          </Box>
-        ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-            <Tabs
-              value={activeTab}
-              onChange={(_, value: ProfileTab) => setActiveTab(value)}
-              variant="scrollable"
-              allowScrollButtonsMobile
-            >
-              <Tab value="info" label={t('profile.meInfo.title')} />
-              <Tab value="attributes" label={t('profile.addedAttributes.title')} />
-              <Tab value="projects" label={t('profile.projects.title')} />
-            </Tabs>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <Tabs
+            value={activeTab}
+            onChange={(_, value: ProfileTab) => setActiveTab(value)}
+            variant="scrollable"
+            allowScrollButtonsMobile
+          >
+            <Tab value="info" label={t('profile.meInfo.title')} />
+            <Tab value="attributes" label={t('profile.addedAttributes.title')} />
+            <Tab value="projects" label={t('profile.projects.title')} />
+            <Tab value="resumes" label={t('profile.resumes.title')} />
+          </Tabs>
 
-            {activeTab === 'info' ? (
-              <AttributeSection
-                mode="default"
-                attributes={defaultAttributes}
-                draftValues={draft}
-                onChange={handleChange}
-                onForceSave={handleForceSave}
-              />
-            ) : null}
+          {showStandaloneTable ? (
+            activeTab === 'projects' ? (
+              <ProjectsTable candidateId={candidateId} />
+            ) : (
+              <CvsTable candidateId={candidateId} />
+            )
+          ) : isLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress size={32} />
+            </Box>
+          ) : (
+            <>
+              {activeTab === 'info' ? (
+                <AttributeSection
+                  mode="default"
+                  attributes={defaultAttributes}
+                  draftValues={draft}
+                  onChange={handleChange}
+                  onForceSave={handleForceSave}
+                />
+              ) : null}
 
-            {activeTab === 'attributes' ? (
-              <AttributeSection
-                mode="attrs"
-                attributes={addedAttributes}
-                draftValues={draft}
-                onChange={handleChange}
-                onForceSave={handleForceSave}
-                emptyMessage={t('profile.addedAttributes.empty')}
-                loadAttributeOptions={loadAttributeOptions}
-                onAddAttributes={handleAddAttributes}
-                onRemoveAttribute={handleRemoveAttribute}
-                isAdding={isMutating}
-              />
-            ) : null}
-
-            {activeTab === 'projects' ? (
-              <ProjectsSection
-                projects={projects}
-                onAddClick={() => setIsCreateProjectOpen(true)}
-                onEditClick={setEditingProject}
-                disabled={isMutating}
-              />
-            ) : null}
-          </Box>
-        )
+              {activeTab === 'attributes' ? (
+                <AttributeSection
+                  mode="attrs"
+                  attributes={addedAttributes}
+                  draftValues={draft}
+                  onChange={handleChange}
+                  onForceSave={handleForceSave}
+                  emptyMessage={t('profile.addedAttributes.empty')}
+                  loadAttributeOptions={loadAttributeOptions}
+                  onAddAttributes={handleAddAttributes}
+                  onRemoveAttribute={handleRemoveAttribute}
+                  isAdding={isMutating}
+                />
+              ) : null}
+            </>
+          )}
+        </Box>
       ) : null}
-
-      <AbzaModal
-        open={isCreateProjectOpen}
-        config={{
-          title: t('projects.create.title'),
-          submitLabel: t('projects.create.submit'),
-          cancelLabel: t('projects.create.cancel'),
-        }}
-        onOpenChange={setIsCreateProjectOpen}
-        onSubmit={() => createFormRef.current?.requestSubmit()}
-        isLoading={isMutating}
-        maxWidth="sm"
-      >
-        <AbzaForm
-          key={isCreateProjectOpen ? 'create-open' : 'create-closed'}
-          formRef={createFormRef}
-          hideSubmitButton
-          config={projectFormConfig}
-          onSubmit={handleCreateProject}
-          isLoading={isMutating}
-        />
-      </AbzaModal>
-
-      <AbzaModal
-        open={Boolean(editingProject)}
-        config={{
-          title: t('projects.edit.title'),
-          submitLabel: t('projects.edit.submit'),
-          cancelLabel: t('projects.edit.cancel'),
-        }}
-        onOpenChange={(open) => {
-          if (!open) {
-            setEditingProject(null)
-          }
-        }}
-        onSubmit={() => editFormRef.current?.requestSubmit()}
-        isLoading={isMutating}
-        maxWidth="sm"
-      >
-        {editingProject ? (
-          <AbzaForm
-            key={editingProject.id}
-            formRef={editFormRef}
-            hideSubmitButton
-            config={projectFormConfig}
-            initialValues={projectToFormValues(editingProject)}
-            onSubmit={handleEditProject}
-            isLoading={isMutating}
-          />
-        ) : null}
-      </AbzaModal>
     </Box>
   )
 }

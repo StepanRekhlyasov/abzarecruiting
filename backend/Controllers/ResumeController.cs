@@ -13,9 +13,37 @@ namespace Backend.Api.Controllers;
 [Route("api/resume")]
 public class ResumeController(IResumeService resumeService, ApplicationDbContext db) : ControllerBase
 {
+    [Authorize(Roles = $"{Roles.Candidate},{Roles.Admin}")]
+    [HttpPost]
+    public async Task<ActionResult<ResumeDto>> Create(
+        [FromBody] CreateResumeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!User.IsAdmin() && !User.IsCandidate())
+        {
+            return Forbid();
+        }
+
+        var candidateId = User.IsAdmin() ? request.CandidateId : User.GetUserId();
+        if (string.IsNullOrWhiteSpace(candidateId))
+        {
+            return BadRequest(new { message = "error.profile.notCandidate" });
+        }
+
+        try
+        {
+            var resume = await resumeService.CreateAsync(request.PositionId, candidateId, cancellationToken);
+            return resume is null ? NotFound() : Ok(resume);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
     [Authorize(Roles = Roles.Candidate)]
     [HttpPost("position/{positionId:int}")]
-    public async Task<ActionResult<ResumeDto>> Create(int positionId, CancellationToken cancellationToken)
+    public async Task<ActionResult<ResumeDto>> CreateForPosition(int positionId, CancellationToken cancellationToken)
     {
         try
         {
@@ -43,6 +71,7 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
     public async Task<ActionResult<PagedResult<ResumeListItemDto>>> GetList(
         [FromQuery] PaginationParams pagination,
         [FromQuery] int? positionId,
+        [FromQuery] string? candidateId,
         CancellationToken cancellationToken)
     {
         if (positionId.HasValue)
@@ -59,11 +88,19 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
             return Ok(byPosition);
         }
 
+        if (!string.IsNullOrWhiteSpace(candidateId)
+            && !User.IsAdmin()
+            && User.GetUserId() != candidateId)
+        {
+            return Forbid();
+        }
+
         var result = await resumeService.GetListForViewerAsync(
             pagination,
             User.GetUserId()!,
             User.IsAdmin(),
             User.IsRecruiter(),
+            candidateId,
             cancellationToken);
 
         return Ok(result);

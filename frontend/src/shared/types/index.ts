@@ -52,6 +52,7 @@ export type {
 export { RESTRICTION_CONDITIONS } from './restriction.types'
 
 export type {
+  CreateResumeRequest,
   ResumeCandidateAttributeDto,
   ResumeDto,
   ResumeListItemDto,

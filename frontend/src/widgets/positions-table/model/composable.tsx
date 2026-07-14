@@ -498,7 +498,7 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
     setActionError(null)
 
     try {
-      await createResume(editingPosition.id)
+      await createResume({ positionId: editingPosition.id })
       setResumePositionIds((current) =>
         current.includes(editingPosition.id) ? current : [...current, editingPosition.id],
       )
@@ -524,7 +524,7 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
     setActionError(null)
 
     try {
-      await Promise.all(positionIds.map((id) => createResume(id)))
+      await Promise.all(positionIds.map((id) => createResume({ positionId: id })))
       setResumePositionIds((current) => [...new Set([...current, ...positionIds])])
       setSelectedIds([])
     } catch (error) {

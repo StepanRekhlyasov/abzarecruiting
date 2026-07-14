@@ -4,6 +4,14 @@ using Backend.Api.Models.Project;
 
 namespace Backend.Api.Models.Resume;
 
+public class CreateResumeRequest
+{
+    [Required]
+    public int PositionId { get; set; }
+
+    public string? CandidateId { get; set; }
+}
+
 public class UpdateResumeRequest
 {
     [Required]
