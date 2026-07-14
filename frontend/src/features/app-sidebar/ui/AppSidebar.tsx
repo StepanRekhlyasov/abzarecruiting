@@ -9,7 +9,7 @@ import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
 import Typography from '@mui/material/Typography'
-import { $session, isAdmin, isCandidate } from '@entities/user'
+import { $session, isAdmin, isCandidate, isRecruiterOrAdmin } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
 import { useAppSettings } from '@shared/config/app/index'
 
@@ -29,7 +29,7 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
       return [{ to: ROUTES.positions, labelKey: 'common.positions' as const }]
     }
 
-    const items = [
+    const items: { to: string, labelKey: string }[] = [
       { to: ROUTES.attributes, labelKey: 'common.attributes' as const },
       { to: ROUTES.positions, labelKey: 'common.positions' as const },
       { to: ROUTES.cvs, labelKey: 'common.cvs' as const },
@@ -47,7 +47,7 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
       items.push({ to: ROUTES.profile, labelKey: 'common.profile' as const })
     }
 
-    if (isAdmin(session)) {
+    if (isRecruiterOrAdmin(session)) {
       items.push({ to: ROUTES.users, labelKey: 'common.users' as const })
     }
 

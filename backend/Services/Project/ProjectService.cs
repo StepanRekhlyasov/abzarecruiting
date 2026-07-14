@@ -15,6 +15,7 @@ public interface IProjectService
         string userId,
         bool isAdmin,
         string? candidateIdFilter = null,
+        bool isRecruiter = false,
         CancellationToken cancellationToken = default);
 
     Task<ProjectDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
@@ -29,7 +30,9 @@ public interface IProjectService
 
     Task<bool> DeleteTagAsync(int projectId, int tagId, CancellationToken cancellationToken = default);
 
-    bool CanAccess(ProfileProject project, string? userId, bool isAdmin);
+    bool CanAccess(ProfileProject project, string? userId, bool isAdmin, bool isRecruiter = false);
+
+    bool CanModify(ProfileProject project, string? userId, bool isAdmin);
 }
 
 public class ProjectService(ApplicationDbContext db) : IProjectService
@@ -39,6 +42,7 @@ public class ProjectService(ApplicationDbContext db) : IProjectService
         string userId,
         bool isAdmin,
         string? candidateIdFilter = null,
+        bool isRecruiter = false,
         CancellationToken cancellationToken = default)
     {
         var query = db.ProfileProjects
@@ -47,13 +51,31 @@ public class ProjectService(ApplicationDbContext db) : IProjectService
             .ThenInclude(item => item.Tag)
             .AsQueryable();
 
-        if (!isAdmin)
+        if (isAdmin)
+        {
+            if (!string.IsNullOrWhiteSpace(candidateIdFilter))
+            {
+                query = query.Where(project => project.CandidateId == candidateIdFilter);
+            }
+        }
+        else if (isRecruiter)
+        {
+            if (string.IsNullOrWhiteSpace(candidateIdFilter))
+            {
+                return new PagedResult<ProjectDto>
+                {
+                    Items = [],
+                    TotalCount = 0,
+                    Page = pagination.NormalizedPage,
+                    Size = pagination.NormalizedSize,
+                };
+            }
+
+            query = query.Where(project => project.CandidateId == candidateIdFilter);
+        }
+        else
         {
             query = query.Where(project => project.CandidateId == userId);
-        }
-        else if (!string.IsNullOrWhiteSpace(candidateIdFilter))
-        {
-            query = query.Where(project => project.CandidateId == candidateIdFilter);
         }
 
         if (!string.IsNullOrWhiteSpace(pagination.Search))
@@ -192,7 +214,10 @@ public class ProjectService(ApplicationDbContext db) : IProjectService
         return true;
     }
 
-    public bool CanAccess(ProfileProject project, string? userId, bool isAdmin) =>
+    public bool CanAccess(ProfileProject project, string? userId, bool isAdmin, bool isRecruiter = false) =>
+        isAdmin || isRecruiter || project.CandidateId == userId;
+
+    public bool CanModify(ProfileProject project, string? userId, bool isAdmin) =>
         isAdmin || project.CandidateId == userId;
 
     private static ProjectDto Map(ProfileProject project) => new()

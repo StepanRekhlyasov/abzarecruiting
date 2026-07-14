@@ -25,7 +25,7 @@ public class ProfileController(IProfileService profileService) : ControllerBase
         string candidateId,
         CancellationToken cancellationToken)
     {
-        if (!User.IsAdmin() && User.GetUserId() != candidateId)
+        if (!User.IsAdmin() && !User.IsRecruiter() && User.GetUserId() != candidateId)
         {
             return Forbid();
         }
@@ -63,7 +63,7 @@ public class ProfileController(IProfileService profileService) : ControllerBase
         [FromBody] AddProfileAttributesRequest request,
         CancellationToken cancellationToken)
     {
-        if (!User.IsAdmin() && !User.IsRecruiter() && User.GetUserId() != candidateId)
+        if (!User.IsAdmin() && User.GetUserId() != candidateId)
         {
             return Forbid();
         }
@@ -86,7 +86,7 @@ public class ProfileController(IProfileService profileService) : ControllerBase
         [FromBody] RemoveProfileAttributesRequest request,
         CancellationToken cancellationToken)
     {
-        if (!User.IsAdmin() && !User.IsRecruiter() && User.GetUserId() != candidateId)
+        if (!User.IsAdmin() && User.GetUserId() != candidateId)
         {
             return Forbid();
         }

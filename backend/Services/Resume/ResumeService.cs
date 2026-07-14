@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Backend.Api.Configuration;
 using Backend.Api.Data;
 using Backend.Api.Data.Relations;
@@ -164,6 +165,10 @@ public class ResumeService(
         else if (isRecruiter)
         {
             query = query.Where(resume => resume.Published);
+            if (!string.IsNullOrWhiteSpace(candidateIdFilter))
+            {
+                query = query.Where(resume => resume.CandidateId == candidateIdFilter);
+            }
         }
         else
         {
@@ -479,10 +484,9 @@ public class ResumeService(
         var defaultAttributes = await LoadDefaultAttributesAsync(cancellationToken);
         var positionAttributes = positionAttributeIds.Count == 0
             ? []
-            : await db.Attributes
-                .AsNoTracking()
+            : (await db.Attributes.AsNoTracking().ToListAsync(cancellationToken))
                 .Where(attribute => positionAttributeIds.Contains(attribute.Id))
-                .ToListAsync(cancellationToken);
+                .ToList();
 
         var requiredAttributes = defaultAttributes
             .Concat(positionAttributes)
@@ -559,20 +563,27 @@ public class ResumeService(
             return [];
         }
 
-        var query = db.ProfileProjects
+        var tagIdSet = positionTagIds.ToHashSet();
+        var projectsQuery = db.ProfileProjects
             .AsNoTracking()
             .Where(project => project.CandidateId == candidateId)
-            .Where(project => project.ProfileProjectTags.Any(tag => positionTagIds.Contains(tag.TagId)))
             .Include(project => project.ProfileProjectTags)
             .ThenInclude(tag => tag.Tag)
             .OrderByDescending(project => project.CreatedAt)
             .AsQueryable();
 
-        var projects = maxProjects > 0
-            ? await query.Take(maxProjects).ToListAsync(cancellationToken)
-            : await query.ToListAsync(cancellationToken);
+        // Filter tags in memory — MySQL EF fails type mapping for collection Contains/IN parameters.
+        var projects = await projectsQuery.ToListAsync(cancellationToken);
+        var matching = projects
+            .Where(project => project.ProfileProjectTags.Any(tag => tagIdSet.Contains(tag.TagId)))
+            .ToList();
 
-        return projects.Select(MapProject).ToList();
+        if (maxProjects > 0)
+        {
+            matching = matching.Take(maxProjects).ToList();
+        }
+
+        return matching.Select(MapProject).ToList();
     }
 
     private static ProjectDto MapProject(ProfileProjectEntity project) => new()
@@ -637,12 +648,26 @@ public class ResumeService(
                 .ToListAsync(cancellationToken);
         }
 
-        // MySQL EF provider fails to map parameterized string collections in Contains().
         return await db.ProfileAttributes
             .AsNoTracking()
             .Include(profileAttribute => profileAttribute.Attribute)
-            .Where(profileAttribute => EF.Constant(ids).Contains(profileAttribute.CandidateId))
+            .Where(BuildCandidateIdEqualsAny(ids))
             .ToListAsync(cancellationToken);
+    }
+
+    private static Expression<Func<ProfileAttribute, bool>> BuildCandidateIdEqualsAny(IReadOnlyList<string> ids)
+    {
+        var parameter = Expression.Parameter(typeof(ProfileAttribute), "profileAttribute");
+        var property = Expression.Property(parameter, nameof(ProfileAttribute.CandidateId));
+
+        Expression? body = null;
+        foreach (var id in ids)
+        {
+            var equals = Expression.Equal(property, Expression.Constant(id, typeof(string)));
+            body = body is null ? equals : Expression.OrElse(body, equals);
+        }
+
+        return Expression.Lambda<Func<ProfileAttribute, bool>>(body!, parameter);
     }
 
     private static List<ResumeEntity> OrderByCandidateName(

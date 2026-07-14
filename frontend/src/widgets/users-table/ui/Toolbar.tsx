@@ -16,6 +16,7 @@ export function UsersTableToolbar() {
     handleFilter,
     isLoading,
     selectedIds,
+    canManageUsers,
     handleCreateClick,
     handleDeleteSelected,
     handleBulkChangeRoleClick,
@@ -39,27 +40,31 @@ export function UsersTableToolbar() {
       <Button variant="outlined" onClick={handleFilter} disabled={isLoading}>
         <SearchIcon />
       </Button>
-      <Button variant="contained" onClick={handleCreateClick} disabled={isLoading} sx={{ boxShadow: 'none' }}>
-        <AddIcon />
-      </Button>
-      <Button
-        variant="contained"
-        onClick={handleBulkChangeRoleClick}
-        disabled={selectedIds.length === 0 || isLoading}
-        sx={{ boxShadow: 'none' }}
-        title={t('profile.users.actions.changeRoleSelected')}
-      >
-        <ManageAccountsIcon />
-      </Button>
-      <Button
-        variant="contained"
-        color="error"
-        onClick={handleDeleteSelected}
-        disabled={selectedIds.length === 0 || isLoading}
-        sx={{ boxShadow: 'none' }}
-      >
-        <BackspaceIcon />
-      </Button>
+      {canManageUsers ? (
+        <>
+          <Button variant="contained" onClick={handleCreateClick} disabled={isLoading} sx={{ boxShadow: 'none' }}>
+            <AddIcon />
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleBulkChangeRoleClick}
+            disabled={selectedIds.length === 0 || isLoading}
+            sx={{ boxShadow: 'none' }}
+            title={t('profile.users.actions.changeRoleSelected')}
+          >
+            <ManageAccountsIcon />
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDeleteSelected}
+            disabled={selectedIds.length === 0 || isLoading}
+            sx={{ boxShadow: 'none' }}
+          >
+            <BackspaceIcon />
+          </Button>
+        </>
+      ) : null}
     </Box>
   )
 }

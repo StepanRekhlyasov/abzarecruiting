@@ -66,7 +66,7 @@ function AttributesTableContent() {
         id: 'description',
         label: t('attributes.columns.description'),
         sortable: true,
-        render: (row) => row.description ?? '—',
+        render: (row) => row.description,
       },
       {
         id: 'valueType',

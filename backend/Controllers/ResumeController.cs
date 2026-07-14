@@ -90,6 +90,7 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
 
         if (!string.IsNullOrWhiteSpace(candidateId)
             && !User.IsAdmin()
+            && !User.IsRecruiter()
             && User.GetUserId() != candidateId)
         {
             return Forbid();

@@ -25,7 +25,7 @@ import {
   upsertProjectTag,
 } from '@entities/project'
 import { createTag, fetchTags } from '@entities/tag'
-import { $session, fetchUsers, isAdmin, isCandidate } from '@entities/user'
+import { $session, fetchUsers, isAdmin, isCandidate, isRecruiter } from '@entities/user'
 import { getErrorKey } from '@shared/lib/errors'
 import { toSubmitValues } from '@shared/lib/helpers'
 import { NEW_TAG_VALUE_PREFIX } from '@shared/ui/inputs/AsyncEntityTags'
@@ -195,8 +195,9 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<ProjectDto | null>(null)
 
-  const canAccessProjects = isCandidate(session) || isAdmin(session)
-  const canCreateProjects = canAccessProjects
+  const canAccessProjects =
+    isCandidate(session) || isAdmin(session) || (isRecruiter(session) && Boolean(candidateId))
+  const canCreateProjects = isCandidate(session) || isAdmin(session)
   const showCandidateColumn = isAdmin(session) && !candidateId
   const showCandidateSelect = showCandidateColumn
   const isAdminUser = isAdmin(session)
@@ -376,10 +377,17 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
     editFormRef.current?.requestSubmit()
   }, [])
 
-  const handleRowClick = useCallback((row: ProjectDto) => {
-    setEditingProject(row)
-    setIsEditModalOpen(true)
-  }, [])
+  const handleRowClick = useCallback(
+    (row: ProjectDto) => {
+      if (!canCreateProjects) {
+        return
+      }
+
+      setEditingProject(row)
+      setIsEditModalOpen(true)
+    },
+    [canCreateProjects],
+  )
 
   const handleDeleteSelected = useCallback(async () => {
     if (selectedIds.length === 0) {

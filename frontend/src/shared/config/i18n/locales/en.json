@@ -413,9 +413,7 @@
       "invalidCredentials": "Invalid email or password."
     },
     "users": {
-      "notFound": "One or more users were not found",
-      "cannotDeleteSelf": "You cannot delete your own account",
-      "cannotChangeOwnRole": "You cannot change your own role"
+      "notFound": "One or more users were not found"
     },
     "attributes": {
       "load": "Failed to load attributes",

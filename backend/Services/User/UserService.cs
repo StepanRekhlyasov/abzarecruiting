@@ -10,16 +10,18 @@ namespace Backend.Api.Services.User;
 
 public interface IUserService
 {
-    Task<PagedResult<UserListItemDto>> GetListAsync(PaginationParams pagination, CancellationToken cancellationToken);
+    Task<PagedResult<UserListItemDto>> GetListAsync(
+        PaginationParams pagination,
+        bool candidatesOnly,
+        CancellationToken cancellationToken);
 
     Task<UserListItemDto> CreateAsync(CreateUserRequest request, CancellationToken cancellationToken);
 
     Task ChangeRoleBatchAsync(
         ChangeUsersRoleBatchRequest request,
-        string currentUserId,
         CancellationToken cancellationToken);
 
-    Task DeleteBatchAsync(IReadOnlyList<string> userIds, string currentUserId, CancellationToken cancellationToken);
+    Task DeleteBatchAsync(IReadOnlyList<string> userIds, CancellationToken cancellationToken);
 }
 
 public class UserService(
@@ -29,6 +31,7 @@ public class UserService(
 {
     public async Task<PagedResult<UserListItemDto>> GetListAsync(
         PaginationParams pagination,
+        bool candidatesOnly,
         CancellationToken cancellationToken)
     {
         var users = await userManager.Users
@@ -55,6 +58,11 @@ public class UserService(
                     CreatedAt = user.CreatedAt,
                 };
             });
+
+        if (candidatesOnly)
+        {
+            items = items.Where(user => user.Role == Roles.Candidate);
+        }
 
         if (!string.IsNullOrWhiteSpace(pagination.Search))
         {
@@ -135,7 +143,6 @@ public class UserService(
 
     public async Task ChangeRoleBatchAsync(
         ChangeUsersRoleBatchRequest request,
-        string currentUserId,
         CancellationToken cancellationToken)
     {
         if (!Roles.All.Contains(request.Role))
@@ -144,11 +151,6 @@ public class UserService(
         }
 
         var distinctIds = request.UserIds.Distinct().ToList();
-
-        if (distinctIds.Contains(currentUserId))
-        {
-            throw new InvalidOperationException("error.users.cannotChangeOwnRole");
-        }
 
         foreach (var userId in distinctIds)
         {
@@ -164,15 +166,9 @@ public class UserService(
 
     public async Task DeleteBatchAsync(
         IReadOnlyList<string> userIds,
-        string currentUserId,
         CancellationToken cancellationToken)
     {
         var distinctIds = userIds.Distinct().ToList();
-
-        if (distinctIds.Contains(currentUserId))
-        {
-            throw new InvalidOperationException("error.users.cannotDeleteSelf");
-        }
 
         foreach (var userId in distinctIds)
         {

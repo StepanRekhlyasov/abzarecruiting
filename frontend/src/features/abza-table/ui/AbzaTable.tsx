@@ -10,7 +10,22 @@ import TablePagination from '@mui/material/TablePagination'
 import TableRow from '@mui/material/TableRow'
 import TableSortLabel from '@mui/material/TableSortLabel'
 import Typography from '@mui/material/Typography'
+import type { ReactNode } from 'react'
 import type { AbzaTableProps, AbzaTableRowId, SortDirection } from '@shared/types'
+
+const EMPTY_CELL = '—'
+
+function formatCellValue(value: ReactNode): ReactNode {
+  if (value == null || value === false) {
+    return EMPTY_CELL
+  }
+
+  if (typeof value === 'string' && value.trim() === '') {
+    return EMPTY_CELL
+  }
+
+  return value
+}
 
 export function AbzaTable<T>({
   columns,
@@ -153,7 +168,7 @@ export function AbzaTable<T>({
                     )}
                     {columns.map((column) => (
                       <TableCell key={column.id} align={column.align}>
-                        {column.render(row)}
+                        {formatCellValue(column.render(row))}
                       </TableCell>
                     ))}
                   </TableRow>

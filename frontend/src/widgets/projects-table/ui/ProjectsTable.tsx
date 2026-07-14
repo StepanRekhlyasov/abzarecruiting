@@ -82,7 +82,7 @@ function ProjectsTableContent() {
         id: 'description',
         label: t('projects.columns.description'),
         sortable: false,
-        render: (row) => row.description || '—',
+        render: (row) => row.description,
       },
       {
         id: 'startAt',
@@ -101,9 +101,7 @@ function ProjectsTableContent() {
         label: t('projects.columns.tags'),
         sortable: false,
         render: (row) =>
-          row.tags.length === 0 ? (
-            '—'
-          ) : (
+          row.tags.length === 0 ? null : (
             <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
               {row.tags.map((tag) => (
                 <Chip key={tag.id} size="small" label={tag.name} />

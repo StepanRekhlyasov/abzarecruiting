@@ -18,9 +18,12 @@ import {
   createUser,
   deleteUsersBatch,
   fetchUsers,
+  $session,
+  isAdmin,
   type UserListItem,
   type UserRole,
 } from '@entities/user'
+import { useUnit } from 'effector-react'
 import type { SortDirection } from '@shared/types'
 import { profileDetailPath } from '@shared/config/routes'
 import { getErrorKey } from '@shared/lib/errors'
@@ -58,6 +61,7 @@ type UsersTableContextValue = {
   actionError: string | null
   isCreateModalOpen: boolean
   isChangeRoleModalOpen: boolean
+  canManageUsers: boolean
   createFormRef: RefObject<HTMLFormElement | null>
   changeRoleFormRef: RefObject<HTMLFormElement | null>
   setSearchInput: (value: string) => void
@@ -82,6 +86,7 @@ type UsersTableContextValue = {
 const UsersTableContext = createContext<UsersTableContextValue | null>(null)
 
 export function UsersTableProvider({ children }: PropsWithChildren) {
+  const session = useUnit($session)
   const navigate = useNavigate()
   const createFormRef = useRef<HTMLFormElement>(null)
   const changeRoleFormRef = useRef<HTMLFormElement>(null)
@@ -99,6 +104,8 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
   const [actionError, setActionError] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isChangeRoleModalOpen, setIsChangeRoleModalOpen] = useState(false)
+
+  const canManageUsers = isAdmin(session)
 
   const loadUsers = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
@@ -153,11 +160,19 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
   }, [])
 
   const handleCreateClick = useCallback(() => {
+    if (!canManageUsers) {
+      return
+    }
+
     setIsCreateModalOpen(true)
-  }, [])
+  }, [canManageUsers])
 
   const handleCreateSubmit = useCallback(
     async (values: AbzaFormValues) => {
+      if (!canManageUsers) {
+        return
+      }
+
       setIsLoading(true)
 
       try {
@@ -169,11 +184,15 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
         setIsLoading(false)
       }
     },
-    [loadUsers],
+    [canManageUsers, loadUsers],
   )
 
   const handleChangeRoleSubmit = useCallback(
     async (values: AbzaFormValues) => {
+      if (!canManageUsers) {
+        return
+      }
+
       setIsLoading(true)
 
       try {
@@ -188,7 +207,7 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
         setIsLoading(false)
       }
     },
-    [loadUsers, selectedIds],
+    [canManageUsers, loadUsers, selectedIds],
   )
 
   const handleCreateModalSubmit = useCallback(() => {
@@ -201,17 +220,25 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
 
   const handleRowClick = useCallback(
     (row: UserListItem) => {
+      if (row.role !== 'Candidate') {
+        return
+      }
+
       navigate(profileDetailPath(row.id))
     },
     [navigate],
   )
 
   const handleBulkChangeRoleClick = useCallback(() => {
+    if (!canManageUsers) {
+      return
+    }
+
     setIsChangeRoleModalOpen(true)
-  }, [])
+  }, [canManageUsers])
 
   const handleDeleteSelected = useCallback(async () => {
-    if (selectedIds.length === 0) {
+    if (!canManageUsers || selectedIds.length === 0) {
       return
     }
 
@@ -227,7 +254,7 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
     } finally {
       setIsLoading(false)
     }
-  }, [loadUsers, selectedIds])
+  }, [canManageUsers, loadUsers, selectedIds])
 
   const value = useMemo(
     () => ({
@@ -243,6 +270,7 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       actionError,
       isCreateModalOpen,
       isChangeRoleModalOpen,
+      canManageUsers,
       createFormRef,
       changeRoleFormRef,
       setSearchInput,
@@ -276,6 +304,7 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       actionError,
       isCreateModalOpen,
       isChangeRoleModalOpen,
+      canManageUsers,
       handleSortChange,
       handleFilter,
       handleCreateClick,

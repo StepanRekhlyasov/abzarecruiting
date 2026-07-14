@@ -7,7 +7,9 @@ import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
 import Typography from '@mui/material/Typography'
 import { useTranslation } from 'react-i18next'
+import { useUnit } from 'effector-react'
 import { AbzaError } from '@features/abza-error'
+import { $session, isAdmin, isCandidate } from '@entities/user'
 import {
   toComparableAttributeValue,
   toAttributeDraftValue,
@@ -52,6 +54,7 @@ function getDirtyIds(
 
 function ProfileContent() {
   const { t } = useTranslation()
+  const session = useUnit($session)
   const {
     candidateId,
     meAttributes,
@@ -67,6 +70,8 @@ function ProfileContent() {
     addAttributesToProfile,
     removeAttributesFromProfile,
   } = useCandidateProfile()
+
+  const canEditProfile = isAdmin(session) || (isCandidate(session) && session?.id === candidateId)
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('info')
   const [draft, setDraft] = useState<Record<number, AttributeDraftValue>>({})
@@ -91,7 +96,7 @@ function ProfileContent() {
 
   const dirtyIds = getDirtyIds(draft, savedRef.current)
   const isDirty = dirtyIds.length > 0
-  const showSaveButton = activeTab === 'info' || activeTab === 'attributes'
+  const showSaveButton = canEditProfile && (activeTab === 'info' || activeTab === 'attributes')
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -103,7 +108,7 @@ function ProfileContent() {
   const flush = useCallback(async () => {
     clearTimer()
 
-    if (!autosaveEnabledRef.current || savingRef.current) {
+    if (!canEditProfile || !autosaveEnabledRef.current || savingRef.current) {
       return
     }
 
@@ -145,10 +150,10 @@ function ProfileContent() {
       const stillDirty = getDirtyIds(draftRef.current, savedRef.current).length > 0
       setAutosaveActive(autosaveEnabledRef.current && stillDirty)
     }
-  }, [clearTimer, saveAttributeValue, setActionError, setAutosaveActive])
+  }, [canEditProfile, clearTimer, saveAttributeValue, setActionError, setAutosaveActive])
 
   const scheduleAutosave = useCallback(() => {
-    if (!autosaveEnabledRef.current) {
+    if (!canEditProfile || !autosaveEnabledRef.current) {
       return
     }
 
@@ -156,7 +161,7 @@ function ProfileContent() {
     timerRef.current = window.setTimeout(() => {
       void flush()
     }, AUTOSAVE_DELAY_MS)
-  }, [clearTimer, flush])
+  }, [canEditProfile, clearTimer, flush])
 
   useEffect(() => {
     draftRef.current = draft
@@ -177,18 +182,18 @@ function ProfileContent() {
     setDraft(next)
     savedRef.current = { ...next }
     versionsRef.current = toVersionMap(meAttributes)
-    setAutosaveEnabled(true)
-    autosaveEnabledRef.current = true
+    setAutosaveEnabled(canEditProfile)
+    autosaveEnabledRef.current = canEditProfile
     setActionError(null)
     setAutosaveActive(false)
-  }, [meAttributes, isLoading, clearTimer, setActionError, setAutosaveActive])
+  }, [meAttributes, isLoading, canEditProfile, clearTimer, setActionError, setAutosaveActive])
 
   useEffect(() => {
     return () => {
       clearTimer()
       setAutosaveActive(false)
 
-      if (!autosaveEnabledRef.current || savingRef.current) {
+      if (!canEditProfile || !autosaveEnabledRef.current || savingRef.current) {
         return
       }
 
@@ -199,7 +204,7 @@ function ProfileContent() {
         void saveAttributeValue(attributeId, value, version)
       }
     }
-  }, [clearTimer, saveAttributeValue, setAutosaveActive])
+  }, [canEditProfile, clearTimer, saveAttributeValue, setAutosaveActive])
 
   useEffect(() => {
     if (!error && !actionError) {
@@ -210,6 +215,10 @@ function ProfileContent() {
   }, [error, actionError])
 
   const handleChange = (attributeId: number, value: AttributeDraftValue) => {
+    if (!canEditProfile) {
+      return
+    }
+
     const next = { ...draftRef.current, [attributeId]: value }
     draftRef.current = next
     setDraft(next)
@@ -307,6 +316,7 @@ function ProfileContent() {
                   draftValues={draft}
                   onChange={handleChange}
                   onForceSave={handleForceSave}
+                  editable={canEditProfile}
                 />
               ) : null}
 
@@ -318,10 +328,11 @@ function ProfileContent() {
                   onChange={handleChange}
                   onForceSave={handleForceSave}
                   emptyMessage={t('profile.addedAttributes.empty')}
-                  loadAttributeOptions={loadAttributeOptions}
-                  onAddAttributes={handleAddAttributes}
-                  onRemoveAttribute={handleRemoveAttribute}
+                  loadAttributeOptions={canEditProfile ? loadAttributeOptions : undefined}
+                  onAddAttributes={canEditProfile ? handleAddAttributes : undefined}
+                  onRemoveAttribute={canEditProfile ? handleRemoveAttribute : undefined}
                   isAdding={isMutating}
+                  editable={canEditProfile}
                 />
               ) : null}
             </>

@@ -5,7 +5,7 @@ import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
 import { AppHeader } from '@features/app-header'
-import { $session, isAdmin } from '@entities/user'
+import { $session, isRecruiterOrAdmin } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
 import { UsersTable } from '@widgets/users-table'
 
@@ -17,7 +17,7 @@ export function UsersPage() {
     return <Navigate to={ROUTES.login} replace />
   }
 
-  if (!isAdmin(session)) {
+  if (!isRecruiterOrAdmin(session)) {
     return <Navigate to={ROUTES.home} replace />
   }
 

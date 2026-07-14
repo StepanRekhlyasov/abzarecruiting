@@ -9,19 +9,24 @@ using Microsoft.AspNetCore.Mvc;
 namespace Backend.Api.Controllers;
 
 [ApiController]
-[Authorize(Roles = Roles.Admin)]
+[Authorize]
 [Route("api/user")]
 public class UserController(IUserService userService) : ControllerBase
 {
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Recruiter}")]
     [HttpGet]
     public async Task<ActionResult<PagedResult<UserListItemDto>>> GetList(
         [FromQuery] PaginationParams pagination,
         CancellationToken cancellationToken)
     {
-        var result = await userService.GetListAsync(pagination, cancellationToken);
+        var result = await userService.GetListAsync(
+            pagination,
+            candidatesOnly: User.IsRecruiter() && !User.IsAdmin(),
+            cancellationToken);
         return Ok(result);
     }
 
+    [Authorize(Roles = Roles.Admin)]
     [HttpPost]
     public async Task<ActionResult<UserListItemDto>> Create(
         [FromBody] CreateUserRequest request,
@@ -38,15 +43,15 @@ public class UserController(IUserService userService) : ControllerBase
         }
     }
 
-    [HttpPost("role")]
     [Authorize(Roles = Roles.Admin)]
+    [HttpPost("role")]
     public async Task<IActionResult> ChangeRoleBatch(
         [FromBody] ChangeUsersRoleBatchRequest request,
         CancellationToken cancellationToken)
     {
         try
         {
-            await userService.ChangeRoleBatchAsync(request, User.GetUserId()!, cancellationToken);
+            await userService.ChangeRoleBatchAsync(request, cancellationToken);
             return NoContent();
         }
         catch (InvalidOperationException exception)
@@ -55,6 +60,7 @@ public class UserController(IUserService userService) : ControllerBase
         }
     }
 
+    [Authorize(Roles = Roles.Admin)]
     [HttpDelete("delete")]
     public async Task<IActionResult> DeleteBatch(
         [FromBody] DeleteUsersRequest request,
@@ -62,7 +68,7 @@ public class UserController(IUserService userService) : ControllerBase
     {
         try
         {
-            await userService.DeleteBatchAsync(request.UserIds, User.GetUserId()!, cancellationToken);
+            await userService.DeleteBatchAsync(request.UserIds, cancellationToken);
             return NoContent();
         }
         catch (InvalidOperationException exception)

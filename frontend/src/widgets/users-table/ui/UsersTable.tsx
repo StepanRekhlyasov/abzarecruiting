@@ -40,6 +40,7 @@ function UsersTableContent() {
     handleRowClick,
     createFormRef,
     changeRoleFormRef,
+    canManageUsers,
   } = useUsersTable()
 
   const createFormConfig = useMemo(() => createUserFormConfig(t), [i18n.language])
@@ -101,7 +102,7 @@ function UsersTableContent() {
         sortBy={sortBy}
         sortDir={sortDir}
         onSortChange={handleSortChange}
-        selectable
+        selectable={canManageUsers}
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
         onRowClick={handleRowClick}
@@ -110,45 +111,49 @@ function UsersTableContent() {
         loadingMessage={t('profile.users.loading')}
       />
 
-      <AbzaModal
-        open={isCreateModalOpen}
-        config={{
-          title: t('profile.users.create.title'),
-          submitLabel: t('profile.users.create.submit'),
-          cancelLabel: t('profile.users.create.cancel'),
-        }}
-        onOpenChange={setIsCreateModalOpen}
-        onSubmit={handleCreateModalSubmit}
-        isLoading={isLoading}
-      >
-        <AbzaForm
-          formRef={createFormRef}
-          hideSubmitButton
-          config={createFormConfig}
-          onSubmit={handleCreateSubmit}
-          isLoading={isLoading}
-        />
-      </AbzaModal>
+      {canManageUsers ? (
+        <>
+          <AbzaModal
+            open={isCreateModalOpen}
+            config={{
+              title: t('profile.users.create.title'),
+              submitLabel: t('profile.users.create.submit'),
+              cancelLabel: t('profile.users.create.cancel'),
+            }}
+            onOpenChange={setIsCreateModalOpen}
+            onSubmit={handleCreateModalSubmit}
+            isLoading={isLoading}
+          >
+            <AbzaForm
+              formRef={createFormRef}
+              hideSubmitButton
+              config={createFormConfig}
+              onSubmit={handleCreateSubmit}
+              isLoading={isLoading}
+            />
+          </AbzaModal>
 
-      <AbzaModal
-        open={isChangeRoleModalOpen}
-        config={{
-          title: t('profile.users.changeRole.title'),
-          submitLabel: t('profile.users.changeRole.submit'),
-          cancelLabel: t('profile.users.changeRole.cancel'),
-        }}
-        onOpenChange={setIsChangeRoleModalOpen}
-        onSubmit={handleChangeRoleModalSubmit}
-        isLoading={isLoading}
-      >
-        <AbzaForm
-          formRef={changeRoleFormRef}
-          hideSubmitButton
-          config={changeRoleFormConfig}
-          onSubmit={handleChangeRoleSubmit}
-          isLoading={isLoading}
-        />
-      </AbzaModal>
+          <AbzaModal
+            open={isChangeRoleModalOpen}
+            config={{
+              title: t('profile.users.changeRole.title'),
+              submitLabel: t('profile.users.changeRole.submit'),
+              cancelLabel: t('profile.users.changeRole.cancel'),
+            }}
+            onOpenChange={setIsChangeRoleModalOpen}
+            onSubmit={handleChangeRoleModalSubmit}
+            isLoading={isLoading}
+          >
+            <AbzaForm
+              formRef={changeRoleFormRef}
+              hideSubmitButton
+              config={changeRoleFormConfig}
+              onSubmit={handleChangeRoleSubmit}
+              isLoading={isLoading}
+            />
+          </AbzaModal>
+        </>
+      ) : null}
     </>
   )
 }

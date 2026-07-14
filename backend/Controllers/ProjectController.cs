@@ -20,7 +20,12 @@ public class ProjectController(IProjectService projectService, ApplicationDbCont
         [FromQuery] string? candidateId,
         CancellationToken cancellationToken)
     {
-        if (!User.IsAdmin() && !User.IsCandidate())
+        if (!User.IsAdmin() && !User.IsCandidate() && !User.IsRecruiter())
+        {
+            return Forbid();
+        }
+
+        if (User.IsRecruiter() && !User.IsAdmin() && string.IsNullOrWhiteSpace(candidateId))
         {
             return Forbid();
         }
@@ -30,6 +35,7 @@ public class ProjectController(IProjectService projectService, ApplicationDbCont
             User.GetUserId()!,
             User.IsAdmin(),
             candidateId,
+            User.IsRecruiter(),
             cancellationToken);
 
         return Ok(result);
@@ -44,7 +50,7 @@ public class ProjectController(IProjectService projectService, ApplicationDbCont
             return NotFound();
         }
 
-        if (!projectService.CanAccess(project, User.GetUserId(), User.IsAdmin()))
+        if (!projectService.CanAccess(project, User.GetUserId(), User.IsAdmin(), User.IsRecruiter()))
         {
             return Forbid();
         }
@@ -79,7 +85,7 @@ public class ProjectController(IProjectService projectService, ApplicationDbCont
             return NotFound();
         }
 
-        if (!projectService.CanAccess(project, User.GetUserId(), User.IsAdmin()))
+        if (!projectService.CanModify(project, User.GetUserId(), User.IsAdmin()))
         {
             return Forbid();
         }
@@ -97,7 +103,7 @@ public class ProjectController(IProjectService projectService, ApplicationDbCont
             return NotFound();
         }
 
-        if (!projectService.CanAccess(project, User.GetUserId(), User.IsAdmin()))
+        if (!projectService.CanModify(project, User.GetUserId(), User.IsAdmin()))
         {
             return Forbid();
         }
@@ -115,7 +121,7 @@ public class ProjectController(IProjectService projectService, ApplicationDbCont
             return NotFound();
         }
 
-        if (!projectService.CanAccess(project, User.GetUserId(), User.IsAdmin()))
+        if (!projectService.CanModify(project, User.GetUserId(), User.IsAdmin()))
         {
             return Forbid();
         }
@@ -133,7 +139,7 @@ public class ProjectController(IProjectService projectService, ApplicationDbCont
             return NotFound();
         }
 
-        if (!projectService.CanAccess(project, User.GetUserId(), User.IsAdmin()))
+        if (!projectService.CanModify(project, User.GetUserId(), User.IsAdmin()))
         {
             return Forbid();
         }

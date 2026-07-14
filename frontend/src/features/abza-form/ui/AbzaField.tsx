@@ -1,15 +1,11 @@
 import type { ComponentType, ReactNode } from 'react'
 import CloseIcon from '@mui/icons-material/Close'
+import Autocomplete from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
 import Checkbox from '@mui/material/Checkbox'
-import FormControl from '@mui/material/FormControl'
 import FormControlLabel from '@mui/material/FormControlLabel'
-import FormHelperText from '@mui/material/FormHelperText'
 import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
-import InputLabel from '@mui/material/InputLabel'
-import MenuItem from '@mui/material/MenuItem'
-import Select from '@mui/material/Select'
 import TextField from '@mui/material/TextField'
 import PhoneInputImport from 'react-phone-input-material-ui'
 import { AsyncEntitySelect, AsyncEntityTags, OptionTags } from '@shared/ui/inputs'
@@ -127,38 +123,39 @@ export function AbzaField({
       )
       break
 
-    case 'select':
+    case 'select': {
+      const selectOptions = field.options ?? []
+      const selectedOption = selectOptions.find((option) => option.value === stringValue) ?? null
+      const isRequired = Boolean(field.validation?.required)
+
       control = (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <FormControl fullWidth size={size} error={hasError} disabled={isDisabled}>
-            <InputLabel id={`${field.name}-label`}>{field.label}</InputLabel>
-            <Select
-              labelId={`${field.name}-label`}
-              id={field.name}
-              name={field.name}
-              value={stringValue}
-              label={field.label}
-              displayEmpty={!field.validation?.required}
-              onChange={(event) => onChange(String(event.target.value))}
-              onBlur={onBlur}
-            >
-              {!field.validation?.required ? (
-                <MenuItem value="">
-                  <em>—</em>
-                </MenuItem>
-              ) : null}
-              {(field.options ?? []).map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-            {hasError ? <FormHelperText>{error}</FormHelperText> : null}
-          </FormControl>
+          <Autocomplete
+            fullWidth
+            size={size}
+            options={selectOptions}
+            value={selectedOption}
+            disabled={isDisabled}
+            disableClearable={isRequired}
+            getOptionLabel={(option) => option.label}
+            isOptionEqualToValue={(option, selected) => option.value === selected.value}
+            onChange={(_, nextValue) => onChange(nextValue?.value ?? '')}
+            onBlur={onBlur}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={field.label}
+                name={field.name}
+                error={hasError}
+                helperText={error}
+              />
+            )}
+          />
           {field.tooltip ? <FieldTooltip tooltip={field.tooltip} /> : null}
         </Box>
       )
       break
+    }
 
     case 'textarea':
       control = (

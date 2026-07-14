@@ -1,5 +1,7 @@
 using System.Globalization;
+using System.Linq.Expressions;
 using Backend.Api.Data;
+using Backend.Api.Data.Entities;
 using Backend.Api.Data.Enums;
 using Backend.Api.Data.Relations;
 using Backend.Api.Services.Attributes;
@@ -145,20 +147,22 @@ public class PositionRestrictionEvaluator(
         }
         else
         {
-            // MySQL EF provider fails to map parameterized string collections in Contains().
+            // Avoid Contains(string[]) / EF.Constant — MySQL EF fails type mapping for collection IN (@ids).
             profileAttributes = await db.ProfileAttributes
                 .AsNoTracking()
                 .Include(profileAttribute => profileAttribute.Attribute)
-                .Where(profileAttribute => EF.Constant(ids).Contains(profileAttribute.CandidateId))
+                .Where(BuildProfileAttributeCandidateIdEqualsAny(ids))
                 .ToListAsync(cancellationToken);
 
-            tagIdsByCandidate = await (
-                from projectTag in db.ProfileProjectTags.AsNoTracking()
-                join project in db.ProfileProjects.AsNoTracking()
-                    on projectTag.ProfileProjectId equals project.Id
-                where EF.Constant(ids).Contains(project.CandidateId)
-                select new ValueTuple<string, int>(project.CandidateId, projectTag.TagId)
-            ).ToListAsync(cancellationToken);
+            var projects = await db.ProfileProjects
+                .AsNoTracking()
+                .Include(project => project.ProfileProjectTags)
+                .Where(BuildProfileProjectCandidateIdEqualsAny(ids))
+                .ToListAsync(cancellationToken);
+
+            tagIdsByCandidate = projects
+                .SelectMany(project => project.ProfileProjectTags.Select(tag => (project.CandidateId, tag.TagId)))
+                .ToList();
         }
 
         var tagsByCandidate = tagIdsByCandidate
@@ -402,5 +406,28 @@ public class PositionRestrictionEvaluator(
 
         return decimal.TryParse(value.Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out result)
             || decimal.TryParse(value.Trim(), NumberStyles.Number, CultureInfo.CurrentCulture, out result);
+    }
+
+    private static Expression<Func<ProfileAttribute, bool>> BuildProfileAttributeCandidateIdEqualsAny(
+        IReadOnlyList<string> ids) =>
+        BuildStringEqualsAny<ProfileAttribute>(nameof(ProfileAttribute.CandidateId), ids);
+
+    private static Expression<Func<ProfileProject, bool>> BuildProfileProjectCandidateIdEqualsAny(
+        IReadOnlyList<string> ids) =>
+        BuildStringEqualsAny<ProfileProject>(nameof(ProfileProject.CandidateId), ids);
+
+    private static Expression<Func<T, bool>> BuildStringEqualsAny<T>(string propertyName, IReadOnlyList<string> ids)
+    {
+        var parameter = Expression.Parameter(typeof(T), "item");
+        var property = Expression.Property(parameter, propertyName);
+
+        Expression? body = null;
+        foreach (var id in ids)
+        {
+            var equals = Expression.Equal(property, Expression.Constant(id, typeof(string)));
+            body = body is null ? equals : Expression.OrElse(body, equals);
+        }
+
+        return Expression.Lambda<Func<T, bool>>(body!, parameter);
     }
 }
