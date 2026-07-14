@@ -15,7 +15,7 @@ public class TagController(ITagService tagService) : ControllerBase
     [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<PagedResult<TagDto>>> GetList(
-        [FromQuery] PaginationParams pagination,
+        [FromQuery] TagListParams pagination,
         CancellationToken cancellationToken)
     {
         var result = await tagService.GetListAsync(pagination, cancellationToken);

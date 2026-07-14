@@ -15,6 +15,8 @@ export function AbzaModal({
   submitDisabled = false,
   hideSubmit = false,
   maxWidth = 'sm',
+  secondaryLabel,
+  onSecondary,
 }: AbzaModalProps) {
   const handleClose = () => {
     if (isLoading) {
@@ -29,6 +31,11 @@ export function AbzaModal({
       <DialogTitle>{config.title}</DialogTitle>
       <DialogContent dividers>{open ? children : null}</DialogContent>
       <DialogActions>
+        {secondaryLabel && onSecondary ? (
+          <Button onClick={onSecondary} disabled={isLoading} sx={{ mr: 'auto' }}>
+            {secondaryLabel}
+          </Button>
+        ) : null}
         <Button onClick={handleClose} disabled={isLoading}>
           {config.cancelLabel}
         </Button>

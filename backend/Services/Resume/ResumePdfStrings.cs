@@ -16,7 +16,10 @@ public sealed class ResumePdfStrings
         string attachedFile,
         string emptyValue,
         string info,
-        string bio)
+        string bio,
+        string yes,
+        string no,
+        IReadOnlyDictionary<string, string> categoryLabels)
     {
         ForPosition = forPosition;
         CandidateFallback = candidateFallback;
@@ -32,6 +35,9 @@ public sealed class ResumePdfStrings
         EmptyValue = emptyValue;
         Info = info;
         Bio = bio;
+        Yes = yes;
+        No = no;
+        CategoryLabels = categoryLabels;
     }
 
     public string ForPosition { get; }
@@ -48,6 +54,13 @@ public sealed class ResumePdfStrings
     public string EmptyValue { get; }
     public string Info { get; }
     public string Bio { get; }
+    public string Yes { get; }
+    public string No { get; }
+    public IReadOnlyDictionary<string, string> CategoryLabels { get; }
+
+    public string GetCategoryLabel(string category) =>
+        CategoryLabels.TryGetValue(category, out var label) ? label : category;
+
     public static ResumePdfStrings ForLocale(string? locale)
     {
         var normalized = (locale ?? "ru").Trim().ToLowerInvariant();
@@ -73,7 +86,17 @@ public sealed class ResumePdfStrings
         attachedFile: "Прикреплённый файл",
         emptyValue: "—",
         info: "Личные данные",
-        bio: "Биография");
+        bio: "Биография",
+        yes: "да",
+        no: "нет",
+        categoryLabels: new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [Data.AttributeCategories.PersonalInformation] = "Личные данные",
+            [Data.AttributeCategories.HardSkills] = "Hard Skills",
+            [Data.AttributeCategories.SoftSkills] = "Soft Skills",
+            [Data.AttributeCategories.DomainKnowledge] = "Domain Knowledge",
+            [Data.AttributeCategories.Certification] = "Сертификации",
+        });
 
     private static readonly ResumePdfStrings English = new(
         forPosition: "Resume for position: {0}",
@@ -89,5 +112,15 @@ public sealed class ResumePdfStrings
         attachedFile: "Attached file",
         emptyValue: "—",
         info: "Me",
-        bio: "Bio");
+        bio: "Bio",
+        yes: "yes",
+        no: "no",
+        categoryLabels: new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [Data.AttributeCategories.PersonalInformation] = "Personal Information",
+            [Data.AttributeCategories.HardSkills] = "Hard Skills",
+            [Data.AttributeCategories.SoftSkills] = "Soft Skills",
+            [Data.AttributeCategories.DomainKnowledge] = "Domain Knowledge",
+            [Data.AttributeCategories.Certification] = "Certification",
+        });
 }

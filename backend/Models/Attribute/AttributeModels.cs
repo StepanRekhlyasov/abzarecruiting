@@ -1,6 +1,18 @@
 using System.ComponentModel.DataAnnotations;
+using Backend.Api.Models.Common;
 
 namespace Backend.Api.Models.Attribute;
+
+public class AttributeListParams : PaginationParams
+{
+    public string? Category { get; init; }
+
+    public string? ValueType { get; init; }
+
+    public int[]? Ids { get; init; }
+
+    public string[]? Searches { get; init; }
+}
 
 public class CreateAttributeRequest
 {
@@ -10,6 +22,10 @@ public class CreateAttributeRequest
 
     [MaxLength(1024)]
     public string? Description { get; set; }
+
+    [Required]
+    [MaxLength(64)]
+    public string Category { get; set; } = string.Empty;
 
     [Required]
     [MaxLength(64)]
@@ -30,6 +46,8 @@ public class AttributeDto
     public string Name { get; set; } = string.Empty;
 
     public string? Description { get; set; }
+
+    public string Category { get; set; } = string.Empty;
 
     public string ValueType { get; set; } = string.Empty;
 

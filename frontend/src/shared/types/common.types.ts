@@ -19,6 +19,18 @@ export type PaginationParams = {
   sortDir?: SortDirection
 }
 
+export type AttributeListParams = PaginationParams & {
+  category?: string
+  valueType?: string
+  ids?: number[]
+  searches?: string[]
+}
+
+export type TagListParams = PaginationParams & {
+  ids?: number[]
+  searches?: string[]
+}
+
 export type AbzaFieldType =
   | 'email'
   | 'password'
@@ -136,4 +148,6 @@ export type AbzaModalProps = {
   submitDisabled?: boolean
   hideSubmit?: boolean
   maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+  secondaryLabel?: string
+  onSecondary?: () => void | Promise<void>
 }

@@ -22,9 +22,11 @@ export function LanguageSwitcher({ sx }: LanguageSwitcherProps) {
       <InputLabel id="language-select-label">{t('common.language')}</InputLabel>
       <Select
         labelId="language-select-label"
-        value={i18n.language}
+        value={i18n.language.split('-')[0]}
         label={t('common.language')}
-        onChange={(event) => i18n.changeLanguage(event.target.value)}
+        onChange={(event) => {
+          void i18n.changeLanguage(event.target.value)
+        }}
       >
         {LANGUAGES.map(({ code, label }) => (
           <MenuItem key={code} value={code}>

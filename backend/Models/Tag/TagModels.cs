@@ -1,6 +1,14 @@
 using System.ComponentModel.DataAnnotations;
+using Backend.Api.Models.Common;
 
 namespace Backend.Api.Models.Tag;
+
+public class TagListParams : PaginationParams
+{
+    public int[]? Ids { get; init; }
+
+    public string[]? Searches { get; init; }
+}
 
 public class CreateTagRequest
 {

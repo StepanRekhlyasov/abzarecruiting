@@ -10,6 +10,8 @@ public class ProfileAttributeDto
 
     public string? Description { get; set; }
 
+    public string Category { get; set; } = string.Empty;
+
     public string ValueType { get; set; } = string.Empty;
 
     public string InputType { get; set; } = string.Empty;

@@ -22,7 +22,7 @@ public static class ResumePdfGenerator
         var otherAttributes = resume.Attributes
             .Where(attribute => !IsHeaderAttribute(attribute.Name))
             .Where(attribute => !string.Equals(attribute.Name, DefaultAttributes.Photo, StringComparison.Ordinal))
-            .Where(attribute => HasDisplayValue(attribute.Value, strings))
+            .Where(attribute => HasDisplayValue(attribute, strings))
             .ToList();
 
         return Document.Create(document =>
@@ -78,19 +78,33 @@ public static class ResumePdfGenerator
                         {
                             column.Item().PaddingTop(12).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
                             column.Spacing(10);
-                            column.Item().Text(strings.Attributes).SemiBold().FontSize(14).FontColor(Colors.Blue.Darken2);
-                            column.Item().Column(attrs =>
+
+                            var groupedAttributes = otherAttributes
+                                .GroupBy(attribute => attribute.Category)
+                                .OrderBy(group => AttributeCategories.GetOrder(group.Key))
+                                .ThenBy(group => group.Key, StringComparer.Ordinal);
+
+                            foreach (var group in groupedAttributes)
                             {
-                                attrs.Spacing(8);
-                                foreach (var attribute in otherAttributes)
+                                column.Item().PaddingTop(4)
+                                    .Text(strings.GetCategoryLabel(group.Key))
+                                    .SemiBold()
+                                    .FontSize(14)
+                                    .FontColor(Colors.Blue.Darken2);
+
+                                column.Item().Column(attrs =>
                                 {
-                                    attrs.Item().Column(item =>
+                                    attrs.Spacing(8);
+                                    foreach (var attribute in group)
                                     {
-                                        item.Item().Text(attribute.Name).SemiBold().FontSize(12);
-                                        item.Item().Text(FormatValue(attribute.Value, strings)).FontSize(10);
-                                    });
-                                }
-                            });
+                                        attrs.Item().Column(item =>
+                                        {
+                                            item.Item().Text(attribute.Name).SemiBold().FontSize(12);
+                                            item.Item().Text(FormatValue(attribute.Value, attribute.ValueType, strings)).FontSize(10);
+                                        });
+                                    }
+                                });
+                            }
                         }
 
                         if (resume.Projects.Count > 0)
@@ -176,16 +190,19 @@ public static class ResumePdfGenerator
     private static string GetAttributeText(
         IReadOnlyList<ProfileAttributeDto> attributes,
         string name,
-        ResumePdfStrings strings) =>
-        FormatValue(attributes.FirstOrDefault(attribute => attribute.Name == name)?.Value, strings);
+        ResumePdfStrings strings)
+    {
+        var attribute = attributes.FirstOrDefault(item => item.Name == name);
+        return FormatValue(attribute?.Value, attribute?.ValueType, strings);
+    }
 
-    private static bool HasDisplayValue(object? value, ResumePdfStrings strings) =>
-        HasText(FormatValue(value, strings), strings);
+    private static bool HasDisplayValue(ProfileAttributeDto attribute, ResumePdfStrings strings) =>
+        HasText(FormatValue(attribute.Value, attribute.ValueType, strings), strings);
 
     private static bool HasText(string value, ResumePdfStrings strings) =>
         !string.IsNullOrWhiteSpace(value) && value != strings.EmptyValue;
 
-    private static string FormatValue(object? value, ResumePdfStrings strings)
+    private static string FormatValue(object? value, string? valueType, ResumePdfStrings strings)
     {
         if (value is null)
         {
@@ -197,12 +214,39 @@ public static class ResumePdfGenerator
             return string.IsNullOrWhiteSpace(file.Name) ? strings.AttachedFile : file.Name;
         }
 
+        if (string.Equals(valueType, "boolean", StringComparison.OrdinalIgnoreCase)
+            || value is bool)
+        {
+            return FormatBoolean(value, strings);
+        }
+
         if (value is string text)
         {
             return string.IsNullOrWhiteSpace(text) ? strings.EmptyValue : text;
         }
 
         return value.ToString() ?? strings.EmptyValue;
+    }
+
+    private static string FormatBoolean(object value, ResumePdfStrings strings)
+    {
+        if (value is bool flag)
+        {
+            return flag ? strings.Yes : strings.No;
+        }
+
+        var text = value.ToString()?.Trim();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return strings.EmptyValue;
+        }
+
+        if (bool.TryParse(text, out var parsed))
+        {
+            return parsed ? strings.Yes : strings.No;
+        }
+
+        return text;
     }
 
     private static string FormatProjectPeriod(ProjectDto project, ResumePdfStrings strings)

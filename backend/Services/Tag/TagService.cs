@@ -3,13 +3,14 @@ using Backend.Api.Extensions;
 using Backend.Api.Models.Common;
 using Backend.Api.Models.Tag;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 using TagEntity = Backend.Api.Data.Entities.Tag;
 
 namespace Backend.Api.Services.Tag;
 
 public interface ITagService
 {
-    Task<PagedResult<TagDto>> GetListAsync(PaginationParams pagination, CancellationToken cancellationToken = default);
+    Task<PagedResult<TagDto>> GetListAsync(TagListParams pagination, CancellationToken cancellationToken = default);
 
     Task<TagDto> CreateAsync(CreateTagRequest request, string userId, CancellationToken cancellationToken = default);
 
@@ -23,15 +24,32 @@ public class TagService(ApplicationDbContext db) : ITagService
     private const string VersionChangedMessage = "error.oldVersion";
 
     public async Task<PagedResult<TagDto>> GetListAsync(
-        PaginationParams pagination,
+        TagListParams pagination,
         CancellationToken cancellationToken = default)
     {
         IQueryable<TagEntity> query = db.Tags.AsNoTracking();
 
-        if (!string.IsNullOrWhiteSpace(pagination.Search))
+        // Avoid Contains(collection) / .Any over in-memory lists — MySQL EF fails ValuesExpression type mapping.
+        var ids = (pagination.Ids ?? [])
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        var searchTerms = (pagination.Searches ?? [])
+            .Where(term => !string.IsNullOrWhiteSpace(term))
+            .Select(term => term.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (searchTerms.Count == 0 && !string.IsNullOrWhiteSpace(pagination.Search))
         {
-            var search = pagination.Search.Trim();
-            query = query.Where(tag => tag.Name.Contains(search));
+            searchTerms.Add(pagination.Search.Trim());
+        }
+
+        var searchPredicate = BuildIdOrSearchPredicate(ids, searchTerms);
+        if (searchPredicate is not null)
+        {
+            query = query.Where(searchPredicate);
         }
 
         query = query.ApplySort(pagination, tag => tag.Name);
@@ -116,4 +134,41 @@ public class TagService(ApplicationDbContext db) : ITagService
         CreatedAt = tag.CreatedAt,
         Version = tag.Version,
     };
+
+    private static Expression<Func<TagEntity, bool>>? BuildIdOrSearchPredicate(
+        IReadOnlyList<int> ids,
+        IReadOnlyList<string> searchTerms)
+    {
+        if (ids.Count == 0 && searchTerms.Count == 0)
+        {
+            return null;
+        }
+
+        var parameter = Expression.Parameter(typeof(TagEntity), "tag");
+        Expression? body = null;
+
+        if (ids.Count > 0)
+        {
+            var idProperty = Expression.Property(parameter, nameof(TagEntity.Id));
+            foreach (var id in ids)
+            {
+                var equals = Expression.Equal(idProperty, Expression.Constant(id));
+                body = body is null ? equals : Expression.OrElse(body, equals);
+            }
+        }
+
+        if (searchTerms.Count > 0)
+        {
+            var nameProperty = Expression.Property(parameter, nameof(TagEntity.Name));
+            var containsMethod = typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!;
+
+            foreach (var term in searchTerms)
+            {
+                var nameContains = Expression.Call(nameProperty, containsMethod, Expression.Constant(term));
+                body = body is null ? nameContains : Expression.OrElse(body, nameContains);
+            }
+        }
+
+        return Expression.Lambda<Func<TagEntity, bool>>(body!, parameter);
+    }
 }

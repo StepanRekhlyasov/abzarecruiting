@@ -158,12 +158,21 @@
   },
   "attributes": {
     "title": "Attributes",
-    "search": "Search by name",
+    "search": "Search attributes",
+    "searchAdd": "Search for \"{{name}}\"",
     "loading": "Loading...",
     "empty": "No attributes found",
+    "filter": {
+      "title": "Filter attributes",
+      "apply": "Apply",
+      "reset": "Reset",
+      "cancel": "Cancel",
+      "any": "Any"
+    },
     "columns": {
       "name": "Name",
       "description": "Description",
+      "category": "Category",
       "valueType": "Value type",
       "inputType": "Input type",
       "createdAt": "Created at"
@@ -171,8 +180,16 @@
     "fields": {
       "name": "Name",
       "description": "Description",
+      "category": "Category",
       "valueType": "Value type",
       "inputType": "Input type"
+    },
+    "categories": {
+      "personalInformation": "Personal Information",
+      "hardSkills": "Hard Skills",
+      "softSkills": "Soft Skills",
+      "domainKnowledge": "Domain Knowledge",
+      "certification": "Certification"
     },
     "valueTypes": {
       "string": "String",
@@ -244,7 +261,8 @@
   },
   "tags": {
     "title": "Tags",
-    "search": "Search by name",
+    "search": "Search tags",
+    "searchAdd": "Search for \"{{name}}\"",
     "loading": "Loading...",
     "empty": "No tags found",
     "columns": {
@@ -464,7 +482,8 @@
       "editDefault": "Default attributes cannot be edited",
       "notFound": "One or more attributes were not found",
       "nameExists": "An attribute with this name already exists",
-      "unsupportedValueType": "Unsupported attribute value type"
+      "unsupportedValueType": "Unsupported attribute value type",
+      "invalidCategory": "Invalid attribute category"
     },
     "tags": {
       "load": "Failed to load tags",

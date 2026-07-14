@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete'
 import TextField from '@mui/material/TextField'
+import type { SxProps, Theme } from '@mui/material/styles'
 import type { AbzaSelectOption } from '@shared/types'
 
 const filter = createFilterOptions<AbzaSelectOption>()
@@ -17,6 +18,22 @@ type AsyncEntityTagsProps = {
   error?: boolean
   helperText?: string
   allowCreate?: boolean
+  size?: 'small' | 'medium'
+  sx?: SxProps<Theme>
+  createOptionLabel?: (name: string) => string
+}
+
+function toOption(value: string | AbzaSelectOption): AbzaSelectOption {
+  if (typeof value !== 'string') {
+    return value
+  }
+
+  const trimmed = value.trim()
+  return {
+    value: `${NEW_TAG_VALUE_PREFIX}${trimmed}`,
+    label: trimmed,
+    isNew: true,
+  }
 }
 
 export function AsyncEntityTags({
@@ -28,6 +45,9 @@ export function AsyncEntityTags({
   error = false,
   helperText,
   allowCreate = false,
+  size = 'medium',
+  sx,
+  createOptionLabel,
 }: AsyncEntityTagsProps) {
   const { t } = useTranslation()
   const [inputValue, setInputValue] = useState('')
@@ -72,13 +92,15 @@ export function AsyncEntityTags({
   return (
     <Autocomplete
       multiple
+      freeSolo={allowCreate}
       filterSelectedOptions
       options={mergedOptions}
       value={value}
       inputValue={inputValue}
       disabled={disabled}
       loading={isLoading}
-      style={{ width: '100%' }}
+      size={size}
+      sx={{ width: '100%', ...sx }}
       filterOptions={(current, params) => {
         const filtered = allowCreate
           ? filter(current, params)
@@ -103,21 +125,42 @@ export function AsyncEntityTags({
 
         return filtered
       }}
-      getOptionLabel={(option) => option.label}
-      isOptionEqualToValue={(option, selected) => option.value === selected.value}
+      getOptionLabel={(option) => (typeof option === 'string' ? option : option.label)}
+      isOptionEqualToValue={(option, selected) => {
+        if (typeof option === 'string' || typeof selected === 'string') {
+          return false
+        }
+        return option.value === selected.value
+      }}
       onInputChange={(_, nextInputValue, reason) => {
         if (reason !== 'reset') {
           setInputValue(nextInputValue)
         }
       }}
-      onChange={(_, nextValue) => onChange(nextValue)}
-      renderOption={(props, option) => (
-        <li {...props} key={option.value}>
-          {option.isNew ? t('form.createOption', { name: option.label }) : option.label}
-        </li>
-      )}
+      onChange={(_, nextValue) => {
+        const normalized = nextValue
+          .map(toOption)
+          .filter((option) => option.label.trim().length > 0)
+
+        const unique = new Map<string, AbzaSelectOption>()
+        for (const option of normalized) {
+          unique.set(option.value, option)
+        }
+
+        onChange([...unique.values()])
+      }}
+      renderOption={(props, option) => {
+        const item = typeof option === 'string' ? toOption(option) : option
+        return (
+          <li {...props} key={item.value}>
+            {item.isNew
+              ? (createOptionLabel?.(item.label) ?? t('form.createOption', { name: item.label }))
+              : item.label}
+          </li>
+        )
+      }}
       renderInput={(params) => (
-        <TextField {...params} label={label} error={error} helperText={helperText} />
+        <TextField {...params} label={label} size={size} error={error} helperText={helperText} />
       )}
     />
   )

@@ -1,4 +1,5 @@
 export type {
+  AttributeCategory,
   AttributeDraftValue,
   AttributeDto,
   AttributeInputType,
@@ -9,10 +10,13 @@ export type {
   UpdateAttributeRequest,
 } from './attribute.types'
 export {
+  ATTRIBUTE_CATEGORIES,
   ATTRIBUTE_INPUT_TYPES,
   ATTRIBUTE_VALUE_TYPES,
   MAX_ATTRIBUTE_FILE_SIZE_BYTES,
   formatNumberAttributeValue,
+  getAttributeCategoryOrder,
+  groupAttributesByCategory,
   isFileAttributeValue,
   toAttributeDraftValue,
   toComparableAttributeValue,
@@ -90,6 +94,8 @@ export type {
   AbzaTableRowId,
   AbzaValidationRule,
   PagedResult,
+  AttributeListParams,
+  TagListParams,
   PaginationParams,
   SortDirection,
 } from './common.types'

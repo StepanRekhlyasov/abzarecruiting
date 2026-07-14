@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260713152815_init")]
+    [Migration("20260714113807_init")]
     partial class init
     {
         /// <inheritdoc />
@@ -94,6 +94,11 @@ namespace Backend.Api.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");

@@ -4,6 +4,7 @@ export type ProfileAttributeDto = {
   id: number
   name: string
   description: string | null
+  category: string
   valueType: string
   inputType: string
   options: string[]

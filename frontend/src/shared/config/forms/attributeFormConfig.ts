@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next'
-import { ATTRIBUTE_VALUE_TYPES } from '@shared/types'
+import { ATTRIBUTE_CATEGORIES, ATTRIBUTE_VALUE_TYPES } from '@shared/types'
 import type { AbzaFormConfig } from '@shared/types'
 
 export function createAttributeFormConfig(t: TFunction): AbzaFormConfig {
@@ -17,6 +17,16 @@ export function createAttributeFormConfig(t: TFunction): AbzaFormConfig {
         label: t('attributes.fields.description'),
         type: 'text',
         validation: { maxLength: 1024 },
+      },
+      {
+        name: 'category',
+        label: t('attributes.fields.category'),
+        type: 'select',
+        validation: { required: true },
+        options: ATTRIBUTE_CATEGORIES.map((value) => ({
+          value,
+          label: t(`attributes.categories.${value}`),
+        })),
       },
       {
         name: 'valueType',

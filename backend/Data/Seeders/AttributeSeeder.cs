@@ -62,6 +62,12 @@ public static class AttributeSeeder
                     changed = true;
                 }
 
+                if (existing.Category != definition.Category)
+                {
+                    existing.Category = definition.Category;
+                    changed = true;
+                }
+
                 continue;
             }
 
@@ -70,6 +76,7 @@ public static class AttributeSeeder
                 Name = definition.Name,
                 ValueType = definition.ValueType,
                 InputType = definition.InputType,
+                Category = definition.Category,
                 Description = definition.Description,
                 CreatedAt = createdAt,
                 CreatedById = systemUserId,

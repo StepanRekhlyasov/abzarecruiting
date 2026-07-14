@@ -69,6 +69,12 @@ function AttributesTableContent() {
         render: (row) => row.description,
       },
       {
+        id: 'category',
+        label: t('attributes.columns.category'),
+        sortable: true,
+        render: (row) => t(`attributes.categories.${row.category}`, row.category),
+      },
+      {
         id: 'valueType',
         label: t('attributes.columns.valueType'),
         sortable: true,

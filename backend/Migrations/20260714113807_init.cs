@@ -190,6 +190,7 @@ namespace Backend.Api.Migrations
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     Name = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
                     Description = table.Column<string>(type: "varchar(1024)", maxLength: 1024, nullable: true),
+                    Category = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
                     ValueType = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
                     InputType = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),

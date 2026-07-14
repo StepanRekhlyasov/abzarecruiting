@@ -1,2 +1,6 @@
 export { attributeToFormValues } from './lib'
-export { AttributesTableProvider, useAttributesTable } from './composable'
+export {
+  AttributesTableProvider,
+  useAttributesTable,
+  type AttributeTableFilters,
+} from './composable'

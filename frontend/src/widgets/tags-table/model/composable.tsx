@@ -14,15 +14,20 @@ import { useUnit } from 'effector-react'
 import type { AbzaFormValues } from '@features/abza-form'
 import type { AbzaTableRowId } from '@features/abza-table'
 import type { TagDto } from '@entities/tag'
-import type { SortDirection } from '@shared/types'
+import type { AbzaSelectOption, SortDirection } from '@shared/types'
 import { createTag, deleteTag, fetchTags, updateTag } from '@entities/tag'
 import { $session, isRecruiterOrAdmin } from '@entities/user'
 import { getErrorKey } from '@shared/lib/errors'
 import { toSubmitValues } from '@shared/lib/helpers'
+import { NEW_TAG_VALUE_PREFIX } from '@shared/ui/inputs'
 
 function toTagSubmitValues(values: AbzaFormValues) {
   const { name } = toSubmitValues(values, ['name'])
   return { name }
+}
+
+function isSearchTextTag(option: AbzaSelectOption) {
+  return Boolean(option.isNew) || option.value.startsWith(NEW_TAG_VALUE_PREFIX)
 }
 
 type TagsTableContextValue = {
@@ -30,7 +35,7 @@ type TagsTableContextValue = {
   totalCount: number
   page: number
   pageSize: number
-  searchInput: string
+  searchTags: AbzaSelectOption[]
   sortBy: string
   sortDir: SortDirection
   selectedIds: AbzaTableRowId[]
@@ -43,7 +48,7 @@ type TagsTableContextValue = {
   canManageTags: boolean
   createFormRef: RefObject<HTMLFormElement | null>
   editFormRef: RefObject<HTMLFormElement | null>
-  setSearchInput: (value: string) => void
+  setSearchTags: (value: AbzaSelectOption[]) => void
   setPage: (page: number) => void
   setPageSize: (size: number) => void
   setSelectedIds: (ids: AbzaTableRowId[]) => void
@@ -51,7 +56,6 @@ type TagsTableContextValue = {
   setIsEditModalOpen: (open: boolean) => void
   setActionError: (error: string | null) => void
   handleSortChange: (nextSortBy: string, nextSortDir: SortDirection) => void
-  handleFilter: () => void
   handleCreateClick: () => void
   handleCreateSubmit: (values: AbzaFormValues) => Promise<void>
   handleEditSubmit: (values: AbzaFormValues) => Promise<void>
@@ -59,6 +63,7 @@ type TagsTableContextValue = {
   handleEditModalSubmit: () => void
   handleRowClick: (row: TagDto) => void
   handleDeleteSelected: () => Promise<void>
+  loadTagOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
 }
 
 const TagsTableContext = createContext<TagsTableContextValue | null>(null)
@@ -72,8 +77,7 @@ export function TagsTableProvider({ children }: PropsWithChildren) {
   const [totalCount, setTotalCount] = useState(0)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(20)
-  const [searchInput, setSearchInput] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchTags, setSearchTagsState] = useState<AbzaSelectOption[]>([])
   const [sortBy, setSortBy] = useState('name')
   const [sortDir, setSortDir] = useState<SortDirection>('asc')
   const [selectedIds, setSelectedIds] = useState<AbzaTableRowId[]>([])
@@ -86,16 +90,45 @@ export function TagsTableProvider({ children }: PropsWithChildren) {
   const canCreateTags = Boolean(session)
   const canManageTags = isRecruiterOrAdmin(session)
 
+  const loadTagOptions = useCallback(async (search: string, signal?: AbortSignal) => {
+    const result = await fetchTags(
+      {
+        page: 1,
+        size: 20,
+        search: search || undefined,
+        sortBy: 'name',
+        sortDir: 'asc',
+      },
+      { signal },
+    )
+
+    return result.items.map((item) => ({
+      value: String(item.id),
+      label: item.name,
+    }))
+  }, [])
+
   const loadTags = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
     setActionError(null)
+
+    const ids = searchTags
+      .filter((tag) => !isSearchTextTag(tag))
+      .map((tag) => Number(tag.value))
+      .filter((id) => Number.isFinite(id) && id > 0)
+
+    const searches = searchTags
+      .filter((tag) => isSearchTextTag(tag))
+      .map((tag) => tag.label.trim())
+      .filter(Boolean)
 
     try {
       const result = await fetchTags(
         {
           page: page + 1,
           size: pageSize,
-          search: searchQuery || undefined,
+          ids: ids.length > 0 ? ids : undefined,
+          searches: searches.length > 0 ? searches : undefined,
           sortBy,
           sortDir,
         },
@@ -119,7 +152,12 @@ export function TagsTableProvider({ children }: PropsWithChildren) {
         setIsLoading(false)
       }
     }
-  }, [page, pageSize, searchQuery, sortBy, sortDir])
+  }, [page, pageSize, searchTags, sortBy, sortDir])
+
+  const setSearchTags = useCallback((value: AbzaSelectOption[]) => {
+    setSearchTagsState(value)
+    setPage(0)
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -132,11 +170,6 @@ export function TagsTableProvider({ children }: PropsWithChildren) {
       setEditingTag(null)
     }
   }, [isEditModalOpen])
-
-  const handleFilter = useCallback(() => {
-    setSearchQuery(searchInput.trim())
-    setPage(0)
-  }, [searchInput])
 
   const handleSortChange = useCallback((nextSortBy: string, nextSortDir: SortDirection) => {
     setSortBy(nextSortBy)
@@ -241,7 +274,7 @@ export function TagsTableProvider({ children }: PropsWithChildren) {
       totalCount,
       page,
       pageSize,
-      searchInput,
+      searchTags,
       sortBy,
       sortDir,
       selectedIds,
@@ -254,7 +287,7 @@ export function TagsTableProvider({ children }: PropsWithChildren) {
       canManageTags,
       createFormRef,
       editFormRef,
-      setSearchInput,
+      setSearchTags,
       setPage,
       setPageSize,
       setSelectedIds,
@@ -262,7 +295,6 @@ export function TagsTableProvider({ children }: PropsWithChildren) {
       setIsEditModalOpen,
       setActionError,
       handleSortChange,
-      handleFilter,
       handleCreateClick,
       handleCreateSubmit,
       handleEditSubmit,
@@ -270,13 +302,14 @@ export function TagsTableProvider({ children }: PropsWithChildren) {
       handleEditModalSubmit,
       handleRowClick,
       handleDeleteSelected,
+      loadTagOptions,
     }),
     [
       rows,
       totalCount,
       page,
       pageSize,
-      searchInput,
+      searchTags,
       sortBy,
       sortDir,
       selectedIds,
@@ -287,8 +320,8 @@ export function TagsTableProvider({ children }: PropsWithChildren) {
       editingTag,
       canCreateTags,
       canManageTags,
+      setSearchTags,
       handleSortChange,
-      handleFilter,
       handleCreateClick,
       handleCreateSubmit,
       handleEditSubmit,
@@ -296,6 +329,7 @@ export function TagsTableProvider({ children }: PropsWithChildren) {
       handleEditModalSubmit,
       handleRowClick,
       handleDeleteSelected,
+      loadTagOptions,
     ],
   )
 

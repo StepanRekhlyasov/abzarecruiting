@@ -7,13 +7,14 @@ using Backend.Api.Models.Common;
 using Backend.Api.Services.Attributes;
 using Backend.Api.Services.Files;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 
 namespace Backend.Api.Services.Attribute;
 
 public interface IAttributeService
 {
-    Task<PagedResult<AttributeDto>> GetListAsync(PaginationParams pagination, CancellationToken cancellationToken = default);
+    Task<PagedResult<AttributeDto>> GetListAsync(AttributeListParams pagination, CancellationToken cancellationToken = default);
 
     Task<AttributeDto> CreateAsync(CreateAttributeRequest request, string userId, CancellationToken cancellationToken = default);
 
@@ -37,7 +38,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
     private const string VersionChangedMessage = "error.oldVersion";
 
     public async Task<PagedResult<AttributeDto>> GetListAsync(
-        PaginationParams pagination,
+        AttributeListParams pagination,
         CancellationToken cancellationToken = default)
     {
         IQueryable<AttributeEntity> query = db.Attributes
@@ -45,12 +46,39 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
             .Include(attribute => attribute.Options)
             .Where(attribute => !DefaultAttributes.Names.Contains(attribute.Name));
 
-        if (!string.IsNullOrWhiteSpace(pagination.Search))
+        if (!string.IsNullOrWhiteSpace(pagination.Category))
         {
-            var search = pagination.Search.Trim();
-            query = query.Where(attribute =>
-                attribute.Name.Contains(search)
-                || (attribute.Description != null && attribute.Description.Contains(search)));
+            var category = pagination.Category.Trim();
+            query = query.Where(attribute => attribute.Category == category);
+        }
+
+        if (!string.IsNullOrWhiteSpace(pagination.ValueType))
+        {
+            var valueType = pagination.ValueType.Trim();
+            query = query.Where(attribute => attribute.ValueType == valueType);
+        }
+
+        // Avoid Contains(collection) / .Any over in-memory lists — MySQL EF fails ValuesExpression type mapping.
+        var ids = (pagination.Ids ?? [])
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        var searchTerms = (pagination.Searches ?? [])
+            .Where(term => !string.IsNullOrWhiteSpace(term))
+            .Select(term => term.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (searchTerms.Count == 0 && !string.IsNullOrWhiteSpace(pagination.Search))
+        {
+            searchTerms.Add(pagination.Search.Trim());
+        }
+
+        var searchPredicate = BuildIdOrSearchPredicate(ids, searchTerms);
+        if (searchPredicate is not null)
+        {
+            query = query.Where(searchPredicate);
         }
 
         query = query.ApplySort(pagination, attribute => attribute.Name);
@@ -78,6 +106,11 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         var name = request.Name.Trim();
         await EnsureNameIsUniqueAsync(name, excludeId: null, cancellationToken);
 
+        if (!AttributeCategories.IsValid(request.Category))
+        {
+            throw new InvalidOperationException("error.attributes.invalidCategory");
+        }
+
         var inputType = InferInputType(request.ValueType);
         var options = NormalizeOptions(request.Options);
 
@@ -85,6 +118,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         {
             Name = name,
             Description = request.Description,
+            Category = request.Category,
             ValueType = request.ValueType,
             InputType = inputType,
             CreatedAt = DateTime.UtcNow,
@@ -129,11 +163,17 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         var name = request.Name.Trim();
         await EnsureNameIsUniqueAsync(name, attribute.Id, cancellationToken);
 
+        if (!AttributeCategories.IsValid(request.Category))
+        {
+            throw new InvalidOperationException("error.attributes.invalidCategory");
+        }
+
         var inputType = InferInputType(request.ValueType);
         var options = NormalizeOptions(request.Options);
 
         attribute.Name = name;
         attribute.Description = request.Description;
+        attribute.Category = request.Category;
         attribute.ValueType = request.ValueType;
         attribute.InputType = inputType;
 
@@ -294,6 +334,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         Id = attribute.Id,
         Name = attribute.Name,
         Description = attribute.Description,
+        Category = attribute.Category,
         ValueType = attribute.ValueType,
         InputType = attribute.InputType,
         Options = attribute.Options
@@ -303,6 +344,51 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         CreatedAt = attribute.CreatedAt,
         Version = attribute.Version,
     };
+
+    private static Expression<Func<AttributeEntity, bool>>? BuildIdOrSearchPredicate(
+        IReadOnlyList<int> ids,
+        IReadOnlyList<string> searchTerms)
+    {
+        if (ids.Count == 0 && searchTerms.Count == 0)
+        {
+            return null;
+        }
+
+        var parameter = Expression.Parameter(typeof(AttributeEntity), "attribute");
+        Expression? body = null;
+
+        if (ids.Count > 0)
+        {
+            var idProperty = Expression.Property(parameter, nameof(AttributeEntity.Id));
+            foreach (var id in ids)
+            {
+                var equals = Expression.Equal(idProperty, Expression.Constant(id));
+                body = body is null ? equals : Expression.OrElse(body, equals);
+            }
+        }
+
+        if (searchTerms.Count > 0)
+        {
+            var nameProperty = Expression.Property(parameter, nameof(AttributeEntity.Name));
+            var descriptionProperty = Expression.Property(parameter, nameof(AttributeEntity.Description));
+            var containsMethod = typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!;
+
+            foreach (var term in searchTerms)
+            {
+                var termConstant = Expression.Constant(term);
+                var nameContains = Expression.Call(nameProperty, containsMethod, termConstant);
+                var descriptionNotNull = Expression.NotEqual(
+                    descriptionProperty,
+                    Expression.Constant(null, typeof(string)));
+                var descriptionContains = Expression.Call(descriptionProperty, containsMethod, termConstant);
+                var descriptionMatch = Expression.AndAlso(descriptionNotNull, descriptionContains);
+                var termMatch = Expression.OrElse(nameContains, descriptionMatch);
+                body = body is null ? termMatch : Expression.OrElse(body, termMatch);
+            }
+        }
+
+        return Expression.Lambda<Func<AttributeEntity, bool>>(body!, parameter);
+    }
 
     private static string InferInputType(string valueType)
     {

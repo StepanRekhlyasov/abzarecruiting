@@ -1,13 +1,13 @@
 import { isAxiosError } from 'axios'
 import type {
   AttributeDto,
+  AttributeListParams,
   CreateAttributeRequest,
   DeleteAttributeItem,
   PagedResult,
-  PaginationParams,
   UpdateAttributeRequest,
 } from '@shared/types'
-import { apiClient } from '@shared/api'
+import { apiClient, serializeListQueryParams } from '@shared/api'
 import { parseApiError } from '@shared/lib/errors'
 
 type FetchAttributesOptions = {
@@ -15,12 +15,13 @@ type FetchAttributesOptions = {
 }
 
 export async function fetchAttributes(
-  params: PaginationParams,
+  params: AttributeListParams,
   options?: FetchAttributesOptions,
 ): Promise<PagedResult<AttributeDto>> {
   try {
     const { data } = await apiClient.get<PagedResult<AttributeDto>>('/attribute', {
       params,
+      paramsSerializer: serializeListQueryParams,
       signal: options?.signal,
     })
     return data

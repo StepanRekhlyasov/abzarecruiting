@@ -13,6 +13,7 @@ import type {
   AttributeDraftValue,
   ProfileAttributeDto,
 } from '@shared/types'
+import { groupAttributesByCategory } from '@shared/types'
 import { AsyncEntityTags } from '@shared/ui/inputs'
 
 export type AttributeSectionMode = 'default' | 'attrs'
@@ -51,20 +52,7 @@ export function AttributeSection({
   const canEdit = editable && !isAdding
   const canDelete = mode === 'attrs' && editable && Boolean(onRemoveAttribute)
 
-  const formConfig = useMemo(
-    () =>
-      attributesToFormConfig(attributes, {
-        disabled: !canEdit,
-        deletable: canDelete,
-        size: 'small',
-      }),
-    [attributes, canDelete, canEdit],
-  )
-
-  const formValues = useMemo(
-    () => attributesToFormValues(attributes, draftValues),
-    [attributes, draftValues],
-  )
+  const groupedAttributes = useMemo(() => groupAttributesByCategory(attributes), [attributes])
 
   const handleAdd = async () => {
     if (!onAddAttributes || selectedAttributes.length === 0) {
@@ -107,23 +95,39 @@ export function AttributeSection({
           </Typography>
         ) : null
       ) : (
-        <AbzaForm
-          config={formConfig}
-          values={formValues}
-          hideSubmitButton
-          isLoading={isAdding}
-          onFieldChange={(name, value) => {
-            onChange(Number(name), value as AttributeDraftValue)
-          }}
-          onFieldBlur={() => onForceSave?.()}
-          onFieldDelete={
-            onRemoveAttribute
-              ? (name) => {
-                  void onRemoveAttribute(Number(name))
+        groupedAttributes.map(({ category, attributes: categoryAttributes }) => {
+          const formConfig = attributesToFormConfig(categoryAttributes, {
+            disabled: !canEdit,
+            deletable: canDelete,
+            size: 'small',
+          })
+          const formValues = attributesToFormValues(categoryAttributes, draftValues)
+
+          return (
+            <Box key={category} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Typography variant="h6" component="h3">
+                {t(`attributes.categories.${category}`, category)}
+              </Typography>
+              <AbzaForm
+                config={formConfig}
+                values={formValues}
+                hideSubmitButton
+                isLoading={isAdding}
+                onFieldChange={(name, value) => {
+                  onChange(Number(name), value as AttributeDraftValue)
+                }}
+                onFieldBlur={() => onForceSave?.()}
+                onFieldDelete={
+                  onRemoveAttribute
+                    ? (name) => {
+                        void onRemoveAttribute(Number(name))
+                      }
+                    : undefined
                 }
-              : undefined
-          }
-        />
+              />
+            </Box>
+          )
+        })
       )}
     </Box>
   )

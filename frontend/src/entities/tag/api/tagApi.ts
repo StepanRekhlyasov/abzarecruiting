@@ -2,11 +2,11 @@ import { isAxiosError } from 'axios'
 import type {
   CreateTagRequest,
   PagedResult,
-  PaginationParams,
   TagDto,
+  TagListParams,
   UpdateTagRequest,
 } from '@shared/types'
-import { apiClient } from '@shared/api'
+import { apiClient, serializeListQueryParams } from '@shared/api'
 import { parseApiError } from '@shared/lib/errors'
 
 type FetchTagsOptions = {
@@ -14,12 +14,13 @@ type FetchTagsOptions = {
 }
 
 export async function fetchTags(
-  params: PaginationParams,
+  params: TagListParams,
   options?: FetchTagsOptions,
 ): Promise<PagedResult<TagDto>> {
   try {
     const { data } = await apiClient.get<PagedResult<TagDto>>('/tag', {
       params,
+      paramsSerializer: serializeListQueryParams,
       signal: options?.signal,
     })
     return data

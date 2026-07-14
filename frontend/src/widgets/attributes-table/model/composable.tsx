@@ -13,8 +13,8 @@ import { isAxiosError } from 'axios'
 import { useUnit } from 'effector-react'
 import type { AbzaFormValues } from '@features/abza-form'
 import type { AbzaTableRowId } from '@features/abza-table'
-import type { AttributeDto } from '@entities/attribute'
-import type { SortDirection } from '@shared/types'
+import type { AttributeCategory, AttributeDto } from '@entities/attribute'
+import type { AbzaSelectOption, SortDirection } from '@shared/types'
 import {
   createAttribute,
   deleteAttributesBatch,
@@ -31,16 +31,32 @@ import {
   toSubmitStringArray,
   toSubmitValues,
 } from '@shared/lib/helpers'
+import { NEW_TAG_VALUE_PREFIX } from '@shared/ui/inputs'
 
 function toAttributeSubmitValues(values: AbzaFormValues) {
-  const { name, valueType } = toSubmitValues(values, ['name', 'valueType'])
+  const { name, valueType, category } = toSubmitValues(values, ['name', 'valueType', 'category'])
 
   return {
     name,
     description: toSubmitNullableString(values, 'description'),
+    category: category as AttributeCategory,
     valueType,
     options: valueType === 'select' ? toSubmitStringArray(values, 'options') : undefined,
   }
+}
+
+function isSearchTextTag(option: AbzaSelectOption) {
+  return Boolean(option.isNew) || option.value.startsWith(NEW_TAG_VALUE_PREFIX)
+}
+
+export type AttributeTableFilters = {
+  category: string
+  valueType: string
+}
+
+const EMPTY_FILTERS: AttributeTableFilters = {
+  category: '',
+  valueType: '',
 }
 
 type AttributesTableContextValue = {
@@ -48,7 +64,7 @@ type AttributesTableContextValue = {
   totalCount: number
   page: number
   pageSize: number
-  searchInput: string
+  searchTags: AbzaSelectOption[]
   sortBy: string
   sortDir: SortDirection
   selectedIds: AbzaTableRowId[]
@@ -56,22 +72,28 @@ type AttributesTableContextValue = {
   actionError: string | null
   isCreateModalOpen: boolean
   isEditModalOpen: boolean
+  isFilterModalOpen: boolean
   editingAttribute: AttributeDto | null
   canManageAttributes: boolean
   canLinkToProfile: boolean
   isSelectable: boolean
   linkedAttributeIdSet: Set<number>
+  unlinkableSelectedCount: number
+  appliedFilters: AttributeTableFilters
+  isFilterActive: boolean
   createFormRef: RefObject<HTMLFormElement | null>
   editFormRef: RefObject<HTMLFormElement | null>
-  setSearchInput: (value: string) => void
+  setSearchTags: (value: AbzaSelectOption[]) => void
   setPage: (page: number) => void
   setPageSize: (size: number) => void
   setSelectedIds: (ids: AbzaTableRowId[]) => void
   setIsCreateModalOpen: (open: boolean) => void
   setIsEditModalOpen: (open: boolean) => void
+  setIsFilterModalOpen: (open: boolean) => void
   setActionError: (error: string | null) => void
   handleSortChange: (nextSortBy: string, nextSortDir: SortDirection) => void
-  handleFilter: () => void
+  handleApplyFilters: (filters: AttributeTableFilters) => void
+  handleResetFilters: () => void
   handleCreateClick: () => void
   handleCreateSubmit: (values: AbzaFormValues) => Promise<void>
   handleEditSubmit: (values: AbzaFormValues) => Promise<void>
@@ -81,6 +103,7 @@ type AttributesTableContextValue = {
   handleDeleteSelected: () => Promise<void>
   handleLinkSelected: () => Promise<void>
   handleUnlinkSelected: () => Promise<void>
+  loadAttributeOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
 }
 
 const AttributesTableContext = createContext<AttributesTableContextValue | null>(null)
@@ -94,8 +117,8 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
   const [totalCount, setTotalCount] = useState(0)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(20)
-  const [searchInput, setSearchInput] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchTags, setSearchTagsState] = useState<AbzaSelectOption[]>([])
+  const [appliedFilters, setAppliedFilters] = useState<AttributeTableFilters>(EMPTY_FILTERS)
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
   const [selectedIds, setSelectedIds] = useState<AbzaTableRowId[]>([])
@@ -103,14 +126,21 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
   const [actionError, setActionError] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
   const [editingAttribute, setEditingAttribute] = useState<AttributeDto | null>(null)
   const [linkedAttributeIds, setLinkedAttributeIds] = useState<number[]>([])
 
   const canManageAttributes = isRecruiterOrAdmin(session)
   const canLinkToProfile = isCandidate(session)
   const isSelectable = canLinkToProfile || canManageAttributes
+  const isFilterActive = Boolean(appliedFilters.category || appliedFilters.valueType)
 
   const linkedAttributeIdSet = useMemo(() => new Set(linkedAttributeIds), [linkedAttributeIds])
+
+  const unlinkableSelectedCount = useMemo(
+    () => selectedIds.filter((id) => linkedAttributeIdSet.has(Number(id))).length,
+    [linkedAttributeIdSet, selectedIds],
+  )
 
   const loadLinkedAttributeIds = useCallback(async (signal?: AbortSignal) => {
     if (!session?.id || !canLinkToProfile) {
@@ -134,16 +164,48 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
     }
   }, [session?.id, canLinkToProfile])
 
+  const loadAttributeOptions = useCallback(async (search: string, signal?: AbortSignal) => {
+    const result = await fetchAttributes(
+      {
+        page: 1,
+        size: 20,
+        search: search || undefined,
+        sortBy: 'name',
+        sortDir: 'asc',
+      },
+      { signal },
+    )
+
+    return result.items.map((item) => ({
+      value: String(item.id),
+      label: item.name,
+      valueType: item.valueType,
+    }))
+  }, [])
+
   const loadAttributes = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
     setActionError(null)
+
+    const ids = searchTags
+      .filter((tag) => !isSearchTextTag(tag))
+      .map((tag) => Number(tag.value))
+      .filter((id) => Number.isFinite(id) && id > 0)
+
+    const searches = searchTags
+      .filter((tag) => isSearchTextTag(tag))
+      .map((tag) => tag.label.trim())
+      .filter(Boolean)
 
     try {
       const result = await fetchAttributes(
         {
           page: page + 1,
           size: pageSize,
-          search: searchQuery || undefined,
+          ids: ids.length > 0 ? ids : undefined,
+          searches: searches.length > 0 ? searches : undefined,
+          category: appliedFilters.category || undefined,
+          valueType: appliedFilters.valueType || undefined,
           sortBy,
           sortDir,
         },
@@ -167,7 +229,12 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
         setIsLoading(false)
       }
     }
-  }, [page, pageSize, searchQuery, sortBy, sortDir])
+  }, [page, pageSize, searchTags, appliedFilters, sortBy, sortDir])
+
+  const setSearchTags = useCallback((value: AbzaSelectOption[]) => {
+    setSearchTagsState(value)
+    setPage(0)
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -187,10 +254,20 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
     }
   }, [isEditModalOpen])
 
-  const handleFilter = useCallback(() => {
-    setSearchQuery(searchInput.trim())
+  const handleApplyFilters = useCallback((filters: AttributeTableFilters) => {
+    setAppliedFilters({
+      category: filters.category.trim(),
+      valueType: filters.valueType.trim(),
+    })
+    setIsFilterModalOpen(false)
     setPage(0)
-  }, [searchInput])
+  }, [])
+
+  const handleResetFilters = useCallback(() => {
+    setAppliedFilters(EMPTY_FILTERS)
+    setIsFilterModalOpen(false)
+    setPage(0)
+  }, [])
 
   const handleSortChange = useCallback((nextSortBy: string, nextSortDir: SortDirection) => {
     setSortBy(nextSortBy)
@@ -339,7 +416,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       totalCount,
       page,
       pageSize,
-      searchInput,
+      searchTags,
       sortBy,
       sortDir,
       selectedIds,
@@ -347,22 +424,28 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       actionError,
       isCreateModalOpen,
       isEditModalOpen,
+      isFilterModalOpen,
       editingAttribute,
       canManageAttributes,
       canLinkToProfile,
       isSelectable,
       linkedAttributeIdSet,
+      unlinkableSelectedCount,
+      appliedFilters,
+      isFilterActive,
       createFormRef,
       editFormRef,
-      setSearchInput,
+      setSearchTags,
       setPage,
       setPageSize,
       setSelectedIds,
       setIsCreateModalOpen,
       setIsEditModalOpen,
+      setIsFilterModalOpen,
       setActionError,
       handleSortChange,
-      handleFilter,
+      handleApplyFilters,
+      handleResetFilters,
       handleCreateClick,
       handleCreateSubmit,
       handleEditSubmit,
@@ -372,13 +455,14 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       handleDeleteSelected,
       handleLinkSelected,
       handleUnlinkSelected,
+      loadAttributeOptions,
     }),
     [
       rows,
       totalCount,
       page,
       pageSize,
-      searchInput,
+      searchTags,
       sortBy,
       sortDir,
       selectedIds,
@@ -386,13 +470,19 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       actionError,
       isCreateModalOpen,
       isEditModalOpen,
+      isFilterModalOpen,
       editingAttribute,
       canManageAttributes,
       canLinkToProfile,
       isSelectable,
       linkedAttributeIdSet,
+      unlinkableSelectedCount,
+      appliedFilters,
+      isFilterActive,
+      setSearchTags,
       handleSortChange,
-      handleFilter,
+      handleApplyFilters,
+      handleResetFilters,
       handleCreateClick,
       handleCreateSubmit,
       handleEditSubmit,
@@ -402,6 +492,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       handleDeleteSelected,
       handleLinkSelected,
       handleUnlinkSelected,
+      loadAttributeOptions,
     ],
   )
 

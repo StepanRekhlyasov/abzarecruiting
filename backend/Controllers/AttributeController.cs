@@ -15,7 +15,7 @@ public class AttributeController(IAttributeService attributeService) : Controlle
     [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<PagedResult<AttributeDto>>> GetList(
-        [FromQuery] PaginationParams pagination,
+        [FromQuery] AttributeListParams pagination,
         CancellationToken cancellationToken)
     {
         var result = await attributeService.GetListAsync(pagination, cancellationToken);

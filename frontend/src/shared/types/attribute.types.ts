@@ -2,6 +2,7 @@ export type AttributeDto = {
   id: number
   name: string
   description: string | null
+  category: AttributeCategory
   valueType: string
   inputType: string
   options: string[]
@@ -12,6 +13,7 @@ export type AttributeDto = {
 export type CreateAttributeRequest = {
   name: string
   description?: string | null
+  category: AttributeCategory
   valueType: string
   options?: string[]
 }
@@ -23,6 +25,35 @@ export type UpdateAttributeRequest = CreateAttributeRequest & {
 export type DeleteAttributeItem = {
   id: number
   version: number
+}
+
+export const ATTRIBUTE_CATEGORIES = [
+  'personalInformation',
+  'hardSkills',
+  'softSkills',
+  'domainKnowledge',
+  'certification',
+] as const
+
+export type AttributeCategory = (typeof ATTRIBUTE_CATEGORIES)[number]
+
+export function getAttributeCategoryOrder(category: string): number {
+  const index = ATTRIBUTE_CATEGORIES.indexOf(category as AttributeCategory)
+  return index < 0 ? Number.MAX_SAFE_INTEGER : index
+}
+
+export function groupAttributesByCategory<T extends { category: string }>(attributes: T[]) {
+  const groups = new Map<string, T[]>()
+
+  for (const attribute of attributes) {
+    const current = groups.get(attribute.category) ?? []
+    current.push(attribute)
+    groups.set(attribute.category, current)
+  }
+
+  return [...groups.entries()]
+    .sort(([left], [right]) => getAttributeCategoryOrder(left) - getAttributeCategoryOrder(right))
+    .map(([category, items]) => ({ category, attributes: items }))
 }
 
 export const ATTRIBUTE_VALUE_TYPES = [

@@ -1,4 +1,5 @@
 export type {
+  AttributeCategory,
   AttributeDto,
   AttributeInputType,
   AttributeValueType,

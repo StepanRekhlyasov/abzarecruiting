@@ -158,12 +158,21 @@
   },
   "attributes": {
     "title": "Атрибуты",
-    "search": "Поиск по имени",
+    "search": "Поиск атрибутов",
+    "searchAdd": "Искать «{{name}}»",
     "loading": "Загрузка...",
     "empty": "Атрибуты не найдены",
+    "filter": {
+      "title": "Фильтр атрибутов",
+      "apply": "Применить",
+      "reset": "Сбросить",
+      "cancel": "Отмена",
+      "any": "Все"
+    },
     "columns": {
       "name": "Имя",
       "description": "Описание",
+      "category": "Категория",
       "valueType": "Тип значения",
       "inputType": "Тип ввода",
       "createdAt": "Создан"
@@ -171,8 +180,16 @@
     "fields": {
       "name": "Имя",
       "description": "Описание",
+      "category": "Категория",
       "valueType": "Тип значения",
       "inputType": "Тип ввода"
+    },
+    "categories": {
+      "personalInformation": "Личные данные",
+      "hardSkills": "Hard Skills",
+      "softSkills": "Soft Skills",
+      "domainKnowledge": "Domain Knowledge",
+      "certification": "Сертификации"
     },
     "valueTypes": {
       "string": "Строка",
@@ -244,7 +261,8 @@
   },
   "tags": {
     "title": "Теги",
-    "search": "Поиск по имени",
+    "search": "Поиск тегов",
+    "searchAdd": "Искать «{{name}}»",
     "loading": "Загрузка...",
     "empty": "Теги не найдены",
     "columns": {
@@ -464,7 +482,8 @@
       "editDefault": "Системные атрибуты нельзя редактировать",
       "notFound": "Один или несколько атрибутов не найдены",
       "nameExists": "Атрибут с таким именем уже существует",
-      "unsupportedValueType": "Неподдерживаемый тип значения атрибута"
+      "unsupportedValueType": "Неподдерживаемый тип значения атрибута",
+      "invalidCategory": "Некорректная категория атрибута"
     },
     "tags": {
       "load": "Не удалось загрузить теги",

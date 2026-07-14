@@ -296,6 +296,7 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
             Id = attribute.Id,
             Name = attribute.Name,
             Description = attribute.Description,
+            Category = attribute.Category,
             ValueType = attribute.ValueType,
             InputType = attribute.InputType,
             Options = attribute.Options

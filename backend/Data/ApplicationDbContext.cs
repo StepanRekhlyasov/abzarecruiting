@@ -46,6 +46,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(attribute => attribute.Description)
                 .HasMaxLength(1024);
 
+            entity.Property(attribute => attribute.Category)
+                .HasMaxLength(64)
+                .IsRequired();
+
             entity.Property(attribute => attribute.ValueType)
                 .HasMaxLength(64)
                 .IsRequired();
