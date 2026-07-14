@@ -15,14 +15,22 @@ public class AuthController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
     IJwtTokenService jwtTokenService,
-    IProfileAttributeService profileAttributeService) : ControllerBase
+    IProfileAttributeService profileAttributeService,
+    IAccountEmailService accountEmailService) : ControllerBase
 {
     [HttpPost("register")]
-    public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request)
+    public async Task<ActionResult<RegisterResultResponse>> Register([FromBody] RegisterRequest request)
     {
         if (request.Role is not (Roles.Candidate or Roles.Recruiter))
         {
             return BadRequest(new { message = "error.auth.invalidRole" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.FrontendBaseUrl)
+            || !Uri.TryCreate(request.FrontendBaseUrl.Trim(), UriKind.Absolute, out var frontendUri)
+            || (frontendUri.Scheme != Uri.UriSchemeHttp && frontendUri.Scheme != Uri.UriSchemeHttps))
+        {
+            return BadRequest(new { message = "error.auth.invalidFrontendBaseUrl" });
         }
 
         var user = new ApplicationUser
@@ -30,6 +38,7 @@ public class AuthController(
             UserName = request.Email,
             Email = request.Email,
             CreatedAt = DateTime.UtcNow,
+            EmailConfirmed = false,
         };
 
         var result = await userManager.CreateAsync(user, request.Password);
@@ -49,6 +58,7 @@ public class AuthController(
                 [DefaultAttributes.LastName] = request.LastName,
                 [DefaultAttributes.Email] = request.Email,
             });
+            await accountEmailService.SendActivationEmailAsync(user, request.FrontendBaseUrl);
         }
         catch (InvalidOperationException exception)
         {
@@ -58,18 +68,38 @@ public class AuthController(
                 new { message = exception.Message });
         }
 
-        var token = await jwtTokenService.CreateTokenAsync(user);
-        var roles = await userManager.GetRolesAsync(user);
-
-        return Ok(new AuthResponse
+        return Ok(new RegisterResultResponse
         {
-            AccessToken = token.AccessToken,
-            ExpiresAt = token.ExpiresAt,
-            Email = user.Email ?? string.Empty,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Roles = roles,
+            Message = "auth.register.checkEmail",
         });
+    }
+
+    [HttpPost("confirm-email")]
+    public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.UserId) || string.IsNullOrWhiteSpace(request.Token))
+        {
+            return BadRequest(new { message = "error.auth.invalidConfirmation" });
+        }
+
+        var user = await userManager.FindByIdAsync(request.UserId);
+        if (user is null)
+        {
+            return BadRequest(new { message = "error.auth.invalidConfirmation" });
+        }
+
+        if (user.EmailConfirmed)
+        {
+            return Ok(new { message = "auth.confirmEmail.success" });
+        }
+
+        var result = await userManager.ConfirmEmailAsync(user, request.Token);
+        if (!result.Succeeded)
+        {
+            return BadRequest(new { message = "error.auth.invalidConfirmation" });
+        }
+
+        return Ok(new { message = "auth.confirmEmail.success" });
     }
 
     [HttpPost("login")]
@@ -82,7 +112,17 @@ public class AuthController(
             return Unauthorized(new { message = "error.auth.invalidCredentials" });
         }
 
+        if (await userManager.IsLockedOutAsync(user))
+        {
+            return Unauthorized(new { message = "error.auth.userLockedOut" });
+        }
+
         var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+
+        if (result.IsLockedOut)
+        {
+            return Unauthorized(new { message = "error.auth.userLockedOut" });
+        }
 
         if (!result.Succeeded)
         {

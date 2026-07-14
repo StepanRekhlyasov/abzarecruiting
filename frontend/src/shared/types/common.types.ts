@@ -122,7 +122,7 @@ export type AbzaTableProps<T> = {
 
 export type AbzaModalConfig = {
   title: string
-  submitLabel: string
+  submitLabel?: string
   cancelLabel: string
 }
 
@@ -130,9 +130,10 @@ export type AbzaModalProps = {
   open: boolean
   config: AbzaModalConfig
   onOpenChange: (open: boolean) => void
-  onSubmit: () => void | Promise<void>
+  onSubmit?: () => void | Promise<void>
   children: ReactNode
   isLoading?: boolean
   submitDisabled?: boolean
+  hideSubmit?: boolean
   maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 }

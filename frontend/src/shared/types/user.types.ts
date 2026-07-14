@@ -20,6 +20,7 @@ export type RegisterRequest = {
   firstName: string
   lastName: string
   role: UserRole
+  frontendBaseUrl: string
 }
 
 export type SessionUser = {
@@ -43,6 +44,8 @@ export type UserListItem = {
   lastName: string
   email: string
   role: UserRole | string
+  emailConfirmed: boolean
+  isLockedOut: boolean
   createdAt: string
 }
 
@@ -61,4 +64,13 @@ export type ChangeUsersRoleBatchRequest = {
 
 export type DeleteUsersRequest = {
   userIds: string[]
+}
+
+export type RegisterResultResponse = {
+  message: string
+}
+
+export type ConfirmEmailRequest = {
+  userId: string
+  token: string
 }

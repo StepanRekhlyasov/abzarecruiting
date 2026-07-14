@@ -37,6 +37,12 @@ services:
       - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=camp_project;User=app;Password=app;
       - Cors__AllowedOrigins__0=http://localhost:8000
       - Jwt__SecretKey=CHANGE_ME_TO_A_LONG_RANDOM_SECRET_KEY_AT_LEAST_32_CHARS
+      - App__FrontendBaseUrl=http://localhost:8000
+      - Smtp__Host=smtp.gmail.com
+      - Smtp__Port=587
+      - Smtp__User=mailtestingchamber@gmail.com
+      - Smtp__Password=migryirkejbeeuhw
+      - Smtp__From=mailtestingchamber@gmail.com
       - DefaultAttributes__SystemUserEmail=srekhlyasov@gmail.com
       - DefaultAttributes__SystemUserPassword=1
       - FileStorage__RootPath=/app/uploads

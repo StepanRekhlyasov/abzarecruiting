@@ -18,6 +18,9 @@ import {
   createUser,
   deleteUsersBatch,
   fetchUsers,
+  sendUserActivationEmail,
+  setUserActivation,
+  setUserLockout,
   $session,
   isAdmin,
   type UserListItem,
@@ -59,8 +62,11 @@ type UsersTableContextValue = {
   selectedIds: AbzaTableRowId[]
   isLoading: boolean
   actionError: string | null
+  manageSuccess: string | null
   isCreateModalOpen: boolean
   isChangeRoleModalOpen: boolean
+  isManageModalOpen: boolean
+  managedUser: UserListItem | null
   canManageUsers: boolean
   createFormRef: RefObject<HTMLFormElement | null>
   changeRoleFormRef: RefObject<HTMLFormElement | null>
@@ -70,7 +76,9 @@ type UsersTableContextValue = {
   setSelectedIds: (ids: AbzaTableRowId[]) => void
   setIsCreateModalOpen: (open: boolean) => void
   setIsChangeRoleModalOpen: (open: boolean) => void
+  setIsManageModalOpen: (open: boolean) => void
   setActionError: (error: string | null) => void
+  setManageSuccess: (message: string | null) => void
   handleSortChange: (nextSortBy: string, nextSortDir: SortDirection) => void
   handleFilter: () => void
   handleCreateClick: () => void
@@ -80,6 +88,10 @@ type UsersTableContextValue = {
   handleChangeRoleModalSubmit: () => void
   handleRowClick: (row: UserListItem) => void
   handleBulkChangeRoleClick: () => void
+  handleManageClick: () => void
+  handleSetLockout: (locked: boolean) => Promise<void>
+  handleSetActivation: (activated: boolean) => Promise<void>
+  handleSendActivationEmail: () => Promise<void>
   handleDeleteSelected: () => Promise<void>
 }
 
@@ -102,10 +114,18 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
   const [selectedIds, setSelectedIds] = useState<AbzaTableRowId[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [manageSuccess, setManageSuccess] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isChangeRoleModalOpen, setIsChangeRoleModalOpen] = useState(false)
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false)
+  const [managedUserId, setManagedUserId] = useState<string | null>(null)
 
   const canManageUsers = isAdmin(session)
+
+  const managedUser = useMemo(
+    () => (managedUserId ? rows.find((row) => row.id === managedUserId) ?? null : null),
+    [managedUserId, rows],
+  )
 
   const loadUsers = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
@@ -237,6 +257,67 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
     setIsChangeRoleModalOpen(true)
   }, [canManageUsers])
 
+  const handleManageClick = useCallback(() => {
+    if (!canManageUsers || selectedIds.length !== 1) {
+      return
+    }
+
+    setManagedUserId(String(selectedIds[0]))
+    setManageSuccess(null)
+    setActionError(null)
+    setIsManageModalOpen(true)
+  }, [canManageUsers, selectedIds])
+
+  const runManageAction = useCallback(
+    async (action: (userId: string) => Promise<void>, successKey: string) => {
+      if (!canManageUsers || !managedUserId) {
+        return
+      }
+
+      setIsLoading(true)
+      setActionError(null)
+      setManageSuccess(null)
+
+      try {
+        await action(managedUserId)
+        setManageSuccess(successKey)
+        await loadUsers()
+      } catch (error) {
+        setActionError(getErrorKey(error, 'profile.users.errors.manage'))
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [canManageUsers, loadUsers, managedUserId],
+  )
+
+  const handleSetLockout = useCallback(
+    async (locked: boolean) => {
+      await runManageAction(
+        (userId) => setUserLockout(userId, locked),
+        locked ? 'profile.users.manage.locked' : 'profile.users.manage.unlocked',
+      )
+    },
+    [runManageAction],
+  )
+
+  const handleSetActivation = useCallback(
+    async (activated: boolean) => {
+      await runManageAction(
+        (userId) => setUserActivation(userId, activated),
+        activated ? 'profile.users.manage.activated' : 'profile.users.manage.deactivated',
+      )
+    },
+    [runManageAction],
+  )
+
+  const handleSendActivationEmail = useCallback(async () => {
+    await runManageAction(
+      (userId) => sendUserActivationEmail(userId, window.location.origin),
+      'profile.users.manage.activationEmailSent',
+    )
+  }, [runManageAction])
+
   const handleDeleteSelected = useCallback(async () => {
     if (!canManageUsers || selectedIds.length === 0) {
       return
@@ -268,8 +349,11 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       selectedIds,
       isLoading,
       actionError,
+      manageSuccess,
       isCreateModalOpen,
       isChangeRoleModalOpen,
+      isManageModalOpen,
+      managedUser,
       canManageUsers,
       createFormRef,
       changeRoleFormRef,
@@ -279,7 +363,9 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       setSelectedIds,
       setIsCreateModalOpen,
       setIsChangeRoleModalOpen,
+      setIsManageModalOpen,
       setActionError,
+      setManageSuccess,
       handleSortChange,
       handleFilter,
       handleCreateClick,
@@ -289,6 +375,10 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       handleChangeRoleModalSubmit,
       handleRowClick,
       handleBulkChangeRoleClick,
+      handleManageClick,
+      handleSetLockout,
+      handleSetActivation,
+      handleSendActivationEmail,
       handleDeleteSelected,
     }),
     [
@@ -302,8 +392,11 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       selectedIds,
       isLoading,
       actionError,
+      manageSuccess,
       isCreateModalOpen,
       isChangeRoleModalOpen,
+      isManageModalOpen,
+      managedUser,
       canManageUsers,
       handleSortChange,
       handleFilter,
@@ -314,6 +407,10 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       handleChangeRoleModalSubmit,
       handleRowClick,
       handleBulkChangeRoleClick,
+      handleManageClick,
+      handleSetLockout,
+      handleSetActivation,
+      handleSendActivationEmail,
       handleDeleteSelected,
     ],
   )

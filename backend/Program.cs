@@ -3,9 +3,11 @@ using System.Text;
 using Backend.Api.Configuration;
 using Backend.Api.Data;
 using Backend.Api.Data.Seeders;
+using Backend.Api.Middleware;
 using Backend.Api.Services.Auth;
 using Backend.Api.Services.Attribute;
 using Backend.Api.Services.Attributes;
+using Backend.Api.Services.Email;
 using Backend.Api.Services.Position;
 using Backend.Api.Services.Profile;
 using Backend.Api.Services.Project;
@@ -30,6 +32,8 @@ QuestPDF.Settings.License = LicenseType.Community;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
+builder.Services.Configure<AppSettings>(builder.Configuration.GetSection(AppSettings.SectionName));
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection(SmtpSettings.SectionName));
 builder.Services.Configure<DefaultAttributesSettings>(
     builder.Configuration.GetSection(DefaultAttributesSettings.SectionName));
 builder.Services.Configure<FileStorageSettings>(
@@ -58,6 +62,10 @@ builder.Services
         options.Password.RequireUppercase = false;
         options.Password.RequireNonAlphanumeric = false;
         options.User.RequireUniqueEmail = true;
+        options.SignIn.RequireConfirmedEmail = false;
+        options.Lockout.AllowedForNewUsers = true;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+        options.Lockout.MaxFailedAccessAttempts = 5;
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
@@ -91,6 +99,8 @@ builder.Services
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IAccountEmailService, AccountEmailService>();
+builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IProfileAttributeService, ProfileAttributeService>();
 builder.Services.AddScoped<IAttributeValueMapper, AttributeValueMapper>();
 builder.Services.AddScoped<IPositionRestrictionEvaluator, PositionRestrictionEvaluator>();
@@ -192,6 +202,7 @@ app.UseStaticFiles(new StaticFileOptions
 });
 app.UseWebSockets();
 app.UseAuthentication();
+app.UseMiddleware<RejectLockedOutUsersMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();

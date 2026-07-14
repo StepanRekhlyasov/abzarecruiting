@@ -19,9 +19,11 @@ public class UserController(IUserService userService) : ControllerBase
         [FromQuery] PaginationParams pagination,
         CancellationToken cancellationToken)
     {
+        var isAdmin = User.IsAdmin();
         var result = await userService.GetListAsync(
             pagination,
-            candidatesOnly: User.IsRecruiter() && !User.IsAdmin(),
+            candidatesOnly: User.IsRecruiter() && !isAdmin,
+            includeLockedOut: isAdmin,
             cancellationToken);
         return Ok(result);
     }
@@ -69,6 +71,60 @@ public class UserController(IUserService userService) : ControllerBase
         try
         {
             await userService.DeleteBatchAsync(request.UserIds, cancellationToken);
+            return NoContent();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    [Authorize(Roles = Roles.Admin)]
+    [HttpPost("{userId}/lockout")]
+    public async Task<IActionResult> SetLockout(
+        string userId,
+        [FromBody] SetUserLockoutRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await userService.SetLockoutAsync(userId, request.Locked, cancellationToken);
+            return NoContent();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    [Authorize(Roles = Roles.Admin)]
+    [HttpPost("{userId}/activation")]
+    public async Task<IActionResult> SetActivation(
+        string userId,
+        [FromBody] SetUserActivationRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await userService.SetActivationAsync(userId, request.Activated, cancellationToken);
+            return NoContent();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    [Authorize(Roles = Roles.Admin)]
+    [HttpPost("{userId}/send-activation")]
+    public async Task<IActionResult> SendActivationEmail(
+        string userId,
+        [FromBody] SendActivationEmailRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await userService.SendActivationEmailAsync(userId, request.FrontendBaseUrl, cancellationToken);
             return NoContent();
         }
         catch (InvalidOperationException exception)

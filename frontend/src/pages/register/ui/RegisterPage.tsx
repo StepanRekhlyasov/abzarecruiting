@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
+import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Link from '@mui/material/Link'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
-import { authSucceeded, register, type UserRole } from '@entities/user'
+import { register, type UserRole } from '@entities/user'
 import { createRegisterFormConfig } from '@shared/config/forms'
 import { i18n } from '@shared/config/i18n'
 import { ROUTES } from '@shared/config/routes'
@@ -18,11 +19,13 @@ export function RegisterPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const formConfig = useMemo(() => createRegisterFormConfig(t), [i18n.language])
 
   const handleSubmit = async (values: AbzaFormValues) => {
     setIsLoading(true)
+    setSuccessMessage(null)
 
     try {
       const submitted = toSubmitValues(values, [
@@ -35,10 +38,13 @@ export function RegisterPage() {
       const response = await register({
         ...submitted,
         role: submitted.role as UserRole,
+        frontendBaseUrl: window.location.origin,
       })
 
-      authSucceeded(response)
-      navigate(ROUTES.home)
+      setSuccessMessage(response.message || 'auth.register.checkEmail')
+      window.setTimeout(() => {
+        navigate(ROUTES.login)
+      }, 2500)
     } finally {
       setIsLoading(false)
     }
@@ -57,6 +63,12 @@ export function RegisterPage() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               {t('auth.register.subtitle')}
             </Typography>
+
+            {successMessage ? (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                {t(successMessage)}
+              </Alert>
+            ) : null}
 
             <AbzaForm
               config={formConfig}

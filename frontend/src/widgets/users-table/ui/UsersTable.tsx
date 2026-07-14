@@ -1,5 +1,10 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
 import { createChangeRoleFormConfig, createUserFormConfig } from '@shared/config/forms'
 import { i18n } from '@shared/config/i18n'
 import { formatDateTime } from '@shared/lib/date'
@@ -22,8 +27,11 @@ function UsersTableContent() {
     selectedIds,
     isLoading,
     actionError,
+    manageSuccess,
     isCreateModalOpen,
     isChangeRoleModalOpen,
+    isManageModalOpen,
+    managedUser,
     sortBy,
     sortDir,
     setPage,
@@ -31,13 +39,18 @@ function UsersTableContent() {
     setSelectedIds,
     setIsCreateModalOpen,
     setIsChangeRoleModalOpen,
+    setIsManageModalOpen,
     setActionError,
+    setManageSuccess,
     handleSortChange,
     handleCreateSubmit,
     handleChangeRoleSubmit,
     handleCreateModalSubmit,
     handleChangeRoleModalSubmit,
     handleRowClick,
+    handleSetLockout,
+    handleSetActivation,
+    handleSendActivationEmail,
     createFormRef,
     changeRoleFormRef,
     canManageUsers,
@@ -46,8 +59,8 @@ function UsersTableContent() {
   const createFormConfig = useMemo(() => createUserFormConfig(t), [i18n.language])
   const changeRoleFormConfig = useMemo(() => createChangeRoleFormConfig(t), [i18n.language])
 
-  const columns = useMemo<AbzaTableColumn<UserListItem>[]>(
-    () => [
+  const columns = useMemo<AbzaTableColumn<UserListItem>[]>(() => {
+    const next: AbzaTableColumn<UserListItem>[] = [
       {
         id: 'firstName',
         label: t('profile.users.columns.firstName'),
@@ -72,15 +85,34 @@ function UsersTableContent() {
         sortable: true,
         render: (row) => t(`auth.roles.${row.role.toLowerCase()}`),
       },
-      {
-        id: 'createdAt',
-        label: t('profile.users.columns.createdAt'),
-        sortable: true,
-        render: (row) => formatDateTime(row.createdAt),
-      },
-    ],
-    [i18n.language],
-  )
+    ]
+
+    if (canManageUsers) {
+      next.push(
+        {
+          id: 'isLockedOut',
+          label: t('profile.users.columns.isLockedOut'),
+          sortable: true,
+          render: (row) => t(row.isLockedOut ? 'common.yes' : 'common.no'),
+        },
+        {
+          id: 'emailConfirmed',
+          label: t('profile.users.columns.emailConfirmed'),
+          sortable: true,
+          render: (row) => t(row.emailConfirmed ? 'common.yes' : 'common.no'),
+        },
+      )
+    }
+
+    next.push({
+      id: 'createdAt',
+      label: t('profile.users.columns.createdAt'),
+      sortable: true,
+      render: (row) => formatDateTime(row.createdAt),
+    })
+
+    return next
+  }, [canManageUsers, i18n.language])
 
   return (
     <>
@@ -151,6 +183,90 @@ function UsersTableContent() {
               onSubmit={handleChangeRoleSubmit}
               isLoading={isLoading}
             />
+          </AbzaModal>
+
+          <AbzaModal
+            open={isManageModalOpen}
+            config={{
+              title: t('profile.users.manage.title'),
+              cancelLabel: t('profile.users.manage.close'),
+            }}
+            hideSubmit
+            onOpenChange={(open) => {
+              setIsManageModalOpen(open)
+              if (!open) {
+                setManageSuccess(null)
+              }
+            }}
+            isLoading={isLoading}
+          >
+            {managedUser ? (
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="subtitle1">
+                    {managedUser.firstName} {managedUser.lastName}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {managedUser.email}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {t(`auth.roles.${managedUser.role.toLowerCase()}`)}
+                  </Typography>
+                </Box>
+
+                {manageSuccess ? (
+                  <Alert severity="success" onClose={() => setManageSuccess(null)}>
+                    {t(manageSuccess)}
+                  </Alert>
+                ) : null}
+
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                  <Button
+                    variant="outlined"
+                    color="warning"
+                    disabled={isLoading || managedUser.isLockedOut}
+                    onClick={() => void handleSetLockout(true)}
+                  >
+                    {t('profile.users.manage.lock')}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    disabled={isLoading || !managedUser.isLockedOut}
+                    onClick={() => void handleSetLockout(false)}
+                  >
+                    {t('profile.users.manage.unlock')}
+                  </Button>
+                </Stack>
+
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                  <Button
+                    variant="outlined"
+                    color="success"
+                    disabled={isLoading || managedUser.emailConfirmed}
+                    onClick={() => void handleSetActivation(true)}
+                  >
+                    {t('profile.users.manage.activate')}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="warning"
+                    disabled={isLoading || !managedUser.emailConfirmed}
+                    onClick={() => void handleSetActivation(false)}
+                  >
+                    {t('profile.users.manage.deactivate')}
+                  </Button>
+                </Stack>
+
+                <Button
+                  variant="contained"
+                  disabled={isLoading || managedUser.emailConfirmed}
+                  onClick={() => void handleSendActivationEmail()}
+                  sx={{ boxShadow: 'none', alignSelf: 'flex-start' }}
+                >
+                  {t('profile.users.manage.sendActivationEmail')}
+                </Button>
+              </Stack>
+            ) : null}
           </AbzaModal>
         </>
       ) : null}

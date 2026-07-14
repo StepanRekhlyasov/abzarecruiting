@@ -14,6 +14,10 @@ public class UserListItemDto
 
     public string Role { get; set; } = string.Empty;
 
+    public bool EmailConfirmed { get; set; }
+
+    public bool IsLockedOut { get; set; }
+
     public DateTime CreatedAt { get; set; }
 }
 
@@ -51,4 +55,23 @@ public class DeleteUsersRequest
     [Required]
     [MinLength(1)]
     public List<string> UserIds { get; set; } = [];
+}
+
+public class SetUserLockoutRequest
+{
+    [Required]
+    public bool Locked { get; set; }
+}
+
+public class SetUserActivationRequest
+{
+    [Required]
+    public bool Activated { get; set; }
+}
+
+public class SendActivationEmailRequest
+{
+    [Required]
+    [Url]
+    public string FrontendBaseUrl { get; set; } = string.Empty;
 }

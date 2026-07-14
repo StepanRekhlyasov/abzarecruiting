@@ -1,5 +1,12 @@
 import { isAxiosError } from 'axios'
-import type { AuthResponse, CurrentUserResponse, LoginRequest, RegisterRequest } from '@shared/types'
+import type {
+  AuthResponse,
+  ConfirmEmailRequest,
+  CurrentUserResponse,
+  LoginRequest,
+  RegisterRequest,
+  RegisterResultResponse,
+} from '@shared/types'
 import { apiClient } from '@shared/api'
 import { parseApiError } from '@shared/lib/errors'
 
@@ -16,9 +23,18 @@ export async function login(request: LoginRequest): Promise<AuthResponse> {
   }
 }
 
-export async function register(request: RegisterRequest): Promise<AuthResponse> {
+export async function register(request: RegisterRequest): Promise<RegisterResultResponse> {
   try {
-    const { data } = await apiClient.post<AuthResponse>('/Auth/register', request)
+    const { data } = await apiClient.post<RegisterResultResponse>('/Auth/register', request)
+    return data
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}
+
+export async function confirmEmail(request: ConfirmEmailRequest): Promise<{ message: string }> {
+  try {
+    const { data } = await apiClient.post<{ message: string }>('/Auth/confirm-email', request)
     return data
   } catch (error) {
     throw new Error(parseApiError(error))

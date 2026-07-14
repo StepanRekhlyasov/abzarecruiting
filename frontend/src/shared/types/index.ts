@@ -62,11 +62,13 @@ export type {
 export type {
   AuthResponse,
   ChangeUsersRoleBatchRequest,
+  ConfirmEmailRequest,
   CreateUserRequest,
   CurrentUserResponse,
   DeleteUsersRequest,
   LoginRequest,
   RegisterRequest,
+  RegisterResultResponse,
   SessionUser,
   User,
   UserListItem,

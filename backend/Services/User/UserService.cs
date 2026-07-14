@@ -2,6 +2,7 @@ using Backend.Api.Data;
 using Backend.Api.Extensions;
 using Backend.Api.Models.Common;
 using Backend.Api.Models.User;
+using Backend.Api.Services.Auth;
 using Backend.Api.Services.Profile;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,7 @@ public interface IUserService
     Task<PagedResult<UserListItemDto>> GetListAsync(
         PaginationParams pagination,
         bool candidatesOnly,
+        bool includeLockedOut,
         CancellationToken cancellationToken);
 
     Task<UserListItemDto> CreateAsync(CreateUserRequest request, CancellationToken cancellationToken);
@@ -22,16 +24,29 @@ public interface IUserService
         CancellationToken cancellationToken);
 
     Task DeleteBatchAsync(IReadOnlyList<string> userIds, CancellationToken cancellationToken);
+
+    Task SetLockoutAsync(string userId, bool locked, CancellationToken cancellationToken);
+
+    Task SetActivationAsync(string userId, bool activated, CancellationToken cancellationToken);
+
+    Task SendActivationEmailAsync(
+        string userId,
+        string frontendBaseUrl,
+        CancellationToken cancellationToken);
 }
 
 public class UserService(
     UserManager<ApplicationUser> userManager,
     ApplicationDbContext db,
-    IProfileAttributeService profileAttributeService) : IUserService
+    IProfileAttributeService profileAttributeService,
+    IAccountEmailService accountEmailService) : IUserService
 {
+    private static DateTimeOffset CreatePermanentLockoutEnd() => DateTimeOffset.UtcNow.AddYears(100);
+
     public async Task<PagedResult<UserListItemDto>> GetListAsync(
         PaginationParams pagination,
         bool candidatesOnly,
+        bool includeLockedOut,
         CancellationToken cancellationToken)
     {
         var users = await userManager.Users
@@ -41,6 +56,7 @@ public class UserService(
         var userIds = users.Select(user => user.Id).ToList();
         var nameMap = await LoadNameMapAsync(userIds, cancellationToken);
         var roleMap = await LoadRoleMapAsync(userIds, cancellationToken);
+        var now = DateTimeOffset.UtcNow;
 
         IEnumerable<UserListItemDto> items = users
             .Select(user =>
@@ -55,9 +71,16 @@ public class UserService(
                     FirstName = names.FirstName,
                     LastName = names.LastName,
                     Role = role ?? string.Empty,
+                    EmailConfirmed = user.EmailConfirmed,
+                    IsLockedOut = user.LockoutEnd.HasValue && user.LockoutEnd > now,
                     CreatedAt = user.CreatedAt,
                 };
             });
+
+        if (!includeLockedOut)
+        {
+            items = items.Where(user => !user.IsLockedOut);
+        }
 
         if (candidatesOnly)
         {
@@ -137,6 +160,8 @@ public class UserService(
             FirstName = request.FirstName,
             LastName = request.LastName,
             Role = request.Role,
+            EmailConfirmed = user.EmailConfirmed,
+            IsLockedOut = false,
             CreatedAt = user.CreatedAt,
         };
     }
@@ -184,6 +209,83 @@ public class UserService(
                 throw new InvalidOperationException(string.Join(" ", result.Errors.Select(error => error.Description)));
             }
         }
+    }
+
+    public async Task SetLockoutAsync(string userId, bool locked, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId)
+            ?? throw new InvalidOperationException("error.users.notFound");
+
+        if (locked)
+        {
+            await userManager.SetLockoutEnabledAsync(user, true);
+            var result = await userManager.SetLockoutEndDateAsync(user, CreatePermanentLockoutEnd());
+            if (!result.Succeeded)
+            {
+                throw new InvalidOperationException(string.Join(" ", result.Errors.Select(error => error.Description)));
+            }
+
+            return;
+        }
+
+        var unlockResult = await userManager.SetLockoutEndDateAsync(user, null);
+        if (!unlockResult.Succeeded)
+        {
+            throw new InvalidOperationException(string.Join(" ", unlockResult.Errors.Select(error => error.Description)));
+        }
+
+        await userManager.ResetAccessFailedCountAsync(user);
+    }
+
+    public async Task SetActivationAsync(string userId, bool activated, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId)
+            ?? throw new InvalidOperationException("error.users.notFound");
+
+        if (activated)
+        {
+            if (user.EmailConfirmed)
+            {
+                return;
+            }
+
+            user.EmailConfirmed = true;
+            var result = await userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                throw new InvalidOperationException(string.Join(" ", result.Errors.Select(error => error.Description)));
+            }
+
+            return;
+        }
+
+        if (!user.EmailConfirmed)
+        {
+            return;
+        }
+
+        user.EmailConfirmed = false;
+        var deactivateResult = await userManager.UpdateAsync(user);
+        if (!deactivateResult.Succeeded)
+        {
+            throw new InvalidOperationException(string.Join(" ", deactivateResult.Errors.Select(error => error.Description)));
+        }
+    }
+
+    public async Task SendActivationEmailAsync(
+        string userId,
+        string frontendBaseUrl,
+        CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId)
+            ?? throw new InvalidOperationException("error.users.notFound");
+
+        if (user.EmailConfirmed)
+        {
+            throw new InvalidOperationException("error.users.alreadyActivated");
+        }
+
+        await accountEmailService.SendActivationEmailAsync(user, frontendBaseUrl, cancellationToken);
     }
 
     private async Task ReplaceRolesAsync(ApplicationUser user, string role)

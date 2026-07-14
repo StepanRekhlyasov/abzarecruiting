@@ -56,3 +56,27 @@ export async function deleteUsersBatch(userIds: string[]): Promise<void> {
     throw new Error(parseApiError(error))
   }
 }
+
+export async function setUserLockout(userId: string, locked: boolean): Promise<void> {
+  try {
+    await apiClient.post(`/user/${userId}/lockout`, { locked })
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}
+
+export async function setUserActivation(userId: string, activated: boolean): Promise<void> {
+  try {
+    await apiClient.post(`/user/${userId}/activation`, { activated })
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}
+
+export async function sendUserActivationEmail(userId: string, frontendBaseUrl: string): Promise<void> {
+  try {
+    await apiClient.post(`/user/${userId}/send-activation`, { frontendBaseUrl })
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}

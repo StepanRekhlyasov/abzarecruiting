@@ -19,4 +19,8 @@ public class RegisterRequest
 
     [Required]
     public string Role { get; set; } = string.Empty;
+
+    [Required]
+    [Url]
+    public string FrontendBaseUrl { get; set; } = string.Empty;
 }

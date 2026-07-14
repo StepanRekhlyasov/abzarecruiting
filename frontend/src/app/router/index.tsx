@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { HomePage } from '@pages/home'
 import { LoginPage } from '@pages/login'
 import { RegisterPage } from '@pages/register'
+import { ConfirmEmailPage } from '@pages/confirm-email'
 import { AttributesPage } from '@pages/attributes'
 import { TagsPage } from '@pages/tags'
 import { PositionsPage } from '@pages/positions'
@@ -28,6 +29,7 @@ const publicRoutes: { path: string; element: ReactNode }[] = [
   { path: ROUTES.home, element: <HomePage /> },
   { path: ROUTES.login, element: <LoginPage /> },
   { path: ROUTES.register, element: <RegisterPage /> },
+  { path: ROUTES.confirmEmail, element: <ConfirmEmailPage /> },
   { path: ROUTES.positions, element: <PositionsPage /> },
 ]
 

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import AddIcon from '@mui/icons-material/Add'
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import BackspaceIcon from '@mui/icons-material/Backspace'
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts'
 import SearchIcon from '@mui/icons-material/Search'
@@ -20,6 +21,7 @@ export function UsersTableToolbar() {
     handleCreateClick,
     handleDeleteSelected,
     handleBulkChangeRoleClick,
+    handleManageClick,
   } = useUsersTable()
 
   return (
@@ -44,6 +46,15 @@ export function UsersTableToolbar() {
         <>
           <Button variant="contained" onClick={handleCreateClick} disabled={isLoading} sx={{ boxShadow: 'none' }}>
             <AddIcon />
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleManageClick}
+            disabled={selectedIds.length !== 1 || isLoading}
+            sx={{ boxShadow: 'none' }}
+            title={t('profile.users.actions.manageUser')}
+          >
+            <AdminPanelSettingsIcon />
           </Button>
           <Button
             variant="contained"
