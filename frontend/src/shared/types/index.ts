@@ -78,6 +78,7 @@ export type {
   AbzaFieldType,
   AbzaFormConfig,
   AbzaFormErrors,
+  AbzaFormValue,
   AbzaFormValues,
   AbzaModalConfig,
   AbzaModalProps,

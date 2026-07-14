@@ -1,4 +1,5 @@
 import type { AbzaFieldConfig, AbzaFormErrors, AbzaFormValues } from '@shared/types'
+import { isFileAttributeValue } from '@shared/types'
 import {
   getEntityOptionValue,
   getEntityOptionsValue,
@@ -61,6 +62,18 @@ export function validateAbzaForm(
         errors[field.name] = messages.required
       }
 
+      continue
+    }
+
+    if (field.type === 'image' || field.type === 'file') {
+      const fileValue = values[field.name]
+      if (rules?.required && !isFileAttributeValue(fileValue)) {
+        errors[field.name] = messages.required
+      }
+      continue
+    }
+
+    if (field.type === 'checkbox') {
       continue
     }
 

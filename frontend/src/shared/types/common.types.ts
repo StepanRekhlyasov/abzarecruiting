@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { SxProps, Theme } from '@mui/material/styles'
+import type { FileAttributeValue } from './attribute.types'
 
 export type PagedResult<T> = {
   items: T[]
@@ -22,9 +23,15 @@ export type AbzaFieldType =
   | 'email'
   | 'password'
   | 'text'
+  | 'textarea'
   | 'number'
   | 'date'
+  | 'tel'
+  | 'checkbox'
   | 'select'
+  | 'period'
+  | 'image'
+  | 'file'
   | 'optionTags'
   | 'asyncEntityTags'
   | 'asyncEntitySelect'
@@ -57,15 +64,23 @@ export type AbzaFieldConfig = {
   autoComplete?: string
   disabled?: boolean
   tooltip?: string
+  deletable?: boolean
+  size?: 'small' | 'medium'
   showWhen?: { field: string; value: string }
 }
 
 export type AbzaFormConfig = {
   fields: AbzaFieldConfig[]
-  submitLabel: string
+  submitLabel?: string
 }
 
-export type AbzaFormValue = string | string[] | AbzaSelectOption | AbzaSelectOption[] | null
+export type AbzaFormValue =
+  | string
+  | string[]
+  | AbzaSelectOption
+  | AbzaSelectOption[]
+  | FileAttributeValue
+  | null
 
 export type AbzaFormValues = Record<string, AbzaFormValue>
 

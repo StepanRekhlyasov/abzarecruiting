@@ -1,10 +1,18 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import { useTranslation } from 'react-i18next'
-import { InputProvider } from '@features/attribute'
-import type { AbzaSelectOption, AttributeDraftValue, ProfileAttributeDto } from '@shared/types'
+import {
+  AbzaForm,
+  attributesToFormConfig,
+  attributesToFormValues,
+} from '@features/abza-form'
+import type {
+  AbzaSelectOption,
+  AttributeDraftValue,
+  ProfileAttributeDto,
+} from '@shared/types'
 import { AsyncEntityTags } from '@shared/ui/inputs'
 
 export type AttributeSectionMode = 'default' | 'attrs'
@@ -40,6 +48,23 @@ export function AttributeSection({
   const [selectedAttributes, setSelectedAttributes] = useState<AbzaSelectOption[]>([])
 
   const showAddControls = mode === 'attrs' && Boolean(loadAttributeOptions) && Boolean(onAddAttributes)
+  const canEdit = editable && !isAdding
+  const canDelete = mode === 'attrs' && editable && Boolean(onRemoveAttribute)
+
+  const formConfig = useMemo(
+    () =>
+      attributesToFormConfig(attributes, {
+        disabled: !canEdit,
+        deletable: canDelete,
+        size: 'small',
+      }),
+    [attributes, canDelete, canEdit],
+  )
+
+  const formValues = useMemo(
+    () => attributesToFormValues(attributes, draftValues),
+    [attributes, draftValues],
+  )
 
   const handleAdd = async () => {
     if (!onAddAttributes || selectedAttributes.length === 0) {
@@ -57,22 +82,22 @@ export function AttributeSection({
   return (
     <Box data-section-mode={mode} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
       {showAddControls ? (
-          <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: 2, alignItems: 'stretch' }}>
-            <AsyncEntityTags
-              label={t('profile.addedAttributes.select')}
-              value={selectedAttributes}
-              onChange={setSelectedAttributes}
-              loadOptions={loadAttributeOptions!}
-              disabled={isAdding}
-            />
-            <Button
-              variant="contained"
-              onClick={() => void handleAdd()}
-              disabled={isAdding || selectedAttributes.length === 0}
-            >
-              {t('profile.addedAttributes.add')}
-            </Button>
-          </Box>
+        <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: 2, alignItems: 'stretch' }}>
+          <AsyncEntityTags
+            label={t('profile.addedAttributes.select')}
+            value={selectedAttributes}
+            onChange={setSelectedAttributes}
+            loadOptions={loadAttributeOptions!}
+            disabled={isAdding}
+          />
+          <Button
+            variant="contained"
+            onClick={() => void handleAdd()}
+            disabled={isAdding || selectedAttributes.length === 0}
+          >
+            {t('profile.addedAttributes.add')}
+          </Button>
+        </Box>
       ) : null}
 
       {attributes.length === 0 ? (
@@ -82,25 +107,23 @@ export function AttributeSection({
           </Typography>
         ) : null
       ) : (
-        attributes.map((attribute) => (
-          <InputProvider
-            key={attribute.id}
-            attribute={attribute}
-            value={draftValues[attribute.id] ?? ''}
-            onChange={(value) => onChange(attribute.id, value)}
-            onBlur={onForceSave}
-            editable={editable && !isAdding}
-            deletable={mode === 'attrs' && editable && Boolean(onRemoveAttribute)}
-            onDelete={
-              onRemoveAttribute
-                ? () => {
-                    void onRemoveAttribute(attribute.id)
-                  }
-                : undefined
-            }
-            tooltip={attribute.description}
-          />
-        ))
+        <AbzaForm
+          config={formConfig}
+          values={formValues}
+          hideSubmitButton
+          isLoading={isAdding}
+          onFieldChange={(name, value) => {
+            onChange(Number(name), value as AttributeDraftValue)
+          }}
+          onFieldBlur={() => onForceSave?.()}
+          onFieldDelete={
+            onRemoveAttribute
+              ? (name) => {
+                  void onRemoveAttribute(Number(name))
+                }
+              : undefined
+          }
+        />
       )}
     </Box>
   )
