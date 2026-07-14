@@ -18,7 +18,7 @@ import {
 import {
   setCandidateAttributeValue,
 } from '@entities/profile'
-import { $session, isAdmin } from '@entities/user'
+import { $session, isAdmin, isRecruiter } from '@entities/user'
 import { i18n } from '@shared/config/i18n'
 import { getErrorKey } from '@shared/lib/errors'
 import {
@@ -26,6 +26,7 @@ import {
   type AttributeDraftValue,
   type ProfileAttributeDto,
   type ProjectDto,
+  type ResumeLikeStateDto,
 } from '@shared/types'
 
 type ResumeDetailContextValue = {
@@ -37,6 +38,7 @@ type ResumeDetailContextValue = {
   error: string | null
   actionError: string | null
   canEdit: boolean
+  canLike: boolean
   isAutosaveActive: boolean
   isDownloading: boolean
   setActionError: (error: string | null) => void
@@ -47,6 +49,7 @@ type ResumeDetailContextValue = {
     version: number,
   ) => Promise<number>
   togglePublished: () => Promise<void>
+  applyLikeState: (state: ResumeLikeStateDto) => void
   downloadPdf: () => Promise<void>
   reloadResume: () => Promise<void>
 }
@@ -70,6 +73,7 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
   const canEdit = Boolean(
     resume && session && (isAdmin(session) || session.id === resume.candidateId),
   )
+  const canLike = Boolean(resume?.published && isRecruiter(session))
 
   const loadResume = useCallback(
     async (signal?: AbortSignal) => {
@@ -150,6 +154,18 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
     }
   }, [resume])
 
+  const applyLikeState = useCallback((state: ResumeLikeStateDto) => {
+    setResume((current) =>
+      current
+        ? {
+            ...current,
+            likesCount: state.likesCount,
+            likedByCurrentUser: state.likedByCurrentUser,
+          }
+        : current,
+    )
+  }, [])
+
   const downloadPdf = useCallback(async () => {
     if (!resume?.published) {
       return
@@ -178,12 +194,14 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
       error,
       actionError,
       canEdit,
+      canLike,
       isAutosaveActive,
       isDownloading,
       setActionError,
       setAutosaveActive,
       saveAttributeValue,
       togglePublished,
+      applyLikeState,
       downloadPdf,
       reloadResume: () => loadResume(),
     }),
@@ -194,10 +212,12 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
       error,
       actionError,
       canEdit,
+      canLike,
       isAutosaveActive,
       isDownloading,
       saveAttributeValue,
       togglePublished,
+      applyLikeState,
       downloadPdf,
       loadResume,
     ],

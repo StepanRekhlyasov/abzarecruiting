@@ -76,6 +76,15 @@ export async function deletePosition(id: number, version: number): Promise<void>
   }
 }
 
+export async function duplicatePosition(id: number): Promise<PositionDto> {
+  try {
+    const { data } = await apiClient.post<PositionDto>(`/position/${id}/duplicate`)
+    return data
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}
+
 export async function upsertPositionAttribute(
   positionId: number,
   attributeId: number,

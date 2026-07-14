@@ -13,6 +13,7 @@ export {
   deletePosition,
   deletePositionAttribute,
   deletePositionTag,
+  duplicatePosition,
   fetchPosition,
   fetchPositions,
   updatePosition,

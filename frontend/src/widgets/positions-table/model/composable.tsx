@@ -23,6 +23,7 @@ import {
   deletePosition,
   deletePositionAttribute,
   deletePositionTag,
+  duplicatePosition,
   fetchPosition,
   fetchPositions,
   updatePosition,
@@ -224,6 +225,7 @@ type PositionsTableContextValue = {
   handleCreateResumesSelected: () => Promise<void>
   handleRowClick: (row: PositionDto) => Promise<void>
   handleDeleteSelected: () => Promise<void>
+  handleDuplicateSelected: () => Promise<void>
 }
 
 const emptyEditDraft: EditDraftState = {
@@ -563,6 +565,31 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
     }
   }, [loadPositions, rows, selectedIds])
 
+  const handleDuplicateSelected = useCallback(async () => {
+    if (selectedIds.length === 0) {
+      return
+    }
+
+    const positionIds = selectedIds.map((id) => Number(id)).filter((id) => Number.isFinite(id))
+    if (positionIds.length === 0) {
+      return
+    }
+
+    setIsLoading(true)
+    setActionError(null)
+
+    try {
+      await Promise.all(positionIds.map((id) => duplicatePosition(id)))
+      setSelectedIds([])
+      await loadPositions()
+    } catch (error) {
+      setActionError(getErrorKey(error, 'error.positions.duplicate'))
+      await loadPositions()
+    } finally {
+      setIsLoading(false)
+    }
+  }, [loadPositions, selectedIds])
+
   const value = useMemo<PositionsTableContextValue>(
     () => ({
       rows,
@@ -602,6 +629,7 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
       handleCreateResumesSelected,
       handleRowClick,
       handleDeleteSelected,
+      handleDuplicateSelected,
     }),
     [
       rows,
@@ -633,6 +661,7 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
       handleCreateResumesSelected,
       handleRowClick,
       handleDeleteSelected,
+      handleDuplicateSelected,
     ],
   )
 

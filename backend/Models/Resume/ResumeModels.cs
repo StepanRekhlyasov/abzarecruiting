@@ -33,6 +33,8 @@ public class ResumeDto
 
     public string CandidateId { get; set; } = string.Empty;
 
+    public string CandidateName { get; set; } = string.Empty;
+
     public int PositionId { get; set; }
 
     public string PositionName { get; set; } = string.Empty;
@@ -45,6 +47,10 @@ public class ResumeDto
 
     public int Version { get; set; }
 
+    public int LikesCount { get; set; }
+
+    public bool LikedByCurrentUser { get; set; }
+
     public IReadOnlyList<ResumeCandidateAttributeDto> CandidateAttributes { get; set; } = [];
 
     public IReadOnlyList<ProfileAttributeDto> Attributes { get; set; } = [];
@@ -53,6 +59,13 @@ public class ResumeDto
 }
 
 public class ResumeListItemDto : ResumeDto;
+
+public class ResumeLikeStateDto
+{
+    public int LikesCount { get; set; }
+
+    public bool LikedByCurrentUser { get; set; }
+}
 
 public sealed class ResumeGetResult
 {

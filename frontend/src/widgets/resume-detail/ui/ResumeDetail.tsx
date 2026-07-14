@@ -10,12 +10,14 @@ import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { useTranslation } from 'react-i18next'
 import { AbzaError } from '@features/abza-error'
+import { ResumeLike } from '@features/resume-like'
 import {
   toComparableAttributeValue,
   toAttributeDraftValue,
   type AttributeDraftValue,
   type ProfileAttributeDto,
 } from '@shared/types'
+import { getErrorKey } from '@shared/lib/errors'
 import { AttributeSection } from '@widgets/candidate-profile'
 import { ResumeDetailProvider, useResumeDetail } from '../model'
 import { ResumeProjectsSection } from '../parts/ResumeProjectsSection'
@@ -90,12 +92,14 @@ function ResumeDetailContent() {
     error,
     actionError,
     canEdit,
+    canLike,
     isAutosaveActive,
     isDownloading,
     setActionError,
     setAutosaveActive,
     saveAttributeValue,
     togglePublished,
+    applyLikeState,
     downloadPdf,
   } = useResumeDetail()
 
@@ -287,9 +291,19 @@ function ResumeDetailContent() {
           gap: 2,
         }}
       >
-        <Typography variant="h5" component="h1" sx={{ minWidth: 0 }}>
-          {t('cvs.detail.forPosition', { name: resume.positionName })}
-        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
+          <Typography variant="h5" component="h1" sx={{ minWidth: 0 }}>
+            {t('cvs.detail.forPosition', { name: resume.positionName })}
+          </Typography>
+          <ResumeLike
+            resumeId={resume.id}
+            likesCount={resume.likesCount}
+            likedByCurrentUser={resume.likedByCurrentUser}
+            canToggle={canLike}
+            onChange={applyLikeState}
+            onError={(likeError) => setActionError(getErrorKey(likeError, 'error.resumes.like'))}
+          />
+        </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           {canEdit && isAutosaveActive ? (

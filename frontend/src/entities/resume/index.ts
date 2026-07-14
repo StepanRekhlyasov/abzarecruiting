@@ -2,6 +2,7 @@ export type {
   CreateResumeRequest,
   ResumeCandidateAttributeDto,
   ResumeDto,
+  ResumeLikeStateDto,
   ResumeListItemDto,
   UpdateResumeRequest,
 } from '@shared/types'
@@ -12,5 +13,6 @@ export {
   fetchResume,
   fetchResumePositionIds,
   fetchResumes,
+  toggleResumeLike,
   updateResume,
 } from './api/resumeApi'

@@ -47,6 +47,11 @@ public interface IPositionService
         CancellationToken cancellationToken = default);
 
     Task<bool> DeleteTagAsync(int positionId, int tagId, CancellationToken cancellationToken = default);
+
+    Task<PositionDetailDto?> DuplicateAsync(
+        int id,
+        string userId,
+        CancellationToken cancellationToken = default);
 }
 
 public class PositionService(
@@ -277,6 +282,80 @@ public class PositionService(
         db.PositionTags.Remove(relation);
         await db.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    public async Task<PositionDetailDto?> DuplicateAsync(
+        int id,
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        var source = await db.Positions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(position => position.Id == id, cancellationToken);
+        if (source is null)
+        {
+            return null;
+        }
+
+        var attributes = await db.PositionAttributes
+            .AsNoTracking()
+            .Where(item => item.PositionId == id)
+            .ToListAsync(cancellationToken);
+
+        var tags = await db.PositionTags
+            .AsNoTracking()
+            .Where(item => item.PositionId == id)
+            .ToListAsync(cancellationToken);
+
+        var restrictions = await db.PositionRestrictions
+            .AsNoTracking()
+            .Where(item => item.PositionId == id)
+            .ToListAsync(cancellationToken);
+
+        var position = new Data.Entities.Position
+        {
+            Name = source.Name,
+            Description = source.Description,
+            Company = source.Company,
+            Country = source.Country,
+            Level = source.Level,
+            Format = source.Format,
+            MaxProjects = source.MaxProjects,
+            CreatedAt = DateTime.UtcNow,
+            CreatedById = userId,
+        };
+
+        db.Positions.Add(position);
+        await db.SaveChangesAsync(cancellationToken);
+
+        db.PositionAttributes.AddRange(attributes.Select(item => new PositionAttribute
+        {
+            PositionId = position.Id,
+            AttributeId = item.AttributeId,
+            IsKey = item.IsKey,
+        }));
+
+        db.PositionTags.AddRange(tags.Select(item => new PositionTag
+        {
+            PositionId = position.Id,
+            TagId = item.TagId,
+            IsKey = item.IsKey,
+        }));
+
+        db.PositionRestrictions.AddRange(restrictions.Select(item => new PositionRestriction
+        {
+            PositionId = position.Id,
+            AttributeId = item.AttributeId,
+            TagId = item.TagId,
+            Condition = item.Condition,
+            TargetValue = item.TargetValue,
+            CreatedAt = DateTime.UtcNow,
+            CreatedById = userId,
+        }));
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        return await LoadDetailAsync(position.Id, cancellationToken);
     }
 
     private async Task<List<int>> FilterPositionIdsAsync(

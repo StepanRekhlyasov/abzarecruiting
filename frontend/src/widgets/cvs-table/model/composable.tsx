@@ -13,11 +13,11 @@ import { isAxiosError } from 'axios'
 import { useUnit } from 'effector-react'
 import type { AbzaFormValues } from '@features/abza-form'
 import type { AbzaTableRowId } from '@features/abza-table'
-import type { ResumeListItemDto } from '@entities/resume'
+import type { ResumeLikeStateDto, ResumeListItemDto } from '@entities/resume'
 import type { AbzaSelectOption, SortDirection } from '@shared/types'
 import { createResume, deleteResume, fetchResumes } from '@entities/resume'
 import { fetchPositions } from '@entities/position'
-import { $session, fetchUsers, isAdmin, isCandidate, isRecruiterOrAdmin } from '@entities/user'
+import { $session, fetchUsers, isAdmin, isCandidate, isRecruiter, isRecruiterOrAdmin } from '@entities/user'
 import { getErrorKey } from '@shared/lib/errors'
 
 function getEntityOptionValue(values: AbzaFormValues, name: string): AbzaSelectOption | null {
@@ -43,7 +43,9 @@ type CvsTableContextValue = {
   isCreateModalOpen: boolean
   canCreateResumes: boolean
   canDeleteResumes: boolean
+  canLikeResumes: boolean
   showCandidateColumn: boolean
+  showPublishedColumn: boolean
   showCandidateSelect: boolean
   createFormRef: RefObject<HTMLFormElement | null>
   loadPositionOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
@@ -60,6 +62,7 @@ type CvsTableContextValue = {
   handleCreateSubmit: (values: AbzaFormValues) => Promise<void>
   handleCreateModalSubmit: () => void
   handleDeleteSelected: () => Promise<void>
+  handleLikeChange: (resumeId: number, state: ResumeLikeStateDto) => void
 }
 
 const CvsTableContext = createContext<CvsTableContextValue | null>(null)
@@ -87,7 +90,9 @@ export function CvsTableProvider({ candidateId, children }: CvsTableProviderProp
 
   const canCreateResumes = isAdmin(session) || isCandidate(session)
   const canDeleteResumes = canCreateResumes
+  const canLikeResumes = isRecruiter(session)
   const showCandidateColumn = isRecruiterOrAdmin(session) && !candidateId
+  const showPublishedColumn = !isRecruiter(session)
   const showCandidateSelect = isAdmin(session) && !candidateId
   const isAdminUser = isAdmin(session)
 
@@ -261,6 +266,20 @@ export function CvsTableProvider({ candidateId, children }: CvsTableProviderProp
     }
   }, [canDeleteResumes, loadResumes, rows, selectedIds])
 
+  const handleLikeChange = useCallback((resumeId: number, state: ResumeLikeStateDto) => {
+    setRows((currentRows) =>
+      currentRows.map((row) =>
+        row.id === resumeId
+          ? {
+              ...row,
+              likesCount: state.likesCount,
+              likedByCurrentUser: state.likedByCurrentUser,
+            }
+          : row,
+      ),
+    )
+  }, [])
+
   const value = useMemo<CvsTableContextValue>(
     () => ({
       rows,
@@ -276,7 +295,9 @@ export function CvsTableProvider({ candidateId, children }: CvsTableProviderProp
       isCreateModalOpen,
       canCreateResumes,
       canDeleteResumes,
+      canLikeResumes,
       showCandidateColumn,
+      showPublishedColumn,
       showCandidateSelect,
       createFormRef,
       loadPositionOptions,
@@ -293,6 +314,7 @@ export function CvsTableProvider({ candidateId, children }: CvsTableProviderProp
       handleCreateSubmit,
       handleCreateModalSubmit,
       handleDeleteSelected,
+      handleLikeChange,
     }),
     [
       rows,
@@ -308,7 +330,9 @@ export function CvsTableProvider({ candidateId, children }: CvsTableProviderProp
       isCreateModalOpen,
       canCreateResumes,
       canDeleteResumes,
+      canLikeResumes,
       showCandidateColumn,
+      showPublishedColumn,
       showCandidateSelect,
       loadPositionOptions,
       loadCandidateOptions,
@@ -318,6 +342,7 @@ export function CvsTableProvider({ candidateId, children }: CvsTableProviderProp
       handleCreateSubmit,
       handleCreateModalSubmit,
       handleDeleteSelected,
+      handleLikeChange,
     ],
   )
 

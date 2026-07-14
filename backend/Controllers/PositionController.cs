@@ -100,6 +100,14 @@ public class PositionController(IPositionService positionService) : ControllerBa
     }
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
+    [HttpPost("{id:int}/duplicate")]
+    public async Task<ActionResult<PositionDetailDto>> Duplicate(int id, CancellationToken cancellationToken)
+    {
+        var position = await positionService.DuplicateAsync(id, User.GetUserId()!, cancellationToken);
+        return position is null ? NotFound() : CreatedAtAction(nameof(GetById), new { id = position.Id }, position);
+    }
+
+    [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, [FromQuery] int version, CancellationToken cancellationToken)
     {

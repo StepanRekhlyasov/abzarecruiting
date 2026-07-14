@@ -25,6 +25,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ProfileProjectTag> ProfileProjectTags => Set<ProfileProjectTag>();
     public DbSet<PositionTag> PositionTags => Set<PositionTag>();
     public DbSet<PositionAttribute> PositionAttributes => Set<PositionAttribute>();
+    public DbSet<LikesResume> LikesResumes => Set<LikesResume>();
     public DbSet<FileEntity> Files => Set<FileEntity>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -302,6 +303,26 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(positionAttribute => positionAttribute.Attribute)
                 .WithMany(attribute => attribute.PositionAttributes)
                 .HasForeignKey(positionAttribute => positionAttribute.AttributeId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<LikesResume>(entity =>
+        {
+            entity.ToTable("LikesResume");
+
+            entity.HasKey(like => new { like.UserId, like.ResumeId });
+
+            entity.Property(like => like.CreatedAt)
+                .HasColumnType("datetime(6)");
+
+            entity.HasOne(like => like.User)
+                .WithMany(user => user.ResumeLikes)
+                .HasForeignKey(like => like.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(like => like.Resume)
+                .WithMany(resume => resume.Likes)
+                .HasForeignKey(like => like.ResumeId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

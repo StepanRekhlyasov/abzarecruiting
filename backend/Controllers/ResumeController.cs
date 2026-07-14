@@ -84,6 +84,7 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
             var byPosition = await resumeService.GetListByPositionAsync(
                 positionId.Value,
                 pagination,
+                User.GetUserId(),
                 cancellationToken);
             return Ok(byPosition);
         }
@@ -129,6 +130,21 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
         }
 
         return Ok(result.Dto);
+    }
+
+    [Authorize(Roles = Roles.Recruiter)]
+    [HttpPost("{id:int}/like")]
+    public async Task<ActionResult<ResumeLikeStateDto>> ToggleLike(int id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await resumeService.ToggleLikeAsync(id, User.GetUserId()!, cancellationToken);
+            return result is null ? NotFound() : Ok(result);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [Authorize]

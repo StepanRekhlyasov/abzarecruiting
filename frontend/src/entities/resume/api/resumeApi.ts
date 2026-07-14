@@ -4,6 +4,7 @@ import type {
   PagedResult,
   PaginationParams,
   ResumeDto,
+  ResumeLikeStateDto,
   ResumeListItemDto,
   UpdateResumeRequest,
 } from '@shared/types'
@@ -84,6 +85,15 @@ export async function createResume(request: CreateResumeRequest): Promise<Resume
 export async function updateResume(id: number, request: UpdateResumeRequest): Promise<ResumeDto> {
   try {
     const { data } = await apiClient.post<ResumeDto>(`/resume/${id}`, request)
+    return data
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}
+
+export async function toggleResumeLike(id: number): Promise<ResumeLikeStateDto> {
+  try {
+    const { data } = await apiClient.post<ResumeLikeStateDto>(`/resume/${id}/like`)
     return data
   } catch (error) {
     throw new Error(parseApiError(error))

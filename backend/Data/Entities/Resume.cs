@@ -1,3 +1,5 @@
+using Backend.Api.Data.Relations;
+
 namespace Backend.Api.Data.Entities;
 
 public class Resume
@@ -10,4 +12,5 @@ public class Resume
     public int Version { get; set; }
     public ApplicationUser Candidate { get; set; } = null!;
     public Position Position { get; set; } = null!;
+    public ICollection<LikesResume> Likes { get; set; } = [];
 }

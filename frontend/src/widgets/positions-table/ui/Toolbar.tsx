@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import AddIcon from '@mui/icons-material/Add'
 import BackspaceIcon from '@mui/icons-material/Backspace'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DescriptionIcon from '@mui/icons-material/Description'
 import SearchIcon from '@mui/icons-material/Search'
 import Box from '@mui/material/Box'
@@ -20,6 +21,7 @@ export function PositionsTableToolbar() {
     selectedIds,
     handleCreateClick,
     handleDeleteSelected,
+    handleDuplicateSelected,
     handleCreateResumesSelected,
   } = usePositionsTable()
 
@@ -44,6 +46,17 @@ export function PositionsTableToolbar() {
       {canManagePositions && (
         <Button variant="contained" onClick={handleCreateClick} disabled={isLoading} sx={{ boxShadow: 'none' }}>
           <AddIcon />
+        </Button>
+      )}
+      {canManagePositions && (
+        <Button
+          variant="contained"
+          onClick={handleDuplicateSelected}
+          disabled={selectedIds.length === 0 || isLoading}
+          sx={{ boxShadow: 'none' }}
+          aria-label={t('positions.toolbar.duplicate')}
+        >
+          <ContentCopyIcon />
         </Button>
       )}
       {canManagePositions && (

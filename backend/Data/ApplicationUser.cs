@@ -13,4 +13,6 @@ public class ApplicationUser : IdentityUser
     public ICollection<Resume> Resumes { get; set; } = [];
 
     public ICollection<ProfileProject> ProfileProjects { get; set; } = [];
+
+    public ICollection<LikesResume> ResumeLikes { get; set; } = [];
 }

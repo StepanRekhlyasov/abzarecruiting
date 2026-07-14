@@ -364,7 +364,8 @@
       "cancel": "Close"
     },
     "toolbar": {
-      "createResume": "Create resume"
+      "createResume": "Create resume",
+      "duplicate": "Duplicate"
     },
     "form": {
       "submit": "Create"
@@ -380,7 +381,8 @@
       "positionName": "Position",
       "candidateId": "Candidate",
       "published": "Published",
-      "createdAt": "Created"
+      "createdAt": "Created",
+      "likes": "Likes"
     },
     "fields": {
       "candidate": "Candidate",
@@ -496,7 +498,8 @@
       "load": "Failed to load positions",
       "create": "Failed to create position",
       "update": "Failed to update position",
-      "delete": "Failed to delete positions"
+      "delete": "Failed to delete positions",
+      "duplicate": "Failed to duplicate positions"
     },
     "resumes": {
       "load": "Failed to load resumes",
@@ -506,7 +509,8 @@
       "alreadyExists": "A resume for this position already exists",
       "incompleteAttributes": "Fill in all attributes before publishing",
       "notPublished": "PDF download is available only for published resumes",
-      "download": "Failed to download PDF"
+      "download": "Failed to download PDF",
+      "like": "Failed to update like"
     },
     "projects": {
       "load": "Failed to load projects",

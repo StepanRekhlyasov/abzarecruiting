@@ -11,7 +11,9 @@ import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
 import { AbzaTable } from '@features/abza-table'
 import type { AbzaTableColumn } from '@features/abza-table'
+import { ResumeLike } from '@features/resume-like'
 import type { ResumeListItemDto } from '@entities/resume'
+import { getErrorKey } from '@shared/lib/errors'
 import { CvsTableProvider, useCvsTable } from '../model'
 import { CvsTableToolbar } from './Toolbar'
 
@@ -29,7 +31,9 @@ function CvsTableContent() {
     isCreateModalOpen,
     canCreateResumes,
     canDeleteResumes,
+    canLikeResumes,
     showCandidateColumn,
+    showPublishedColumn,
     showCandidateSelect,
     sortBy,
     sortDir,
@@ -44,6 +48,7 @@ function CvsTableContent() {
     handleSortChange,
     handleCreateSubmit,
     handleCreateModalSubmit,
+    handleLikeChange,
   } = useCvsTable()
 
   const createFormConfig = useMemo(
@@ -74,15 +79,15 @@ function CvsTableContent() {
 
     if (showCandidateColumn) {
       next.push({
-        id: 'candidateId',
+        id: 'candidateName',
         label: t('cvs.columns.candidateId'),
-        sortable: false,
-        render: (row) => row.candidateId,
+        sortable: true,
+        render: (row) => row.candidateName || row.candidateId,
       })
     }
 
-    next.push(
-      {
+    if (showPublishedColumn) {
+      next.push({
         id: 'published',
         label: t('cvs.columns.published'),
         sortable: true,
@@ -94,17 +99,43 @@ function CvsTableContent() {
             variant="outlined"
           />
         ),
-      },
+      })
+    }
+
+    next.push(
       {
         id: 'createdAt',
         label: t('cvs.columns.createdAt'),
         sortable: true,
         render: (row) => formatDateTime(row.createdAt),
       },
+      {
+        id: 'likes',
+        label: t('cvs.columns.likes'),
+        sortable: true,
+        render: (row) => (
+          <ResumeLike
+            resumeId={row.id}
+            likesCount={row.likesCount}
+            likedByCurrentUser={row.likedByCurrentUser}
+            canToggle={canLikeResumes && row.published}
+            onChange={(state) => handleLikeChange(row.id, state)}
+            onError={(error) => setActionError(getErrorKey(error, 'error.resumes.like'))}
+          />
+        ),
+      },
     )
 
     return next
-  }, [i18n.language, showCandidateColumn])
+  }, [
+    canLikeResumes,
+    handleLikeChange,
+    i18n.language,
+    setActionError,
+    showCandidateColumn,
+    showPublishedColumn,
+    t,
+  ])
 
   return (
     <>
