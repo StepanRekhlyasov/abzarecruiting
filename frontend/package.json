@@ -19,6 +19,7 @@
     "effector": "^23.4.4",
     "effector-react": "^23.3.0",
     "i18next": "^25.2.1",
+    "mui-markdown": "^3.0.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-i18next": "^15.5.3",
