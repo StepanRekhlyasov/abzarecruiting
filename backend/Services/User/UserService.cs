@@ -15,6 +15,9 @@ public interface IUserService
         PaginationParams pagination,
         bool candidatesOnly,
         bool includeLockedOut,
+        string? role,
+        bool? isLockedOut,
+        bool? emailConfirmed,
         CancellationToken cancellationToken);
 
     Task<UserListItemDto> CreateAsync(CreateUserRequest request, CancellationToken cancellationToken);
@@ -47,6 +50,9 @@ public class UserService(
         PaginationParams pagination,
         bool candidatesOnly,
         bool includeLockedOut,
+        string? role,
+        bool? isLockedOut,
+        bool? emailConfirmed,
         CancellationToken cancellationToken)
     {
         var users = await userManager.Users
@@ -62,7 +68,7 @@ public class UserService(
             .Select(user =>
             {
                 nameMap.TryGetValue(user.Id, out var names);
-                roleMap.TryGetValue(user.Id, out var role);
+                roleMap.TryGetValue(user.Id, out var userRole);
 
                 return new UserListItemDto
                 {
@@ -70,7 +76,7 @@ public class UserService(
                     Email = user.Email ?? string.Empty,
                     FirstName = names.FirstName,
                     LastName = names.LastName,
-                    Role = role ?? string.Empty,
+                    Role = userRole ?? string.Empty,
                     EmailConfirmed = user.EmailConfirmed,
                     IsLockedOut = user.LockoutEnd.HasValue && user.LockoutEnd > now,
                     CreatedAt = user.CreatedAt,
@@ -85,6 +91,23 @@ public class UserService(
         if (candidatesOnly)
         {
             items = items.Where(user => user.Role == Roles.Candidate);
+        }
+
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            var normalizedRole = role.Trim();
+            items = items.Where(user =>
+                string.Equals(user.Role, normalizedRole, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (isLockedOut.HasValue)
+        {
+            items = items.Where(user => user.IsLockedOut == isLockedOut.Value);
+        }
+
+        if (emailConfirmed.HasValue)
+        {
+            items = items.Where(user => user.EmailConfirmed == emailConfirmed.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(pagination.Search))

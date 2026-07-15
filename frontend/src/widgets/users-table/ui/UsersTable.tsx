@@ -51,6 +51,7 @@ function UsersTableContent() {
     handleSetLockout,
     handleSetActivation,
     handleSendActivationEmail,
+    handleOpenCandidateProfile,
     createFormRef,
     changeRoleFormRef,
     canManageUsers,
@@ -265,6 +266,17 @@ function UsersTableContent() {
                 >
                   {t('profile.users.manage.sendActivationEmail')}
                 </Button>
+
+                {managedUser.role === 'Candidate' ? (
+                  <Button
+                    variant="contained"
+                    disabled={isLoading}
+                    onClick={handleOpenCandidateProfile}
+                    sx={{ boxShadow: 'none', alignSelf: 'flex-start' }}
+                  >
+                    {t('profile.users.manage.openCandidateProfile')}
+                  </Button>
+                ) : null}
               </Stack>
             ) : null}
           </AbzaModal>

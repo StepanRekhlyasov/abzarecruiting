@@ -42,7 +42,15 @@
       "actions": {
         "changeRoleSelected": "Change role",
         "editRole": "Edit role",
-        "manageUser": "Manage user"
+        "manageUser": "Manage user",
+        "filter": "Filter"
+      },
+      "filter": {
+        "title": "Filter users",
+        "apply": "Apply",
+        "reset": "Reset",
+        "cancel": "Cancel",
+        "any": "Any"
       },
       "create": {
         "title": "New user",
@@ -62,6 +70,7 @@
         "activate": "Activate",
         "deactivate": "Deactivate",
         "sendActivationEmail": "Send activation email",
+        "openCandidateProfile": "Open candidate profile",
         "locked": "User blocked",
         "unlocked": "User unblocked",
         "activated": "User activated",

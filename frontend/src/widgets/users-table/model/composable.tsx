@@ -32,6 +32,18 @@ import { profileDetailPath } from '@shared/config/routes'
 import { getErrorKey } from '@shared/lib/errors'
 import { toSubmitString, toSubmitValues } from '@shared/lib/helpers'
 
+export type UserTableFilters = {
+  role: string
+  isLockedOut: string
+  emailConfirmed: string
+}
+
+export const EMPTY_USER_FILTERS: UserTableFilters = {
+  role: '',
+  isLockedOut: '',
+  emailConfirmed: '',
+}
+
 function toCreateValues(values: AbzaFormValues) {
   const submitted = toSubmitValues(values, [
     'firstName',
@@ -51,6 +63,18 @@ function toRoleValue(values: AbzaFormValues): UserRole {
   return (toSubmitString(values, 'role') || 'Candidate') as UserRole
 }
 
+function toOptionalBoolean(value: string): boolean | undefined {
+  if (value === 'true') {
+    return true
+  }
+
+  if (value === 'false') {
+    return false
+  }
+
+  return undefined
+}
+
 type UsersTableContextValue = {
   rows: UserListItem[]
   totalCount: number
@@ -66,6 +90,9 @@ type UsersTableContextValue = {
   isCreateModalOpen: boolean
   isChangeRoleModalOpen: boolean
   isManageModalOpen: boolean
+  isFilterModalOpen: boolean
+  appliedFilters: UserTableFilters
+  isFilterActive: boolean
   managedUser: UserListItem | null
   canManageUsers: boolean
   createFormRef: RefObject<HTMLFormElement | null>
@@ -77,10 +104,13 @@ type UsersTableContextValue = {
   setIsCreateModalOpen: (open: boolean) => void
   setIsChangeRoleModalOpen: (open: boolean) => void
   setIsManageModalOpen: (open: boolean) => void
+  setIsFilterModalOpen: (open: boolean) => void
   setActionError: (error: string | null) => void
   setManageSuccess: (message: string | null) => void
   handleSortChange: (nextSortBy: string, nextSortDir: SortDirection) => void
   handleFilter: () => void
+  handleApplyFilters: (filters: UserTableFilters) => void
+  handleResetFilters: () => void
   handleCreateClick: () => void
   handleCreateSubmit: (values: AbzaFormValues) => Promise<void>
   handleChangeRoleSubmit: (values: AbzaFormValues) => Promise<void>
@@ -88,7 +118,7 @@ type UsersTableContextValue = {
   handleChangeRoleModalSubmit: () => void
   handleRowClick: (row: UserListItem) => void
   handleBulkChangeRoleClick: () => void
-  handleManageClick: () => void
+  handleOpenCandidateProfile: () => void
   handleSetLockout: (locked: boolean) => Promise<void>
   handleSetActivation: (activated: boolean) => Promise<void>
   handleSendActivationEmail: () => Promise<void>
@@ -118,9 +148,14 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isChangeRoleModalOpen, setIsChangeRoleModalOpen] = useState(false)
   const [isManageModalOpen, setIsManageModalOpen] = useState(false)
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
+  const [appliedFilters, setAppliedFilters] = useState<UserTableFilters>(EMPTY_USER_FILTERS)
   const [managedUserId, setManagedUserId] = useState<string | null>(null)
 
   const canManageUsers = isAdmin(session)
+  const isFilterActive = Boolean(
+    appliedFilters.role || appliedFilters.isLockedOut || appliedFilters.emailConfirmed,
+  )
 
   const managedUser = useMemo(
     () => (managedUserId ? rows.find((row) => row.id === managedUserId) ?? null : null),
@@ -139,6 +174,9 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
           search: searchQuery || undefined,
           sortBy,
           sortDir,
+          role: appliedFilters.role || undefined,
+          isLockedOut: toOptionalBoolean(appliedFilters.isLockedOut),
+          emailConfirmed: toOptionalBoolean(appliedFilters.emailConfirmed),
         },
         { signal },
       )
@@ -160,7 +198,7 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
         setIsLoading(false)
       }
     }
-  }, [page, pageSize, searchQuery, sortBy, sortDir])
+  }, [appliedFilters, page, pageSize, searchQuery, sortBy, sortDir])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -172,6 +210,18 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
     setSearchQuery(searchInput.trim())
     setPage(0)
   }, [searchInput])
+
+  const handleApplyFilters = useCallback((filters: UserTableFilters) => {
+    setAppliedFilters(filters)
+    setIsFilterModalOpen(false)
+    setPage(0)
+  }, [])
+
+  const handleResetFilters = useCallback(() => {
+    setAppliedFilters(EMPTY_USER_FILTERS)
+    setIsFilterModalOpen(false)
+    setPage(0)
+  }, [])
 
   const handleSortChange = useCallback((nextSortBy: string, nextSortDir: SortDirection) => {
     setSortBy(nextSortBy)
@@ -240,14 +290,31 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
 
   const handleRowClick = useCallback(
     (row: UserListItem) => {
+      if (canManageUsers) {
+        setManagedUserId(row.id)
+        setManageSuccess(null)
+        setActionError(null)
+        setIsManageModalOpen(true)
+        return
+      }
+
       if (row.role !== 'Candidate') {
         return
       }
 
       navigate(profileDetailPath(row.id))
     },
-    [navigate],
+    [canManageUsers, navigate],
   )
+
+  const handleOpenCandidateProfile = useCallback(() => {
+    if (!managedUser || managedUser.role !== 'Candidate') {
+      return
+    }
+
+    setIsManageModalOpen(false)
+    navigate(profileDetailPath(managedUser.id))
+  }, [managedUser, navigate])
 
   const handleBulkChangeRoleClick = useCallback(() => {
     if (!canManageUsers) {
@@ -256,17 +323,6 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
 
     setIsChangeRoleModalOpen(true)
   }, [canManageUsers])
-
-  const handleManageClick = useCallback(() => {
-    if (!canManageUsers || selectedIds.length !== 1) {
-      return
-    }
-
-    setManagedUserId(String(selectedIds[0]))
-    setManageSuccess(null)
-    setActionError(null)
-    setIsManageModalOpen(true)
-  }, [canManageUsers, selectedIds])
 
   const runManageAction = useCallback(
     async (action: (userId: string) => Promise<void>, successKey: string) => {
@@ -353,6 +409,9 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       isCreateModalOpen,
       isChangeRoleModalOpen,
       isManageModalOpen,
+      isFilterModalOpen,
+      appliedFilters,
+      isFilterActive,
       managedUser,
       canManageUsers,
       createFormRef,
@@ -364,10 +423,13 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       setIsCreateModalOpen,
       setIsChangeRoleModalOpen,
       setIsManageModalOpen,
+      setIsFilterModalOpen,
       setActionError,
       setManageSuccess,
       handleSortChange,
       handleFilter,
+      handleApplyFilters,
+      handleResetFilters,
       handleCreateClick,
       handleCreateSubmit,
       handleChangeRoleSubmit,
@@ -375,7 +437,7 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       handleChangeRoleModalSubmit,
       handleRowClick,
       handleBulkChangeRoleClick,
-      handleManageClick,
+      handleOpenCandidateProfile,
       handleSetLockout,
       handleSetActivation,
       handleSendActivationEmail,
@@ -396,10 +458,15 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       isCreateModalOpen,
       isChangeRoleModalOpen,
       isManageModalOpen,
+      isFilterModalOpen,
+      appliedFilters,
+      isFilterActive,
       managedUser,
       canManageUsers,
       handleSortChange,
       handleFilter,
+      handleApplyFilters,
+      handleResetFilters,
       handleCreateClick,
       handleCreateSubmit,
       handleChangeRoleSubmit,
@@ -407,7 +474,7 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       handleChangeRoleModalSubmit,
       handleRowClick,
       handleBulkChangeRoleClick,
-      handleManageClick,
+      handleOpenCandidateProfile,
       handleSetLockout,
       handleSetActivation,
       handleSendActivationEmail,

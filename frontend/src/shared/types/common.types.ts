@@ -19,6 +19,12 @@ export type PaginationParams = {
   sortDir?: SortDirection
 }
 
+export type UserListParams = PaginationParams & {
+  role?: string
+  isLockedOut?: boolean
+  emailConfirmed?: boolean
+}
+
 export type AttributeListParams = PaginationParams & {
   category?: string
   valueType?: string

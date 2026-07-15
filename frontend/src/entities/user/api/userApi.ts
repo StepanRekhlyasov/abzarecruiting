@@ -3,8 +3,8 @@ import type {
   ChangeUsersRoleBatchRequest,
   CreateUserRequest,
   PagedResult,
-  PaginationParams,
   UserListItem,
+  UserListParams,
 } from '@shared/types'
 import { apiClient } from '@shared/api'
 import { parseApiError } from '@shared/lib/errors'
@@ -14,7 +14,7 @@ type FetchUsersOptions = {
 }
 
 export async function fetchUsers(
-  params: PaginationParams,
+  params: UserListParams,
   options?: FetchUsersOptions,
 ): Promise<PagedResult<UserListItem>> {
   try {

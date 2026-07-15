@@ -98,5 +98,6 @@ export type {
   AttributeListParams,
   TagListParams,
   PaginationParams,
+  UserListParams,
   SortDirection,
 } from './common.types'

@@ -1,1 +1,1 @@
-export { UsersTableProvider, useUsersTable } from './composable'
+export { UsersTableProvider, useUsersTable, type UserTableFilters } from './composable'

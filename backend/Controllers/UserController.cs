@@ -17,6 +17,9 @@ public class UserController(IUserService userService) : ControllerBase
     [HttpGet]
     public async Task<ActionResult<PagedResult<UserListItemDto>>> GetList(
         [FromQuery] PaginationParams pagination,
+        [FromQuery] string? role,
+        [FromQuery] bool? isLockedOut,
+        [FromQuery] bool? emailConfirmed,
         CancellationToken cancellationToken)
     {
         var isAdmin = User.IsAdmin();
@@ -24,6 +27,9 @@ public class UserController(IUserService userService) : ControllerBase
             pagination,
             candidatesOnly: User.IsRecruiter() && !isAdmin,
             includeLockedOut: isAdmin,
+            role,
+            isLockedOut,
+            emailConfirmed,
             cancellationToken);
         return Ok(result);
     }

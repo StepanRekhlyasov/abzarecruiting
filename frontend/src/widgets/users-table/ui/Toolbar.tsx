@@ -1,13 +1,14 @@
 import { useTranslation } from 'react-i18next'
 import AddIcon from '@mui/icons-material/Add'
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import BackspaceIcon from '@mui/icons-material/Backspace'
+import FilterListIcon from '@mui/icons-material/FilterList'
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts'
 import SearchIcon from '@mui/icons-material/Search'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
 import { useUsersTable } from '../model'
+import { UsersFilterModal } from './FilterModal'
 
 export function UsersTableToolbar() {
   const { t } = useTranslation()
@@ -18,10 +19,11 @@ export function UsersTableToolbar() {
     isLoading,
     selectedIds,
     canManageUsers,
+    isFilterActive,
+    setIsFilterModalOpen,
     handleCreateClick,
     handleDeleteSelected,
     handleBulkChangeRoleClick,
-    handleManageClick,
   } = useUsersTable()
 
   return (
@@ -44,17 +46,24 @@ export function UsersTableToolbar() {
       </Button>
       {canManageUsers ? (
         <>
+          <Button
+            variant={isFilterActive ? 'contained' : 'outlined'}
+            onClick={() => setIsFilterModalOpen(true)}
+            disabled={isLoading}
+            sx={
+              isFilterActive
+                ? undefined
+                : {
+                    color: 'action.active',
+                    borderColor: 'divider',
+                  }
+            }
+            aria-label={t('profile.users.actions.filter')}
+          >
+            <FilterListIcon />
+          </Button>
           <Button variant="contained" onClick={handleCreateClick} disabled={isLoading} sx={{ boxShadow: 'none' }}>
             <AddIcon />
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleManageClick}
-            disabled={selectedIds.length !== 1 || isLoading}
-            sx={{ boxShadow: 'none' }}
-            title={t('profile.users.actions.manageUser')}
-          >
-            <AdminPanelSettingsIcon />
           </Button>
           <Button
             variant="contained"
@@ -74,6 +83,7 @@ export function UsersTableToolbar() {
           >
             <BackspaceIcon />
           </Button>
+          <UsersFilterModal />
         </>
       ) : null}
     </Box>

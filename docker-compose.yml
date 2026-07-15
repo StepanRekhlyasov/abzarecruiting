@@ -36,7 +36,7 @@ services:
       - DOTNET_USE_POLLING_FILE_WATCHER=true
       - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=camp_project;User=app;Password=app;
       - Cors__AllowedOrigins__0=http://localhost:8000
-      - Jwt__SecretKey=CHANGE_ME_TO_A_LONG_RANDOM_SECRET_KEY_AT_LEAST_32_CHARS
+      - Jwt__SecretKey=gdbL7Y4PkEDTp8isj2MTLzlOMbCLmfCo
       - App__FrontendBaseUrl=http://localhost:8000
       - Smtp__Host=smtp.gmail.com
       - Smtp__Port=587
