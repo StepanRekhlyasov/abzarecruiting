@@ -1,6 +1,7 @@
 export {
   positionAttributesToOptions,
   positionTagsToOptions,
+  positionToFormValues,
   positionToInfoFormValues,
   restrictionsToDrafts,
 } from './lib'

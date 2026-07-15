@@ -11,17 +11,19 @@ import { isAxiosError } from 'axios'
 import { useNavigate } from 'react-router-dom'
 import { useUnit } from 'effector-react'
 import type { PositionDto } from '@entities/position'
-import type { AbzaSelectOption, AttributeConditionDraft } from '@shared/types'
+import type { AbzaFormValues, AbzaSelectOption, AttributeConditionDraft } from '@shared/types'
 import { fetchAttributes } from '@entities/attribute'
 import { fetchPosition, updatePosition } from '@entities/position'
 import { fetchRestrictionsByPosition } from '@entities/restriction'
 import { createResume, fetchResumes } from '@entities/resume'
+import { getTagOptionsFromValues, resolveTagIds } from '@entities/tag'
 import { $session, isCandidate, isRecruiterOrAdmin } from '@entities/user'
 import { cvDetailPath } from '@shared/config/routes'
 import { getErrorKey } from '@shared/lib/errors'
 import {
   positionAttributesToOptions,
   positionTagsToOptions,
+  positionToFormValues,
   positionToInfoFormValues,
   restrictionsToDrafts,
 } from '../../positions-table/model'
@@ -57,6 +59,7 @@ type PositionDetailContextValue = {
   setIsEditModalOpen: (open: boolean) => void
   handleEditClick: () => Promise<void>
   handleEditSubmit: (payload: PositionFormSubmitPayload) => Promise<void>
+  handleDescriptionSubmit: (values: AbzaFormValues) => Promise<void>
   handleResumeAction: () => Promise<void>
   loadAttributeOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
 }
@@ -252,6 +255,42 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
     [position],
   )
 
+  const handleDescriptionSubmit = useCallback(
+    async (values: AbzaFormValues) => {
+      if (!canEdit || !position) {
+        return
+      }
+
+      setActionError(null)
+
+      try {
+        await updatePosition(position.id, {
+          ...toPositionSubmitValues(values),
+          version: position.version,
+        })
+        const attributes = getTagOptionsFromValues(values, 'attributes')
+        const tags = getTagOptionsFromValues(values, 'tags')
+        const attributeIds = attributes
+          .map((item) => Number(item.value))
+          .filter((id) => Number.isFinite(id))
+        const tagIds = await resolveTagIds(tags)
+        await syncPositionRelations(
+          position.id,
+          attributeIds,
+          tagIds,
+          position.attributes.map((item) => item.attributeId),
+          position.tags.map((item) => item.tagId),
+        )
+        const refreshed = await fetchPosition(position.id)
+        setPosition(refreshed)
+      } catch (submitError) {
+        setActionError(getErrorKey(submitError, 'error.positions.update'))
+        throw submitError
+      }
+    },
+    [canEdit, position],
+  )
+
   const handleResumeAction = useCallback(async () => {
     if (!canCreateResume || !position) {
       return
@@ -294,6 +333,7 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
       setIsEditModalOpen,
       handleEditClick,
       handleEditSubmit,
+      handleDescriptionSubmit,
       handleResumeAction,
       loadAttributeOptions,
     }),
@@ -311,6 +351,7 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
       tab,
       handleEditClick,
       handleEditSubmit,
+      handleDescriptionSubmit,
       handleResumeAction,
       loadAttributeOptions,
     ],
@@ -332,5 +373,6 @@ export function usePositionDetail() {
 export {
   positionAttributesToOptions,
   positionTagsToOptions,
+  positionToFormValues,
   positionToInfoFormValues,
 }

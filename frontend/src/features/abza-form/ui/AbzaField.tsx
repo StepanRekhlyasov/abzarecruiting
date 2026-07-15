@@ -101,6 +101,8 @@ export function AbzaField({
           disabled={isDisabled}
           error={hasError}
           helperText={error}
+          size={size}
+          onBlur={onBlur}
         />
       )
       break

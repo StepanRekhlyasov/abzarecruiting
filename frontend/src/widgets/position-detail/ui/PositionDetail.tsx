@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -7,13 +7,26 @@ import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
 import Typography from '@mui/material/Typography'
 import { AbzaError } from '@features/abza-error'
+import { AbzaForm } from '@features/abza-form'
+import { createPositionInfoFormConfig } from '@shared/config/forms'
+import { i18n } from '@shared/config/i18n'
+import { areAbzaFormValuesEqual, useAutosave } from '@shared/lib/autosave'
 import { formatDateTime } from '@shared/lib/date'
-import type { AbzaSelectOption, AttributeConditionDraft } from '@shared/types'
+import { getErrorKey } from '@shared/lib/errors'
+import type {
+  AbzaFormValue,
+  AbzaFormValues,
+  AbzaSelectOption,
+  AttributeConditionDraft,
+} from '@shared/types'
+import { loadTagOptions } from '@entities/tag'
+import { AutosaveButton } from '@shared/ui'
 import { PositionFormModal } from '../../positions-table/ui/PositionFormModal'
 import {
   PositionDetailProvider,
   positionAttributesToOptions,
   positionTagsToOptions,
+  positionToFormValues,
   positionToInfoFormValues,
   usePositionDetail,
 } from '../model'
@@ -22,6 +35,7 @@ const EMPTY_OPTIONS: AbzaSelectOption[] = []
 const EMPTY_CONDITIONS: AttributeConditionDraft[] = []
 const EMPTY_TAG_RESTRICTION_IDS = new Map<number, { id: number; version: number }>()
 const EMPTY_ATTRIBUTE_RESTRICTION_IDS = new Map<string, { id: number; version: number }>()
+const EMPTY_FORM_VALUES: AbzaFormValues = {}
 
 type PositionDetailProps = {
   positionId: number
@@ -46,9 +60,16 @@ function PositionDetailContent() {
     setIsEditModalOpen,
     handleEditClick,
     handleEditSubmit,
+    handleDescriptionSubmit,
     handleResumeAction,
     loadAttributeOptions,
   } = usePositionDetail()
+
+  const [formValues, setFormValues] = useState<AbzaFormValues>(EMPTY_FORM_VALUES)
+  const [isAutosaveActive, setAutosaveActive] = useState(false)
+  const formValuesRef = useRef(formValues)
+  const savedValuesRef = useRef<AbzaFormValues>(EMPTY_FORM_VALUES)
+  const pendingSaveRef = useRef<AbzaFormValues | null>(null)
 
   const editInitialInfo = useMemo(
     () => (position ? positionToInfoFormValues(position) : undefined),
@@ -62,6 +83,111 @@ function PositionDetailContent() {
     () => (position ? positionTagsToOptions(position) : EMPTY_OPTIONS),
     [position],
   )
+
+  const formConfig = useMemo(
+    () =>
+      createPositionInfoFormConfig(t, {
+        readOnly: !canEdit,
+        loadAttributeOptions,
+        loadTagOptions,
+        withRelations: true,
+      }),
+    [canEdit, i18n.language, loadAttributeOptions, t],
+  )
+
+  const isDirty = !areAbzaFormValuesEqual(formValues, savedValuesRef.current)
+  const showSaveButton = canEdit && tab === 'description'
+
+  const onFlush = useCallback(async () => {
+    if (areAbzaFormValuesEqual(formValuesRef.current, savedValuesRef.current)) {
+      setAutosaveActive(false)
+      return
+    }
+
+    const toSave = formValuesRef.current
+    pendingSaveRef.current = toSave
+
+    try {
+      await handleDescriptionSubmit(toSave)
+    } catch (flushError) {
+      pendingSaveRef.current = null
+      throw flushError
+    }
+
+    if (areAbzaFormValuesEqual(formValuesRef.current, toSave)) {
+      setAutosaveActive(false)
+    }
+  }, [handleDescriptionSubmit])
+
+  const { isSaving, autosaveEnabled, flush, schedule, reset, reenable } = useAutosave({
+    enabled: canEdit,
+    onFlush,
+    setActive: setAutosaveActive,
+    onError: (flushError) => {
+      setActionError(getErrorKey(flushError, 'error.positions.update'))
+    },
+  })
+
+  useEffect(() => {
+    formValuesRef.current = formValues
+  }, [formValues])
+
+  useEffect(() => {
+    if (!position) {
+      pendingSaveRef.current = null
+      setFormValues(EMPTY_FORM_VALUES)
+      savedValuesRef.current = EMPTY_FORM_VALUES
+      reset(false)
+      return
+    }
+
+    const next = positionToFormValues(position)
+    const pending = pendingSaveRef.current
+
+    if (pending) {
+      pendingSaveRef.current = null
+
+      if (areAbzaFormValuesEqual(formValuesRef.current, pending)) {
+        formValuesRef.current = next
+        setFormValues(next)
+        savedValuesRef.current = next
+      } else {
+        savedValuesRef.current = next
+      }
+      return
+    }
+
+    formValuesRef.current = next
+    setFormValues(next)
+    savedValuesRef.current = next
+    reset(canEdit)
+  }, [canEdit, position, reset])
+
+  const handleFieldChange = useCallback(
+    (name: string, value: AbzaFormValue) => {
+      if (!canEdit) {
+        return
+      }
+
+      const next = { ...formValuesRef.current, [name]: value }
+      formValuesRef.current = next
+      setFormValues(next)
+      reenable()
+      setActionError(null)
+      schedule()
+    },
+    [canEdit, reenable, schedule, setActionError],
+  )
+
+  const handleManualSave = useCallback(() => {
+    if (!isDirty && !isSaving) {
+      return
+    }
+
+    void flush()
+  }, [flush, isDirty, isSaving])
+
+  const canSave = autosaveEnabled && (isDirty || isSaving)
 
   if (isLoading) {
     return (
@@ -77,8 +203,6 @@ function PositionDetailContent() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <AbzaError error={actionError} onClose={() => setActionError(null)} />
-
       <Box
         sx={{
           display: 'flex',
@@ -89,9 +213,19 @@ function PositionDetailContent() {
         }}
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
-          <Typography variant="h5" component="h1">
-            {t('positions.detail.title', { name: position.name })}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+            <Typography variant="h5" component="h1" sx={{ minWidth: 0 }}>
+              {t('positions.detail.title', { name: position.name })}
+            </Typography>
+            {showSaveButton ? (
+              <AutosaveButton
+                label={t('profile.save')}
+                onClick={handleManualSave}
+                disabled={!canSave}
+                active={isAutosaveActive || isDirty}
+              />
+            ) : null}
+          </Box>
           <Typography variant="body1" color="text.secondary">
             {t('positions.detail.postedBy', {
               name: position.createdByName || t('positions.detail.unknownAuthor'),
@@ -129,18 +263,32 @@ function PositionDetailContent() {
         </Box>
       </Box>
 
-      <Box>
-        <Tabs value={tab} onChange={(_, value: string) => setTab(value)}>
+      <AbzaError error={actionError} onClose={() => setActionError(null)} />
+
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        <Tabs
+          value={tab}
+          onChange={(_, value: string) => setTab(value)}
+          variant="scrollable"
+          allowScrollButtonsMobile
+        >
           <Tab value="description" label={t('positions.detail.tabs.description')} />
           <Tab value="discussion" label={t('positions.detail.tabs.discussion')} />
         </Tabs>
-        <Box sx={{ py: 3 }}>
-          {tab === 'description' ? (
-            <Typography color="text.secondary">{t('positions.detail.tabsEmpty')}</Typography>
-          ) : (
-            <Typography color="text.secondary">{t('positions.detail.tabsEmpty')}</Typography>
-          )}
-        </Box>
+
+        {tab === 'description' ? (
+          <AbzaForm
+            hideSubmitButton
+            config={formConfig}
+            values={formValues}
+            onFieldChange={handleFieldChange}
+            onFieldBlur={() => {
+              void flush()
+            }}
+          />
+        ) : (
+          <Typography color="text.secondary">{t('positions.detail.tabsEmpty')}</Typography>
+        )}
       </Box>
 
       {canEdit ? (

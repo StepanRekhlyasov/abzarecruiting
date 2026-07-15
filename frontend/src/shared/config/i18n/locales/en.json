@@ -424,6 +424,7 @@
       "forPosition": "Resume for position: {{name}}",
       "attributes": "Info",
       "attributesEmpty": "No attributes for this position",
+      "personalEmpty": "No personal data",
       "projects": "Projects",
       "projectsEmpty": "No matching projects attached",
       "maxProjects": "max {{count}}",
@@ -431,6 +432,11 @@
       "unpublish": "Unpublish",
       "publishHint": "Fill in all required attributes to publish",
       "downloadPdf": "Download PDF",
+      "tabs": {
+        "personal": "Personal data",
+        "info": "Info",
+        "projects": "Projects"
+      },
       "labels": {
         "email": "email",
         "phone": "tel.",

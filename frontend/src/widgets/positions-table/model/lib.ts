@@ -13,6 +13,14 @@ export function positionToInfoFormValues(position: PositionDto): AbzaFormValues 
   }
 }
 
+export function positionToFormValues(position: PositionDto): AbzaFormValues {
+  return {
+    ...positionToInfoFormValues(position),
+    attributes: positionAttributesToOptions(position),
+    tags: positionTagsToOptions(position),
+  }
+}
+
 export function positionAttributesToOptions(position: PositionDto): AbzaSelectOption[] {
   return position.attributes.map((item) => ({
     value: String(item.attributeId),

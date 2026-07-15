@@ -3,5 +3,6 @@ export {
   usePositionDetail,
   positionAttributesToOptions,
   positionTagsToOptions,
+  positionToFormValues,
   positionToInfoFormValues,
 } from './composable'

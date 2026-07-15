@@ -19,6 +19,7 @@ type AsyncEntityTagsProps = {
   size?: 'small' | 'medium'
   sx?: SxProps<Theme>
   createOptionLabel?: (name: string) => string
+  onBlur?: () => void
 }
 
 function toOption(value: string | AbzaSelectOption): AbzaSelectOption {
@@ -50,6 +51,7 @@ export function AsyncEntityTags({
   size = 'medium',
   sx,
   createOptionLabel,
+  onBlur,
 }: AsyncEntityTagsProps) {
   const { t } = useTranslation()
   const [inputValue, setInputValue] = useState('')
@@ -153,6 +155,7 @@ export function AsyncEntityTags({
         onChange([...unique.values()])
         setInputValue('')
       }}
+      onBlur={onBlur}
       renderOption={(props, option) => {
         const item = typeof option === 'string' ? toOption(option) : option
         const { key, ...rest } = props

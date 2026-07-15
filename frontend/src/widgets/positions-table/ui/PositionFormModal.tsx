@@ -3,14 +3,16 @@ import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
-import { createPositionInfoFormConfig } from '@shared/config/forms'
+import {
+  createPositionInfoFormConfig,
+  createPositionRelationsFormConfig,
+} from '@shared/config/forms'
 import { i18n } from '@shared/config/i18n'
 import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
 import type { AttributeConditionDraft } from '@entities/restriction'
 import type { AbzaFormValues, AbzaSelectOption } from '@shared/types'
-import { TagsField } from '@entities/tag'
-import { AsyncEntityTags } from '@shared/ui/inputs'
+import { getTagOptionsFromValues, loadTagOptions } from '@entities/tag'
 import { RestrictionsTab } from './RestrictionsTab'
 
 export type PositionFormSubmitPayload = {
@@ -47,6 +49,10 @@ const EMPTY_OPTIONS: AbzaSelectOption[] = []
 const EMPTY_CONDITIONS: AttributeConditionDraft[] = []
 const EMPTY_TAG_RESTRICTION_IDS = new Map<number, RestrictionMeta>()
 const EMPTY_ATTRIBUTE_RESTRICTION_IDS = new Map<string, RestrictionMeta>()
+const EMPTY_RELATION_VALUES: AbzaFormValues = {
+  attributes: EMPTY_OPTIONS,
+  tags: EMPTY_OPTIONS,
+}
 
 export function PositionFormModal({
   open,
@@ -87,8 +93,7 @@ export function PositionFormModal({
   }
 
   const [tab, setTab] = useState(0)
-  const [attributes, setAttributes] = useState<AbzaSelectOption[]>(EMPTY_OPTIONS)
-  const [tags, setTags] = useState<AbzaSelectOption[]>(EMPTY_OPTIONS)
+  const [relationValues, setRelationValues] = useState<AbzaFormValues>(EMPTY_RELATION_VALUES)
   const [requiredTags, setRequiredTags] = useState<AbzaSelectOption[]>(EMPTY_OPTIONS)
   const [attributeConditions, setAttributeConditions] =
     useState<AttributeConditionDraft[]>(EMPTY_CONDITIONS)
@@ -110,8 +115,10 @@ export function PositionFormModal({
     wasOpenRef.current = true
     const initials = initialsRef.current
     setTab(0)
-    setAttributes(initials.initialAttributes)
-    setTags(initials.initialTags)
+    setRelationValues({
+      attributes: initials.initialAttributes,
+      tags: initials.initialTags,
+    })
     setRequiredTags(initials.initialRequiredTags)
     setAttributeConditions(initials.initialAttributeConditions)
     setTagRestrictionIds(initials.initialTagRestrictionIds)
@@ -120,7 +127,17 @@ export function PositionFormModal({
 
   const infoConfig = useMemo(
     () => createPositionInfoFormConfig(t, { readOnly: isViewMode }),
-    [i18n.language, isViewMode],
+    [i18n.language, isViewMode, t],
+  )
+
+  const relationsConfig = useMemo(
+    () =>
+      createPositionRelationsFormConfig(t, {
+        readOnly: isViewMode,
+        loadAttributeOptions,
+        loadTagOptions,
+      }),
+    [i18n.language, isViewMode, loadAttributeOptions, t],
   )
 
   const handleInfoSubmit = async (info: AbzaFormValues) => {
@@ -130,8 +147,8 @@ export function PositionFormModal({
 
     await onSubmit({
       info,
-      attributes,
-      tags,
+      attributes: getTagOptionsFromValues(relationValues, 'attributes'),
+      tags: getTagOptionsFromValues(relationValues, 'tags'),
       requiredTags,
       attributeConditions,
       initialTagRestrictionIds: tagRestrictionIds,
@@ -200,19 +217,16 @@ export function PositionFormModal({
         />
       </Box>
 
-      <Box sx={{ display: tab === 1 ? 'flex' : 'none', flexDirection: 'column', gap: 2, pt: 1 }}>
-        <AsyncEntityTags
-          label={t('positions.fields.attributes')}
-          value={attributes}
-          onChange={setAttributes}
-          loadOptions={loadAttributeOptions}
-          disabled={isLoading || isViewMode}
-        />
-        <TagsField
-          label={t('positions.fields.tags')}
-          value={tags}
-          onChange={setTags}
-          disabled={isLoading || isViewMode}
+      <Box sx={{ display: tab === 1 ? 'block' : 'none', pt: 1 }}>
+        <AbzaForm
+          key={open ? `${mode}-relations` : 'closed-relations'}
+          hideSubmitButton
+          config={relationsConfig}
+          values={relationValues}
+          onFieldChange={(name, value) => {
+            setRelationValues((prev) => ({ ...prev, [name]: value }))
+          }}
+          isLoading={isLoading}
         />
       </Box>
 

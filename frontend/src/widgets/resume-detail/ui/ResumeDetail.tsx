@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import DownloadIcon from '@mui/icons-material/Download'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
-import SaveIcon from '@mui/icons-material/Save'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import IconButton from '@mui/material/IconButton'
+import Tab from '@mui/material/Tab'
+import Tabs from '@mui/material/Tabs'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { useTranslation } from 'react-i18next'
@@ -13,43 +14,21 @@ import { AbzaError } from '@features/abza-error'
 import { ResumeLike } from '@features/resume-like'
 import {
   toComparableAttributeValue,
-  toAttributeDraftValue,
   type AttributeDraftValue,
   type ProfileAttributeDto,
 } from '@shared/types'
+import { useAttributeAutosave } from '@shared/lib/autosave'
 import { getErrorKey } from '@shared/lib/errors'
+import { AutosaveButton } from '@shared/ui'
 import { AttributeSection } from '@widgets/candidate-profile'
 import { ResumeDetailProvider, useResumeDetail } from '../model'
 import { ResumeProjectsSection } from '../parts/ResumeProjectsSection'
-
-const AUTOSAVE_DELAY_MS = 5000
 
 type ResumeDetailProps = {
   resumeId: number
 }
 
-function toDraftMap(attributes: ProfileAttributeDto[]) {
-  return Object.fromEntries(
-    attributes.map((attribute) => [attribute.id, toAttributeDraftValue(attribute)]),
-  )
-}
-
-function toVersionMap(attributes: { id: number; version: number }[]) {
-  return Object.fromEntries(attributes.map((attribute) => [attribute.id, attribute.version]))
-}
-
-function getDirtyIds(
-  draft: Record<number, AttributeDraftValue>,
-  saved: Record<number, AttributeDraftValue>,
-) {
-  return Object.keys(draft)
-    .map(Number)
-    .filter(
-      (attributeId) =>
-        toComparableAttributeValue(draft[attributeId]) !==
-        toComparableAttributeValue(saved[attributeId]),
-    )
-}
+type ResumeTab = 'personal' | 'info' | 'projects'
 
 function hasAllAttributeValues(
   attributes: ProfileAttributeDto[],
@@ -103,151 +82,40 @@ function ResumeDetailContent() {
     downloadPdf,
   } = useResumeDetail()
 
-  const [draft, setDraft] = useState<Record<number, AttributeDraftValue>>({})
-  const [autosaveEnabled, setAutosaveEnabled] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
+  const [activeTab, setActiveTab] = useState<ResumeTab>('personal')
 
-  const draftRef = useRef(draft)
-  const savedRef = useRef<Record<number, AttributeDraftValue>>({})
-  const versionsRef = useRef<Record<number, number>>({})
-  const timerRef = useRef<number | null>(null)
-  const autosaveEnabledRef = useRef(true)
-  const savingRef = useRef(false)
+  const {
+    draft,
+    isDirty,
+    isSaving,
+    canSave,
+    handleChange,
+    handleManualSave,
+    flush,
+  } = useAttributeAutosave({
+    attributes,
+    canEdit,
+    isLoading,
+    saveAttributeValue,
+    setActionError,
+    setAutosaveActive,
+  })
 
-  const dirtyIds = getDirtyIds(draft, savedRef.current)
-  const isDirty = dirtyIds.length > 0
   const allFilled = hasAllAttributeValues(attributes, draft)
   const displayAttributes = useMemo(
     () => withResumeAttributeLabels(attributes, t),
     [attributes, t],
   )
+  const personalAttributes = useMemo(
+    () => displayAttributes.filter((attribute) => attribute.isDefault),
+    [displayAttributes],
+  )
+  const infoAttributes = useMemo(
+    () => displayAttributes.filter((attribute) => !attribute.isDefault),
+    [displayAttributes],
+  )
 
-  const clearTimer = useCallback(() => {
-    if (timerRef.current !== null) {
-      window.clearTimeout(timerRef.current)
-      timerRef.current = null
-    }
-  }, [])
-
-  const flush = useCallback(async () => {
-    clearTimer()
-
-    if (!autosaveEnabledRef.current || savingRef.current || !canEdit) {
-      return
-    }
-
-    const ids = getDirtyIds(draftRef.current, savedRef.current)
-    if (ids.length === 0) {
-      setAutosaveActive(false)
-      return
-    }
-
-    savingRef.current = true
-    setIsSaving(true)
-    setAutosaveActive(true)
-
-    try {
-      for (const attributeId of ids) {
-        if (!autosaveEnabledRef.current) {
-          break
-        }
-
-        const value = draftRef.current[attributeId] ?? ''
-        const saved = savedRef.current[attributeId] ?? ''
-
-        if (toComparableAttributeValue(value) === toComparableAttributeValue(saved)) {
-          continue
-        }
-
-        const version = versionsRef.current[attributeId] ?? 0
-        const nextVersion = await saveAttributeValue(attributeId, value, version)
-        savedRef.current[attributeId] = value
-        versionsRef.current[attributeId] = nextVersion
-      }
-    } catch (flushError) {
-      autosaveEnabledRef.current = false
-      setAutosaveEnabled(false)
-      setActionError(flushError instanceof Error ? flushError.message : 'error.profile.save')
-    } finally {
-      savingRef.current = false
-      setIsSaving(false)
-      const stillDirty = getDirtyIds(draftRef.current, savedRef.current).length > 0
-      setAutosaveActive(autosaveEnabledRef.current && stillDirty)
-    }
-  }, [canEdit, clearTimer, saveAttributeValue, setActionError, setAutosaveActive])
-
-  const scheduleAutosave = useCallback(() => {
-    if (!autosaveEnabledRef.current || !canEdit) {
-      return
-    }
-
-    clearTimer()
-    timerRef.current = window.setTimeout(() => {
-      void flush()
-    }, AUTOSAVE_DELAY_MS)
-  }, [canEdit, clearTimer, flush])
-
-  useEffect(() => {
-    draftRef.current = draft
-  }, [draft])
-
-  useEffect(() => {
-    autosaveEnabledRef.current = autosaveEnabled
-  }, [autosaveEnabled])
-
-  useEffect(() => {
-    if (isLoading) {
-      return
-    }
-
-    clearTimer()
-    const next = toDraftMap(attributes)
-    draftRef.current = next
-    setDraft(next)
-    savedRef.current = { ...next }
-    versionsRef.current = toVersionMap(attributes)
-    setAutosaveEnabled(true)
-    autosaveEnabledRef.current = true
-    setActionError(null)
-    setAutosaveActive(false)
-  }, [attributes, isLoading, clearTimer, setActionError, setAutosaveActive])
-
-  useEffect(() => {
-    return () => {
-      clearTimer()
-      setAutosaveActive(false)
-
-      if (!autosaveEnabledRef.current || savingRef.current || !canEdit) {
-        return
-      }
-
-      const ids = getDirtyIds(draftRef.current, savedRef.current)
-      for (const attributeId of ids) {
-        const value = draftRef.current[attributeId] ?? ''
-        const version = versionsRef.current[attributeId] ?? 0
-        void saveAttributeValue(attributeId, value, version)
-      }
-    }
-  }, [canEdit, clearTimer, saveAttributeValue, setAutosaveActive])
-
-  const handleChange = (attributeId: number, value: AttributeDraftValue) => {
-    if (!canEdit) {
-      return
-    }
-
-    const next = { ...draftRef.current, [attributeId]: value }
-    draftRef.current = next
-    setDraft(next)
-
-    if (!autosaveEnabledRef.current) {
-      autosaveEnabledRef.current = true
-      setAutosaveEnabled(true)
-      setActionError(null)
-    }
-
-    setAutosaveActive(true)
-    scheduleAutosave()
-  }
+  const showSaveButton = canEdit && (activeTab === 'personal' || activeTab === 'info')
 
   const handlePublishClick = async () => {
     await flush()
@@ -292,9 +160,19 @@ function ResumeDetailContent() {
         }}
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
-          <Typography variant="h5" component="h1" sx={{ minWidth: 0 }}>
-            {t('cvs.detail.forPosition', { name: resume.positionName })}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+            <Typography variant="h5" component="h1" sx={{ minWidth: 0 }}>
+              {t('cvs.detail.forPosition', { name: resume.positionName })}
+            </Typography>
+            {showSaveButton ? (
+              <AutosaveButton
+                label={t('profile.save')}
+                onClick={handleManualSave}
+                disabled={!canSave}
+                active={isAutosaveActive || isDirty}
+              />
+            ) : null}
+          </Box>
           <ResumeLike
             resumeId={resume.id}
             likesCount={resume.likesCount}
@@ -306,17 +184,6 @@ function ResumeDetailContent() {
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          {canEdit && isAutosaveActive ? (
-            <IconButton
-              color="primary"
-              onClick={() => void flush()}
-              disabled={isSaving || !isDirty}
-              aria-label={t('profile.save')}
-            >
-              {isSaving ? <CircularProgress size={20} /> : <SaveIcon />}
-            </IconButton>
-          ) : null}
-
           {canEdit ? (
             <>
               {!resume.published ? (
@@ -352,33 +219,56 @@ function ResumeDetailContent() {
         </Box>
       </Box>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        <Typography variant="h6" component="h2">
-          {t('cvs.detail.attributes')}
-        </Typography>
-        <AttributeSection
-          mode="default"
-          attributes={displayAttributes}
-          draftValues={draft}
-          onChange={handleChange}
-          onForceSave={() => {
-            void flush()
-          }}
-          emptyMessage={t('cvs.detail.attributesEmpty')}
-          editable={canEdit}
-        />
-      </Box>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(_, value: ResumeTab) => setActiveTab(value)}
+          variant="scrollable"
+          allowScrollButtonsMobile
+        >
+          <Tab value="personal" label={t('cvs.detail.tabs.personal')} />
+          <Tab value="info" label={t('cvs.detail.tabs.info')} />
+          <Tab value="projects" label={t('cvs.detail.tabs.projects')} />
+        </Tabs>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        <Typography variant="h6" component="h2">
-          {t('cvs.detail.projects')}
-          {resume.maxProjects > 0 ? (
-            <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-              ({t('cvs.detail.maxProjects', { count: resume.maxProjects })})
-            </Typography>
-          ) : null}
-        </Typography>
-        <ResumeProjectsSection projects={projects} />
+        {activeTab === 'personal' ? (
+          <AttributeSection
+            mode="default"
+            attributes={personalAttributes}
+            draftValues={draft}
+            onChange={handleChange}
+            onForceSave={() => {
+              void flush()
+            }}
+            emptyMessage={t('cvs.detail.personalEmpty')}
+            editable={canEdit}
+          />
+        ) : null}
+
+        {activeTab === 'info' ? (
+          <AttributeSection
+            mode="default"
+            attributes={infoAttributes}
+            draftValues={draft}
+            onChange={handleChange}
+            onForceSave={() => {
+              void flush()
+            }}
+            emptyMessage={t('cvs.detail.attributesEmpty')}
+            editable={canEdit}
+          />
+        ) : null}
+
+        {activeTab === 'projects' ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {resume.maxProjects > 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                {t('cvs.detail.maxProjects', { count: resume.maxProjects })}
+              </Typography>
+            ) : null}
+            <ResumeProjectsSection projects={projects} />
+          </Box>
+        ) : null}
       </Box>
     </Box>
   )

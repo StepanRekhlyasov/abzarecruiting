@@ -424,6 +424,7 @@
       "forPosition": "Резюме для вакансии: {{name}}",
       "attributes": "Информация",
       "attributesEmpty": "Нет атрибутов для этой вакансии",
+      "personalEmpty": "Нет личных данных",
       "projects": "Проекты",
       "projectsEmpty": "Подходящие проекты не прикреплены",
       "maxProjects": "макс. {{count}}",
@@ -431,6 +432,11 @@
       "unpublish": "Снять с публикации",
       "publishHint": "Чтобы опубликовать заполните все необходимые атрибуты",
       "downloadPdf": "Скачать PDF",
+      "tabs": {
+        "personal": "Личные данные",
+        "info": "Информация",
+        "projects": "Проекты"
+      },
       "labels": {
         "email": "email",
         "phone": "tel.",
