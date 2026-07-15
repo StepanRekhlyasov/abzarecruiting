@@ -298,7 +298,7 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
         return
       }
 
-      if (row.role !== 'Candidate') {
+      if (row.role !== 'Candidate' && row.role !== 'Recruiter' && row.role !== 'Admin') {
         return
       }
 
@@ -308,7 +308,12 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
   )
 
   const handleOpenCandidateProfile = useCallback(() => {
-    if (!managedUser || managedUser.role !== 'Candidate') {
+    if (
+      !managedUser ||
+      (managedUser.role !== 'Candidate' &&
+        managedUser.role !== 'Recruiter' &&
+        managedUser.role !== 'Admin')
+    ) {
       return
     }
 

@@ -14,6 +14,7 @@ import { ROUTES } from '@shared/config/routes'
 import { toSubmitValues } from '@shared/lib/helpers'
 import { AppHeader } from '@features/app-header'
 import { AbzaForm, type AbzaFormValues } from '@features/abza-form'
+import { SocialLoginButtons } from '@features/social-login'
 
 export function RegisterPage() {
   const { t } = useTranslation()
@@ -75,6 +76,8 @@ export function RegisterPage() {
               onSubmit={handleSubmit}
               isLoading={isLoading}
             />
+
+            <SocialLoginButtons disabled={isLoading || Boolean(successMessage)} />
 
             <Typography variant="body2" sx={{ mt: 3, textAlign: 'center' }}>
               {t('auth.register.hasAccount')}{' '}

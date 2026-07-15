@@ -107,14 +107,17 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
             return null;
         }
 
-        var isCandidate = await (
+        var hasProfileRole = await (
             from userRole in db.UserRoles.AsNoTracking()
             join role in db.Roles.AsNoTracking() on userRole.RoleId equals role.Id
-            where userRole.UserId == candidateId && role.Name == Roles.Candidate
+            where userRole.UserId == candidateId
+                && (role.Name == Roles.Candidate
+                    || role.Name == Roles.Recruiter
+                    || role.Name == Roles.Admin)
             select role.Id
         ).AnyAsync(cancellationToken);
 
-        if (!isCandidate)
+        if (!hasProfileRole)
         {
             throw new InvalidOperationException("error.profile.notCandidate");
         }

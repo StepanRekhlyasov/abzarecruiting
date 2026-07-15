@@ -3,6 +3,7 @@ export const ROUTES = {
   login: '/login',
   register: '/register',
   confirmEmail: '/confirm-email',
+  authCallback: '/auth/callback',
   attributes: '/attributes',
   tags: '/tags',
   positions: '/positions',

@@ -4,6 +4,7 @@ import { HomePage } from '@pages/home'
 import { LoginPage } from '@pages/login'
 import { RegisterPage } from '@pages/register'
 import { ConfirmEmailPage } from '@pages/confirm-email'
+import { AuthCallbackPage } from '@pages/auth-callback'
 import { AttributesPage } from '@pages/attributes'
 import { TagsPage } from '@pages/tags'
 import { PositionsPage, PositionDetailPage } from '@pages/positions'
@@ -30,6 +31,7 @@ const publicRoutes: { path: string; element: ReactNode }[] = [
   { path: ROUTES.login, element: <LoginPage /> },
   { path: ROUTES.register, element: <RegisterPage /> },
   { path: ROUTES.confirmEmail, element: <ConfirmEmailPage /> },
+  { path: ROUTES.authCallback, element: <AuthCallbackPage /> },
   { path: ROUTES.positions, element: <PositionsPage /> },
   { path: ROUTES.positionDetail, element: <PositionDetailPage /> },
 ]

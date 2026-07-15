@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link as RouterLink, useNavigate } from 'react-router-dom'
+import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom'
+import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import Link from '@mui/material/Link'
@@ -13,11 +14,14 @@ import { ROUTES } from '@shared/config/routes'
 import { toSubmitValues } from '@shared/lib/helpers'
 import { AppHeader } from '@features/app-header'
 import { AbzaForm, type AbzaFormValues } from '@features/abza-form'
+import { SocialLoginButtons } from '@features/social-login'
 
 export function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
+  const externalError = searchParams.get('error')
 
   const formConfig = useMemo(() => createLoginFormConfig(t), [i18n.language])
 
@@ -48,11 +52,19 @@ export function LoginPage() {
               {t('auth.login.subtitle')}
             </Typography>
 
+            {externalError ? (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {t(externalError)}
+              </Alert>
+            ) : null}
+
             <AbzaForm
               config={formConfig}
               onSubmit={handleSubmit}
               isLoading={isLoading}
             />
+
+            <SocialLoginButtons disabled={isLoading} />
 
             <Typography variant="body2" sx={{ mt: 3, textAlign: 'center' }}>
               {t('auth.login.noAccount')}{' '}

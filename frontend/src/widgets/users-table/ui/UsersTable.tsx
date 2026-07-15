@@ -267,14 +267,16 @@ function UsersTableContent() {
                   {t('profile.users.manage.sendActivationEmail')}
                 </Button>
 
-                {managedUser.role === 'Candidate' ? (
+                {managedUser.role === 'Candidate' ||
+                managedUser.role === 'Recruiter' ||
+                managedUser.role === 'Admin' ? (
                   <Button
                     variant="contained"
                     disabled={isLoading}
                     onClick={handleOpenCandidateProfile}
                     sx={{ boxShadow: 'none', alignSelf: 'flex-start' }}
                   >
-                    {t('profile.users.manage.openCandidateProfile')}
+                    {t('profile.users.manage.openProfile')}
                   </Button>
                 ) : null}
               </Stack>

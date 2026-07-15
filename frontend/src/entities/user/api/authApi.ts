@@ -7,8 +7,11 @@ import type {
   RegisterRequest,
   RegisterResultResponse,
 } from '@shared/types'
-import { apiClient } from '@shared/api'
+import { API_BASE_URL, apiClient } from '@shared/api'
 import { parseApiError } from '@shared/lib/errors'
+import { ROUTES } from '@shared/config/routes'
+
+export type ExternalAuthProvider = 'google' | 'facebook'
 
 export function isUnauthorizedError(error: unknown): boolean {
   return isAxiosError(error) && error.response?.status === 401
@@ -44,4 +47,10 @@ export async function confirmEmail(request: ConfirmEmailRequest): Promise<{ mess
 export async function getCurrentUser(): Promise<CurrentUserResponse> {
   const { data } = await apiClient.get<CurrentUserResponse>('/Auth/me')
   return data
+}
+
+export function getExternalLoginUrl(provider: ExternalAuthProvider): string {
+  const returnUrl = `${window.location.origin}${ROUTES.authCallback}`
+  const params = new URLSearchParams({ returnUrl })
+  return `${API_BASE_URL}/Auth/external/${provider}?${params.toString()}`
 }

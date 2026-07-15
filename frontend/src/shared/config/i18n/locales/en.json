@@ -71,6 +71,7 @@
         "deactivate": "Deactivate",
         "sendActivationEmail": "Send activation email",
         "openCandidateProfile": "Open candidate profile",
+        "openProfile": "Open profile",
         "locked": "User blocked",
         "unlocked": "User unblocked",
         "activated": "User activated",
@@ -153,6 +154,16 @@
       "hasAccount": "Already have an account?",
       "loginLink": "Log in",
       "checkEmail": "Registration successful. Check your email to activate your account."
+    },
+    "social": {
+      "or": "or continue with",
+      "google": "Continue with Google",
+      "facebook": "Continue with Facebook"
+    },
+    "callback": {
+      "title": "Signing in",
+      "loading": "Completing social sign-in...",
+      "loginLink": "Go to login"
     },
     "confirmEmail": {
       "title": "Email confirmation",
@@ -502,7 +513,12 @@
       "userLockedOut": "Account is locked.",
       "invalidConfirmation": "Invalid or expired confirmation link.",
       "frontendBaseUrlRequired": "Frontend base URL is required.",
-      "invalidFrontendBaseUrl": "Invalid frontend base URL."
+      "invalidFrontendBaseUrl": "Invalid frontend base URL.",
+      "externalLoginFailed": "Social sign-in failed. Please try again.",
+      "externalLoginEmailRequired": "Email permission is required for social sign-in.",
+      "externalProviderUnsupported": "Unsupported social provider.",
+      "externalProviderNotConfigured": "Social provider is not configured.",
+      "invalidReturnUrl": "Invalid return URL."
     },
     "users": {
       "notFound": "One or more users were not found",

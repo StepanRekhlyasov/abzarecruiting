@@ -36,8 +36,16 @@ services:
       - DOTNET_USE_POLLING_FILE_WATCHER=true
       - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=camp_project;User=app;Password=app;
       - Cors__AllowedOrigins__0=http://localhost:8000
+      - Cors__AllowedOrigins__1=http://127.0.0.1:8000
+      - Cors__AllowedOrigins__2=http://abzabza.ru
+      - Cors__AllowedOrigins__3=https://abzabza.ru
+      - Cors__AllowedOrigins__4=http://44.194.248.98:8000
       - Jwt__SecretKey=gdbL7Y4PkEDTp8isj2MTLzlOMbCLmfCo
       - App__FrontendBaseUrl=http://localhost:8000
+      - Authentication__Google__ClientId=846055016668-p8rj8p7n1a0kg6c7mobgigh796c98saf.apps.googleusercontent.com
+      - Authentication__Google__ClientSecret=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
+      - Authentication__Facebook__AppId=
+      - Authentication__Facebook__AppSecret=
       - Smtp__Host=smtp.gmail.com
       - Smtp__Port=587
       - Smtp__User=mailtestingchamber@gmail.com
@@ -50,6 +58,7 @@ services:
       - FileStorage__MaxFileSizeBytes=10485760
     volumes:
       - uploads_data:/app/uploads
+      - dataprotection_data:/app/dataprotection-keys
     depends_on:
       mysql:
         condition: service_healthy
@@ -100,4 +109,5 @@ services:
 volumes:
   mysql_data:
   uploads_data:
+  dataprotection_data:
   frontend_node_modules:

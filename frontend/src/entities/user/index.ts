@@ -14,7 +14,8 @@ export type {
   UserRole,
 } from '@shared/types'
 export { getSessionDisplayName, isAdmin, isCandidate, isRecruiter, isRecruiterOrAdmin } from './model/helpers'
-export { confirmEmail, getCurrentUser, isUnauthorizedError, login, register } from './api/authApi'
+export { confirmEmail, getCurrentUser, getExternalLoginUrl, isUnauthorizedError, login, register } from './api/authApi'
+export type { ExternalAuthProvider } from './api/authApi'
 export {
   changeUsersRoleBatch,
   createUser,

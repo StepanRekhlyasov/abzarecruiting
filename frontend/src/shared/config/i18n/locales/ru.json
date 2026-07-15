@@ -71,6 +71,7 @@
         "deactivate": "Деактивировать",
         "sendActivationEmail": "Отправить письмо активации",
         "openCandidateProfile": "Открыть профиль кандидата",
+        "openProfile": "Открыть профиль",
         "locked": "Пользователь заблокирован",
         "unlocked": "Пользователь разблокирован",
         "activated": "Пользователь активирован",
@@ -153,6 +154,16 @@
       "hasAccount": "Уже есть аккаунт?",
       "loginLink": "Войти",
       "checkEmail": "Регистрация успешна. Проверьте почту для активации аккаунта."
+    },
+    "social": {
+      "or": "или продолжить с",
+      "google": "Войти через Google",
+      "facebook": "Войти через Facebook"
+    },
+    "callback": {
+      "title": "Вход",
+      "loading": "Завершаем вход через соцсеть...",
+      "loginLink": "Перейти ко входу"
     },
     "confirmEmail": {
       "title": "Подтверждение email",
@@ -502,7 +513,12 @@
       "userLockedOut": "Аккаунт заблокирован.",
       "invalidConfirmation": "Некорректная или устаревшая ссылка подтверждения.",
       "frontendBaseUrlRequired": "Нужен базовый URL фронтенда.",
-      "invalidFrontendBaseUrl": "Некорректный базовый URL фронтенда."
+      "invalidFrontendBaseUrl": "Некорректный базовый URL фронтенда.",
+      "externalLoginFailed": "Не удалось войти через соцсеть. Попробуйте снова.",
+      "externalLoginEmailRequired": "Для входа через соцсеть нужно разрешение на email.",
+      "externalProviderUnsupported": "Неподдерживаемый провайдер.",
+      "externalProviderNotConfigured": "Провайдер соцсети не настроен.",
+      "invalidReturnUrl": "Некорректный URL возврата."
     },
     "users": {
       "notFound": "Один или несколько пользователей не найдены",

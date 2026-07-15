@@ -43,7 +43,7 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
       items.push({ to: ROUTES.projects, labelKey: 'common.projects' as const })
     }
 
-    if (isCandidate(session)) {
+    if (isCandidate(session) || isAdmin(session)) {
       items.push({ to: ROUTES.profile, labelKey: 'common.profile' as const })
     }
 

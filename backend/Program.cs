@@ -19,7 +19,9 @@ using Backend.Api.Services.Files;
 using Backend.Api.Services.User;
 using Backend.Api.WebSockets;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -35,6 +37,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 builder.Services.Configure<AppSettings>(builder.Configuration.GetSection(AppSettings.SectionName));
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection(SmtpSettings.SectionName));
+builder.Services.Configure<AuthenticationSettings>(
+    builder.Configuration.GetSection(AuthenticationSettings.SectionName));
 builder.Services.Configure<DefaultAttributesSettings>(
     builder.Configuration.GetSection(DefaultAttributesSettings.SectionName));
 builder.Services.Configure<FileStorageSettings>(
@@ -43,10 +47,24 @@ builder.Services.Configure<FormOptions>(options =>
 {
     options.MultipartBodyLengthLimit = FileStorageSettings.DefaultMaxFileSizeBytes;
 });
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor
+        | ForwardedHeaders.XForwardedProto
+        | ForwardedHeaders.XForwardedHost;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.Limits.MaxRequestBodySize = FileStorageSettings.DefaultMaxFileSizeBytes;
 });
+
+var dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, "dataprotection-keys");
+Directory.CreateDirectory(dataProtectionKeysPath);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
+    .SetApplicationName("Backend.Api");
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
@@ -73,8 +91,10 @@ builder.Services
 
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
     ?? throw new InvalidOperationException("JWT settings are not configured.");
+var authenticationSettings = builder.Configuration.GetSection(AuthenticationSettings.SectionName)
+    .Get<AuthenticationSettings>() ?? new AuthenticationSettings();
 
-builder.Services
+var authenticationBuilder = builder.Services
     .AddAuthentication(options =>
     {
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -98,8 +118,79 @@ builder.Services
         };
     });
 
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+});
+
+builder.Services.ConfigureExternalCookie(options =>
+{
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+});
+
+static void ConfigureExternalOAuthCookies(Microsoft.AspNetCore.Authentication.RemoteAuthenticationOptions options)
+{
+    options.CorrelationCookie.SameSite = SameSiteMode.Lax;
+    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.CorrelationCookie.HttpOnly = true;
+    options.CorrelationCookie.IsEssential = true;
+}
+
+static void ConfigureRemoteFailure(
+    Microsoft.AspNetCore.Authentication.RemoteAuthenticationOptions options,
+    IConfiguration configuration)
+{
+    options.Events.OnRemoteFailure = context =>
+    {
+        var frontendBase = configuration["App:FrontendBaseUrl"]?.TrimEnd('/') ?? "http://localhost:8000";
+        var request = context.Request;
+        if (!string.IsNullOrWhiteSpace(request.Host.Value))
+        {
+            frontendBase = $"{request.Scheme}://{request.Host.Value}";
+        }
+
+        context.Response.Redirect($"{frontendBase}/login?error=error.auth.externalLoginFailed");
+        context.HandleResponse();
+        return Task.CompletedTask;
+    };
+}
+
+if (authenticationSettings.Google.IsConfigured)
+{
+    authenticationBuilder.AddGoogle(options =>
+    {
+        options.ClientId = authenticationSettings.Google.ClientId;
+        options.ClientSecret = authenticationSettings.Google.ClientSecret;
+        options.SignInScheme = IdentityConstants.ExternalScheme;
+        options.SaveTokens = false;
+        options.Scope.Add("email");
+        options.Scope.Add("profile");
+        ConfigureExternalOAuthCookies(options);
+        ConfigureRemoteFailure(options, builder.Configuration);
+    });
+}
+
+if (authenticationSettings.Facebook.IsConfigured)
+{
+    authenticationBuilder.AddFacebook(options =>
+    {
+        options.AppId = authenticationSettings.Facebook.AppId;
+        options.AppSecret = authenticationSettings.Facebook.AppSecret;
+        options.SignInScheme = IdentityConstants.ExternalScheme;
+        options.Fields.Add("email");
+        options.Fields.Add("name");
+        options.Fields.Add("first_name");
+        options.Fields.Add("last_name");
+        ConfigureExternalOAuthCookies(options);
+        ConfigureRemoteFailure(options, builder.Configuration);
+    });
+}
+
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IExternalAuthService, ExternalAuthService>();
 builder.Services.AddScoped<IAccountEmailService, AccountEmailService>();
 builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IProfileAttributeService, ProfileAttributeService>();
@@ -195,6 +286,7 @@ var uploadsRootPath = Path.IsPathRooted(fileStorageSettings.RootPath)
     : Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, fileStorageSettings.RootPath));
 Directory.CreateDirectory(uploadsRootPath);
 
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
 app.UseStaticFiles(new StaticFileOptions
