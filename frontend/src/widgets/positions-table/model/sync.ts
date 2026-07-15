@@ -11,6 +11,7 @@ import {
   deleteRestriction,
   updateRestriction,
 } from '@entities/restriction'
+import { resolveTagIds } from '@entities/tag'
 import { toSubmitNumber, toSubmitValues } from '@shared/lib/helpers'
 import type { PositionFormSubmitPayload } from '../ui/PositionFormModal'
 
@@ -150,9 +151,9 @@ export async function syncPositionRestrictions(
   await Promise.all(tasks)
 }
 
-export function optionsFromPayload(payload: PositionFormSubmitPayload) {
+export async function optionsFromPayload(payload: PositionFormSubmitPayload) {
   return {
     attributeIds: optionsToIds(payload.attributes),
-    tagIds: optionsToIds(payload.tags),
+    tagIds: await resolveTagIds(payload.tags),
   }
 }

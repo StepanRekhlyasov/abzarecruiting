@@ -31,7 +31,6 @@ function PositionsTableContent() {
     sortBy,
     sortDir,
     loadAttributeOptions,
-    loadTagOptions,
     setPage,
     setPageSize,
     setSelectedIds,
@@ -145,7 +144,6 @@ function PositionsTableContent() {
         mode="create"
         isLoading={isLoading}
         loadAttributeOptions={loadAttributeOptions}
-        loadTagOptions={loadTagOptions}
         onOpenChange={setIsCreateModalOpen}
         onSubmit={handleCreateSubmit}
       />

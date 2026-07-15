@@ -14,7 +14,8 @@ import Typography from '@mui/material/Typography'
 import { RESTRICTION_CONDITIONS } from '@entities/restriction'
 import type { AttributeConditionDraft, RestrictionCondition } from '@entities/restriction'
 import type { AbzaSelectOption } from '@shared/types'
-import { AsyncEntitySelect, AsyncEntityTags } from '@shared/ui/inputs'
+import { TagsField } from '@entities/tag'
+import { AsyncEntitySelect } from '@shared/ui/inputs'
 
 type RestrictionsTabProps = {
   requiredTags: AbzaSelectOption[]
@@ -22,7 +23,6 @@ type RestrictionsTabProps = {
   attributeConditions: AttributeConditionDraft[]
   onAttributeConditionsChange: (conditions: AttributeConditionDraft[]) => void
   loadAttributeOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
-  loadTagOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
   disabled?: boolean
 }
 
@@ -47,7 +47,6 @@ export function RestrictionsTab({
   attributeConditions,
   onAttributeConditionsChange,
   loadAttributeOptions,
-  loadTagOptions,
   disabled = false,
 }: RestrictionsTabProps) {
   const { t } = useTranslation()
@@ -73,11 +72,11 @@ export function RestrictionsTab({
         <Typography variant="body2" color="text.secondary">
           {t('positions.restrictions.requiredTagsHint')}
         </Typography>
-        <AsyncEntityTags
+        <TagsField
           label={t('positions.restrictions.tags')}
           value={requiredTags}
           onChange={onRequiredTagsChange}
-          loadOptions={loadTagOptions}
+          allowCreate={false}
           disabled={disabled}
         />
       </Box>

@@ -9,6 +9,7 @@ import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
 import type { AttributeConditionDraft } from '@entities/restriction'
 import type { AbzaFormValues, AbzaSelectOption } from '@shared/types'
+import { TagsField } from '@entities/tag'
 import { AsyncEntityTags } from '@shared/ui/inputs'
 import { RestrictionsTab } from './RestrictionsTab'
 
@@ -36,7 +37,6 @@ type PositionFormModalProps = {
   initialTagRestrictionIds?: Map<number, RestrictionMeta>
   initialAttributeRestrictionIds?: Map<string, RestrictionMeta>
   loadAttributeOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
-  loadTagOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
   onOpenChange: (open: boolean) => void
   onSubmit?: (payload: PositionFormSubmitPayload) => Promise<void>
   onCreateResume?: () => Promise<void>
@@ -60,7 +60,6 @@ export function PositionFormModal({
   initialTagRestrictionIds = EMPTY_TAG_RESTRICTION_IDS,
   initialAttributeRestrictionIds = EMPTY_ATTRIBUTE_RESTRICTION_IDS,
   loadAttributeOptions,
-  loadTagOptions,
   onOpenChange,
   onSubmit,
   onCreateResume,
@@ -209,13 +208,11 @@ export function PositionFormModal({
           loadOptions={loadAttributeOptions}
           disabled={isLoading || isViewMode}
         />
-        <AsyncEntityTags
+        <TagsField
           label={t('positions.fields.tags')}
           value={tags}
           onChange={setTags}
-          loadOptions={loadTagOptions}
           disabled={isLoading || isViewMode}
-          allowCreate={true}
         />
       </Box>
 
@@ -227,7 +224,6 @@ export function PositionFormModal({
             attributeConditions={attributeConditions}
             onAttributeConditionsChange={setAttributeConditions}
             loadAttributeOptions={loadAttributeOptions}
-            loadTagOptions={loadTagOptions}
             disabled={isLoading}
           />
         </Box>

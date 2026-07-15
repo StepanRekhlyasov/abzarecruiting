@@ -15,19 +15,14 @@ import type { AbzaFormValues } from '@features/abza-form'
 import type { AbzaTableRowId } from '@features/abza-table'
 import type { TagDto } from '@entities/tag'
 import type { AbzaSelectOption, SortDirection } from '@shared/types'
-import { createTag, deleteTag, fetchTags, updateTag } from '@entities/tag'
+import { createTag, deleteTag, fetchTags, isNewTagOption, updateTag } from '@entities/tag'
 import { $session, isRecruiterOrAdmin } from '@entities/user'
 import { getErrorKey } from '@shared/lib/errors'
 import { toSubmitValues } from '@shared/lib/helpers'
-import { NEW_TAG_VALUE_PREFIX } from '@shared/ui/inputs'
 
 function toTagSubmitValues(values: AbzaFormValues) {
   const { name } = toSubmitValues(values, ['name'])
   return { name }
-}
-
-function isSearchTextTag(option: AbzaSelectOption) {
-  return Boolean(option.isNew) || option.value.startsWith(NEW_TAG_VALUE_PREFIX)
 }
 
 type TagsTableContextValue = {
@@ -63,7 +58,6 @@ type TagsTableContextValue = {
   handleEditModalSubmit: () => void
   handleRowClick: (row: TagDto) => void
   handleDeleteSelected: () => Promise<void>
-  loadTagOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
 }
 
 const TagsTableContext = createContext<TagsTableContextValue | null>(null)
@@ -90,35 +84,17 @@ export function TagsTableProvider({ children }: PropsWithChildren) {
   const canCreateTags = Boolean(session)
   const canManageTags = isRecruiterOrAdmin(session)
 
-  const loadTagOptions = useCallback(async (search: string, signal?: AbortSignal) => {
-    const result = await fetchTags(
-      {
-        page: 1,
-        size: 20,
-        search: search || undefined,
-        sortBy: 'name',
-        sortDir: 'asc',
-      },
-      { signal },
-    )
-
-    return result.items.map((item) => ({
-      value: String(item.id),
-      label: item.name,
-    }))
-  }, [])
-
   const loadTags = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
     setActionError(null)
 
     const ids = searchTags
-      .filter((tag) => !isSearchTextTag(tag))
+      .filter((tag) => !isNewTagOption(tag))
       .map((tag) => Number(tag.value))
       .filter((id) => Number.isFinite(id) && id > 0)
 
     const searches = searchTags
-      .filter((tag) => isSearchTextTag(tag))
+      .filter((tag) => isNewTagOption(tag))
       .map((tag) => tag.label.trim())
       .filter(Boolean)
 
@@ -302,7 +278,6 @@ export function TagsTableProvider({ children }: PropsWithChildren) {
       handleEditModalSubmit,
       handleRowClick,
       handleDeleteSelected,
-      loadTagOptions,
     }),
     [
       rows,
@@ -329,7 +304,6 @@ export function TagsTableProvider({ children }: PropsWithChildren) {
       handleEditModalSubmit,
       handleRowClick,
       handleDeleteSelected,
-      loadTagOptions,
     ],
   )
 

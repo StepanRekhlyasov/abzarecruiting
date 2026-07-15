@@ -48,7 +48,6 @@ function PositionDetailContent() {
     handleEditSubmit,
     handleResumeAction,
     loadAttributeOptions,
-    loadTagOptions,
   } = usePositionDetail()
 
   const editInitialInfo = useMemo(
@@ -159,7 +158,6 @@ function PositionDetailContent() {
             editDraft?.attributeRestrictionIds ?? EMPTY_ATTRIBUTE_RESTRICTION_IDS
           }
           loadAttributeOptions={loadAttributeOptions}
-          loadTagOptions={loadTagOptions}
           onOpenChange={setIsEditModalOpen}
           onSubmit={handleEditSubmit}
         />

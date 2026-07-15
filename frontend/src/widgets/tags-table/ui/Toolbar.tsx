@@ -3,7 +3,7 @@ import AddIcon from '@mui/icons-material/Add'
 import BackspaceIcon from '@mui/icons-material/Backspace'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import { AsyncEntityTags } from '@shared/ui/inputs'
+import { TagsField } from '@entities/tag'
 import { useTagsTable } from '../model'
 
 const toolbarRootSx = {
@@ -39,17 +39,16 @@ export function TagsTableToolbar() {
     selectedIds,
     handleCreateClick,
     handleDeleteSelected,
-    loadTagOptions,
   } = useTagsTable()
 
   return (
     <Box sx={toolbarRootSx}>
-      <AsyncEntityTags
+      <TagsField
         label={t('tags.search')}
         value={searchTags}
         onChange={setSearchTags}
-        loadOptions={loadTagOptions}
         allowCreate
+        createOnSelect={false}
         size="small"
         sx={searchSx}
         createOptionLabel={(name) => t('tags.searchAdd', { name })}

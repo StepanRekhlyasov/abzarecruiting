@@ -14,9 +14,8 @@ export {
   upsertProjectTag,
 } from './api/projectApi'
 export {
-  getTagOptionsFromValues,
+  projectTagsToOptions,
   projectToFormValues,
-  resolveTagIds,
   syncProjectTags,
   toProjectPayload,
 } from './lib/projectForm'

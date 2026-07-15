@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Stack from '@mui/material/Stack'
 import { createProjectFormConfig } from '@shared/config/forms'
@@ -10,8 +11,9 @@ import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
 import { AbzaTable } from '@features/abza-table'
 import type { AbzaTableColumn } from '@features/abza-table'
-import type { ProjectDto } from '@entities/project'
-import { ProjectsTableProvider, projectToFormValues, useProjectsTable } from '../model'
+import { projectToFormValues, type ProjectDto } from '@entities/project'
+import { TagsField } from '@entities/tag'
+import { ProjectsTableProvider, useProjectsTable } from '../model'
 import { ProjectsTableToolbar } from './Toolbar'
 
 function ProjectsTableContent() {
@@ -27,19 +29,22 @@ function ProjectsTableContent() {
     isCreateModalOpen,
     isEditModalOpen,
     editingProject,
+    createTags,
+    editTags,
     canAccessProjects,
     canCreateProjects,
     showCandidateColumn,
     showCandidateSelect,
     sortBy,
     sortDir,
-    loadTagOptions,
     loadCandidateOptions,
     setPage,
     setPageSize,
     setSelectedIds,
     setIsCreateModalOpen,
     setIsEditModalOpen,
+    setCreateTags,
+    setEditTags,
     setActionError,
     handleSortChange,
     handleCreateSubmit,
@@ -54,21 +59,13 @@ function ProjectsTableContent() {
   const createFormConfig = useMemo(
     () =>
       createProjectFormConfig(t, {
-        loadTagOptions,
         loadCandidateOptions,
         showCandidateSelect,
       }),
-    [i18n.language, loadCandidateOptions, loadTagOptions, showCandidateSelect],
+    [i18n.language, loadCandidateOptions, showCandidateSelect],
   )
 
-  const editFormConfig = useMemo(
-    () =>
-      createProjectFormConfig(t, {
-        loadTagOptions,
-        showCandidateSelect: false,
-      }),
-    [i18n.language, loadTagOptions],
-  )
+  const editFormConfig = useMemo(() => createProjectFormConfig(t), [i18n.language])
 
   const columns = useMemo<AbzaTableColumn<ProjectDto>[]>(() => {
     const next: AbzaTableColumn<ProjectDto>[] = [
@@ -175,14 +172,22 @@ function ProjectsTableContent() {
         isLoading={isLoading}
         maxWidth="sm"
       >
-        <AbzaForm
-          key={isCreateModalOpen ? 'create-open' : 'create-closed'}
-          formRef={createFormRef}
-          hideSubmitButton
-          config={createFormConfig}
-          onSubmit={handleCreateSubmit}
-          isLoading={isLoading}
-        />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <AbzaForm
+            key={isCreateModalOpen ? 'create-open' : 'create-closed'}
+            formRef={createFormRef}
+            hideSubmitButton
+            config={createFormConfig}
+            onSubmit={handleCreateSubmit}
+            isLoading={isLoading}
+          />
+          <TagsField
+            label={t('projects.fields.tags')}
+            value={createTags}
+            onChange={setCreateTags}
+            disabled={isLoading}
+          />
+        </Box>
       </AbzaModal>
 
       <AbzaModal
@@ -198,15 +203,23 @@ function ProjectsTableContent() {
         maxWidth="sm"
       >
         {editingProject && (
-          <AbzaForm
-            key={editingProject.id}
-            formRef={editFormRef}
-            hideSubmitButton
-            config={editFormConfig}
-            initialValues={projectToFormValues(editingProject)}
-            onSubmit={handleEditSubmit}
-            isLoading={isLoading}
-          />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <AbzaForm
+              key={editingProject.id}
+              formRef={editFormRef}
+              hideSubmitButton
+              config={editFormConfig}
+              initialValues={projectToFormValues(editingProject)}
+              onSubmit={handleEditSubmit}
+              isLoading={isLoading}
+            />
+            <TagsField
+              label={t('projects.fields.tags')}
+              value={editTags}
+              onChange={setEditTags}
+              disabled={isLoading}
+            />
+          </Box>
         )}
       </AbzaModal>
     </>

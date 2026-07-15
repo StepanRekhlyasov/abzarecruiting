@@ -18,29 +18,16 @@ import type { AbzaSelectOption, SortDirection } from '@shared/types'
 import {
   createProject,
   deleteProject,
-  deleteProjectTag,
   fetchProject,
   fetchProjects,
+  projectTagsToOptions,
+  syncProjectTags,
+  toProjectPayload,
   updateProject,
-  upsertProjectTag,
 } from '@entities/project'
-import { createTag, fetchTags } from '@entities/tag'
+import { resolveTagIds } from '@entities/tag'
 import { $session, fetchUsers, isAdmin, isCandidate, isRecruiter } from '@entities/user'
 import { getErrorKey } from '@shared/lib/errors'
-import { toSubmitValues } from '@shared/lib/helpers'
-import { NEW_TAG_VALUE_PREFIX } from '@shared/ui/inputs/AsyncEntityTags'
-
-function getTagOptions(values: AbzaFormValues): AbzaSelectOption[] {
-  const value = values.tags
-  if (!Array.isArray(value)) {
-    return []
-  }
-
-  return value.filter(
-    (item): item is AbzaSelectOption =>
-      typeof item === 'object' && item !== null && 'value' in item && 'label' in item,
-  )
-}
 
 function getEntityOptionValue(values: AbzaFormValues, name: string): AbzaSelectOption | null {
   const value = values[name]
@@ -51,82 +38,14 @@ function getEntityOptionValue(values: AbzaFormValues, name: string): AbzaSelectO
   return null
 }
 
-function toIsoDate(value: string) {
-  const trimmed = value.trim()
-  if (!trimmed) {
-    return null
-  }
-
-  return `${trimmed}T00:00:00.000Z`
-}
-
 function toProjectSubmitValues(values: AbzaFormValues, includeCandidateId: boolean) {
-  const submitted = toSubmitValues(values, ['name', 'description', 'startAt', 'endAt'] as const)
-  const endAt = submitted.endAt.trim()
+  const payload = toProjectPayload(values)
   const candidate = includeCandidateId ? getEntityOptionValue(values, 'candidateId') : null
 
   return {
+    ...payload,
     ...(includeCandidateId ? { candidateId: candidate?.value || null } : {}),
-    name: submitted.name,
-    description: submitted.description,
-    startAt: toIsoDate(submitted.startAt)!,
-    endAt: endAt ? toIsoDate(endAt) : null,
   }
-}
-
-async function resolveTagIds(options: AbzaSelectOption[]) {
-  const ids: number[] = []
-
-  for (const option of options) {
-    if (option.isNew || option.value.startsWith(NEW_TAG_VALUE_PREFIX)) {
-      const name = option.label.trim()
-      if (!name) {
-        continue
-      }
-
-      const existing = await fetchTags({
-        page: 1,
-        size: 20,
-        search: name,
-        sortBy: 'name',
-        sortDir: 'asc',
-      })
-      const match = existing.items.find((item) => item.name.toLowerCase() === name.toLowerCase())
-      if (match) {
-        ids.push(match.id)
-        continue
-      }
-
-      const created = await createTag({ name })
-      ids.push(created.id)
-      continue
-    }
-
-    const id = Number(option.value)
-    if (Number.isFinite(id)) {
-      ids.push(id)
-    }
-  }
-
-  return [...new Set(ids)]
-}
-
-async function syncProjectTags(
-  projectId: number,
-  nextTagIds: number[],
-  currentTagIds: number[] = [],
-) {
-  const desired = new Set(nextTagIds)
-  const existing = new Set(currentTagIds)
-
-  await Promise.all([
-    ...[...desired]
-      .filter((id) => !existing.has(id))
-      .map((tagId) => upsertProjectTag(projectId, tagId)),
-    ...[...existing]
-      .filter((id) => !desired.has(id))
-      .map((tagId) => deleteProjectTag(projectId, tagId)),
-  ])
 }
 
 type ProjectsTableContextValue = {
@@ -143,13 +62,14 @@ type ProjectsTableContextValue = {
   isCreateModalOpen: boolean
   isEditModalOpen: boolean
   editingProject: ProjectDto | null
+  createTags: AbzaSelectOption[]
+  editTags: AbzaSelectOption[]
   canAccessProjects: boolean
   canCreateProjects: boolean
   showCandidateColumn: boolean
   showCandidateSelect: boolean
   createFormRef: RefObject<HTMLFormElement | null>
   editFormRef: RefObject<HTMLFormElement | null>
-  loadTagOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
   loadCandidateOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
   setSearchInput: (value: string) => void
   setPage: (page: number) => void
@@ -157,6 +77,8 @@ type ProjectsTableContextValue = {
   setSelectedIds: (ids: AbzaTableRowId[]) => void
   setIsCreateModalOpen: (open: boolean) => void
   setIsEditModalOpen: (open: boolean) => void
+  setCreateTags: (tags: AbzaSelectOption[]) => void
+  setEditTags: (tags: AbzaSelectOption[]) => void
   setActionError: (error: string | null) => void
   handleSortChange: (nextSortBy: string, nextSortDir: SortDirection) => void
   handleFilter: () => void
@@ -194,6 +116,8 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<ProjectDto | null>(null)
+  const [createTags, setCreateTags] = useState<AbzaSelectOption[]>([])
+  const [editTags, setEditTags] = useState<AbzaSelectOption[]>([])
 
   const canAccessProjects =
     isCandidate(session) || isAdmin(session) || (isRecruiter(session) && Boolean(candidateId))
@@ -201,24 +125,6 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
   const showCandidateColumn = isAdmin(session) && !candidateId
   const showCandidateSelect = showCandidateColumn
   const isAdminUser = isAdmin(session)
-
-  const loadTagOptions = useCallback(async (search: string, signal?: AbortSignal) => {
-    const result = await fetchTags(
-      {
-        page: 1,
-        size: 20,
-        search: search || undefined,
-        sortBy: 'name',
-        sortDir: 'asc',
-      },
-      { signal },
-    )
-
-    return result.items.map((item) => ({
-      value: String(item.id),
-      label: item.name,
-    }))
-  }, [])
 
   const loadCandidateOptions = useCallback(async (search: string, signal?: AbortSignal) => {
     const result = await fetchUsers(
@@ -292,8 +198,15 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
   }, [loadProjects])
 
   useEffect(() => {
+    if (!isCreateModalOpen) {
+      setCreateTags([])
+    }
+  }, [isCreateModalOpen])
+
+  useEffect(() => {
     if (!isEditModalOpen) {
       setEditingProject(null)
+      setEditTags([])
     }
   }, [isEditModalOpen])
 
@@ -309,6 +222,7 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
   }, [])
 
   const handleCreateClick = useCallback(() => {
+    setCreateTags([])
     setIsCreateModalOpen(true)
   }, [])
 
@@ -325,7 +239,7 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
               ...(isAdminUser && candidateId ? { candidateId } : {}),
             }
         const created = await createProject(payload)
-        const tagIds = await resolveTagIds(getTagOptions(values))
+        const tagIds = await resolveTagIds(createTags)
         await syncProjectTags(created.id, tagIds)
         setIsCreateModalOpen(false)
         await loadProjects()
@@ -335,7 +249,7 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
         setIsLoading(false)
       }
     },
-    [candidateId, isAdminUser, loadProjects, showCandidateSelect],
+    [candidateId, createTags, isAdminUser, loadProjects, showCandidateSelect],
   )
 
   const handleEditSubmit = useCallback(
@@ -349,7 +263,7 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
 
       try {
         await updateProject(editingProject.id, toProjectSubmitValues(values, false))
-        const tagIds = await resolveTagIds(getTagOptions(values))
+        const tagIds = await resolveTagIds(editTags)
         await syncProjectTags(
           editingProject.id,
           tagIds,
@@ -366,7 +280,7 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
         setIsLoading(false)
       }
     },
-    [editingProject],
+    [editTags, editingProject],
   )
 
   const handleCreateModalSubmit = useCallback(() => {
@@ -384,6 +298,7 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
       }
 
       setEditingProject(row)
+      setEditTags(projectTagsToOptions(row))
       setIsEditModalOpen(true)
     },
     [canCreateProjects],
@@ -427,13 +342,14 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
       isCreateModalOpen,
       isEditModalOpen,
       editingProject,
+      createTags,
+      editTags,
       canAccessProjects,
       canCreateProjects,
       showCandidateColumn,
       showCandidateSelect,
       createFormRef,
       editFormRef,
-      loadTagOptions,
       loadCandidateOptions,
       setSearchInput,
       setPage,
@@ -441,6 +357,8 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
       setSelectedIds,
       setIsCreateModalOpen,
       setIsEditModalOpen,
+      setCreateTags,
+      setEditTags,
       setActionError,
       handleSortChange,
       handleFilter,
@@ -466,11 +384,12 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
       isCreateModalOpen,
       isEditModalOpen,
       editingProject,
+      createTags,
+      editTags,
       canAccessProjects,
       canCreateProjects,
       showCandidateColumn,
       showCandidateSelect,
-      loadTagOptions,
       loadCandidateOptions,
       handleSortChange,
       handleFilter,

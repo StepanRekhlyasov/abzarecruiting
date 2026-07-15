@@ -27,7 +27,6 @@ import {
 } from '@entities/position'
 import { fetchRestrictionsByPosition } from '@entities/restriction'
 import { createResume, fetchResumePositionIds } from '@entities/resume'
-import { fetchTags } from '@entities/tag'
 import { $session, isCandidate, isRecruiterOrAdmin } from '@entities/user'
 import { getErrorKey } from '@shared/lib/errors'
 import type { PositionFormSubmitPayload } from '../ui/PositionFormModal'
@@ -66,7 +65,6 @@ type PositionsTableContextValue = {
   canCreateResumes: boolean
   resumePositionIdSet: Set<number>
   loadAttributeOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
-  loadTagOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
   setSearchInput: (value: string) => void
   setPage: (page: number) => void
   setPageSize: (size: number) => void
@@ -137,24 +135,6 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
       value: String(item.id),
       label: item.name,
       valueType: item.valueType,
-    }))
-  }, [])
-
-  const loadTagOptions = useCallback(async (search: string, signal?: AbortSignal) => {
-    const result = await fetchTags(
-      {
-        page: 1,
-        size: 20,
-        search: search || undefined,
-        sortBy: 'name',
-        sortDir: 'asc',
-      },
-      { signal },
-    )
-
-    return result.items.map((item) => ({
-      value: String(item.id),
-      label: item.name,
     }))
   }, [])
 
@@ -255,7 +235,7 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
 
       try {
         const created = await createPosition(toPositionSubmitValues(payload.info))
-        const { attributeIds, tagIds } = optionsFromPayload(payload)
+        const { attributeIds, tagIds } = await optionsFromPayload(payload)
         await syncPositionRelations(created.id, attributeIds, tagIds)
         await syncPositionRestrictions(
           created.id,
@@ -286,7 +266,7 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
           ...toPositionSubmitValues(payload.info),
           version: editingPosition.version,
         })
-        const { attributeIds, tagIds } = optionsFromPayload(payload)
+        const { attributeIds, tagIds } = await optionsFromPayload(payload)
         await syncPositionRelations(
           editingPosition.id,
           attributeIds,
@@ -468,7 +448,6 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
       canCreateResumes,
       resumePositionIdSet,
       loadAttributeOptions,
-      loadTagOptions,
       setSearchInput,
       setPage,
       setPageSize,
@@ -508,7 +487,6 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
       canCreateResumes,
       resumePositionIdSet,
       loadAttributeOptions,
-      loadTagOptions,
       handleSortChange,
       handleFilter,
       handleCreateClick,

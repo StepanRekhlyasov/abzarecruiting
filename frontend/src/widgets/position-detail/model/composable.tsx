@@ -16,7 +16,6 @@ import { fetchAttributes } from '@entities/attribute'
 import { fetchPosition, updatePosition } from '@entities/position'
 import { fetchRestrictionsByPosition } from '@entities/restriction'
 import { createResume, fetchResumes } from '@entities/resume'
-import { fetchTags } from '@entities/tag'
 import { $session, isCandidate, isRecruiterOrAdmin } from '@entities/user'
 import { cvDetailPath } from '@shared/config/routes'
 import { getErrorKey } from '@shared/lib/errors'
@@ -60,7 +59,6 @@ type PositionDetailContextValue = {
   handleEditSubmit: (payload: PositionFormSubmitPayload) => Promise<void>
   handleResumeAction: () => Promise<void>
   loadAttributeOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
-  loadTagOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
 }
 
 const PositionDetailContext = createContext<PositionDetailContextValue | null>(null)
@@ -102,24 +100,6 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
       value: String(item.id),
       label: item.name,
       valueType: item.valueType,
-    }))
-  }, [])
-
-  const loadTagOptions = useCallback(async (search: string, signal?: AbortSignal) => {
-    const result = await fetchTags(
-      {
-        page: 1,
-        size: 20,
-        search: search || undefined,
-        sortBy: 'name',
-        sortDir: 'asc',
-      },
-      { signal },
-    )
-
-    return result.items.map((item) => ({
-      value: String(item.id),
-      label: item.name,
     }))
   }, [])
 
@@ -244,7 +224,7 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
           ...toPositionSubmitValues(payload.info),
           version: position.version,
         })
-        const { attributeIds, tagIds } = optionsFromPayload(payload)
+        const { attributeIds, tagIds } = await optionsFromPayload(payload)
         await syncPositionRelations(
           position.id,
           attributeIds,
@@ -316,7 +296,6 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
       handleEditSubmit,
       handleResumeAction,
       loadAttributeOptions,
-      loadTagOptions,
     }),
     [
       position,
@@ -334,7 +313,6 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
       handleEditSubmit,
       handleResumeAction,
       loadAttributeOptions,
-      loadTagOptions,
     ],
   )
 
