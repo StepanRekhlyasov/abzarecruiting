@@ -26,6 +26,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<PositionTag> PositionTags => Set<PositionTag>();
     public DbSet<PositionAttribute> PositionAttributes => Set<PositionAttribute>();
     public DbSet<LikesResume> LikesResumes => Set<LikesResume>();
+    public DbSet<PositionMessage> PositionMessages => Set<PositionMessage>();
     public DbSet<FileEntity> Files => Set<FileEntity>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -323,6 +324,37 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(like => like.Resume)
                 .WithMany(resume => resume.Likes)
                 .HasForeignKey(like => like.ResumeId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<PositionMessage>(entity =>
+        {
+            entity.ToTable("PositionMessages");
+
+            entity.HasKey(message => message.Id);
+
+            entity.Property(message => message.Content)
+                .HasColumnType("longtext")
+                .IsRequired();
+
+            entity.Property(message => message.CreatedById)
+                .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(message => message.CreatedAt)
+                .HasColumnType("datetime(6)");
+
+            entity.HasIndex(message => message.PositionId);
+            entity.HasIndex(message => message.CreatedAt);
+
+            entity.HasOne(message => message.Position)
+                .WithMany(position => position.Messages)
+                .HasForeignKey(message => message.PositionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(message => message.CreatedBy)
+                .WithMany(user => user.PositionMessages)
+                .HasForeignKey(message => message.CreatedById)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

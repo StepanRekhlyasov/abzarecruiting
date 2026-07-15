@@ -78,6 +78,8 @@ public class PositionListItemDto
 
     public string CreatedByName { get; set; } = string.Empty;
 
+    public int MessagesCount { get; set; }
+
     public IReadOnlyList<PositionAttributeDto> Attributes { get; set; } = [];
 
     public IReadOnlyList<PositionTagDto> Tags { get; set; } = [];
@@ -106,6 +108,8 @@ public class PositionDetailDto
     public int Version { get; set; }
 
     public string CreatedByName { get; set; } = string.Empty;
+
+    public int MessagesCount { get; set; }
 
     public IReadOnlyList<PositionAttributeDto> Attributes { get; set; } = [];
 

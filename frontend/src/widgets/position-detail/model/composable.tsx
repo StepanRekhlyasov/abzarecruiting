@@ -11,15 +11,26 @@ import { isAxiosError } from 'axios'
 import { useNavigate } from 'react-router-dom'
 import { useUnit } from 'effector-react'
 import type { PositionDto } from '@entities/position'
-import type { AbzaFormValues, AbzaSelectOption, AttributeConditionDraft } from '@shared/types'
+import type {
+  AbzaFormValues,
+  AbzaSelectOption,
+  AttributeConditionDraft,
+  PositionMessageDto,
+} from '@shared/types'
 import { fetchAttributes } from '@entities/attribute'
 import { fetchPosition, updatePosition } from '@entities/position'
+import {
+  createPositionMessage,
+  deletePositionMessage,
+  fetchPositionMessages,
+} from '@entities/position-message'
 import { fetchRestrictionsByPosition } from '@entities/restriction'
 import { createResume, fetchResumes } from '@entities/resume'
 import { getTagOptionsFromValues, resolveTagIds } from '@entities/tag'
-import { $session, isCandidate, isRecruiterOrAdmin } from '@entities/user'
+import { $session, isAdmin, isCandidate, isRecruiterOrAdmin } from '@entities/user'
 import { cvDetailPath } from '@shared/config/routes'
 import { getErrorKey } from '@shared/lib/errors'
+import { notificationsSocket } from '@shared/lib/websocket'
 import {
   positionAttributesToOptions,
   positionTagsToOptions,
@@ -50,17 +61,27 @@ type PositionDetailContextValue = {
   actionError: string | null
   canEdit: boolean
   canCreateResume: boolean
+  canPostMessage: boolean
+  canDeleteMessages: boolean
+  canLinkCandidateProfile: boolean
   existingResumeId: number | null
   isEditModalOpen: boolean
   editDraft: EditDraftState | null
   tab: string
+  messages: PositionMessageDto[]
+  isMessagesLoading: boolean
+  isMessageSubmitting: boolean
+  messagesError: string | null
   setTab: (tab: string) => void
   setActionError: (error: string | null) => void
+  setMessagesError: (error: string | null) => void
   setIsEditModalOpen: (open: boolean) => void
   handleEditClick: () => Promise<void>
   handleEditSubmit: (payload: PositionFormSubmitPayload) => Promise<void>
   handleDescriptionSubmit: (values: AbzaFormValues) => Promise<void>
   handleResumeAction: () => Promise<void>
+  handleCreateMessage: (content: string) => Promise<void>
+  handleDeleteMessage: (messageId: number) => Promise<void>
   loadAttributeOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
 }
 
@@ -83,9 +104,16 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
   const [editDraft, setEditDraft] = useState<EditDraftState | null>(null)
   const [existingResumeId, setExistingResumeId] = useState<number | null>(null)
   const [tab, setTab] = useState('description')
+  const [messages, setMessages] = useState<PositionMessageDto[]>([])
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false)
+  const [isMessageSubmitting, setIsMessageSubmitting] = useState(false)
+  const [messagesError, setMessagesError] = useState<string | null>(null)
 
   const canEdit = isRecruiterOrAdmin(session)
   const canCreateResume = isCandidate(session)
+  const canPostMessage = Boolean(session)
+  const canDeleteMessages = isAdmin(session)
+  const canLinkCandidateProfile = isRecruiterOrAdmin(session)
 
   const loadAttributeOptions = useCallback(async (search: string, signal?: AbortSignal) => {
     const result = await fetchAttributes(
@@ -172,6 +200,34 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
     [canCreateResume, positionId],
   )
 
+  const loadMessages = useCallback(
+    async (signal?: AbortSignal) => {
+      setIsMessagesLoading(true)
+      setMessagesError(null)
+
+      try {
+        const items = await fetchPositionMessages(positionId, { signal })
+        if (!signal?.aborted) {
+          setMessages(items)
+        }
+      } catch (loadError) {
+        if (isAxiosError(loadError) && loadError.code === 'ERR_CANCELED') {
+          return
+        }
+
+        if (!signal?.aborted) {
+          setMessagesError(getErrorKey(loadError, 'error.messages.load'))
+          setMessages([])
+        }
+      } finally {
+        if (!signal?.aborted) {
+          setIsMessagesLoading(false)
+        }
+      }
+    },
+    [positionId],
+  )
+
   useEffect(() => {
     const controller = new AbortController()
     void loadPosition(controller.signal)
@@ -183,6 +239,39 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
     void loadCandidateResume(controller.signal)
     return () => controller.abort()
   }, [loadCandidateResume])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void loadMessages(controller.signal)
+    return () => controller.abort()
+  }, [loadMessages])
+
+  useEffect(() => {
+    return notificationsSocket.subscribe((event) => {
+      if (event.positionId !== positionId) {
+        return
+      }
+
+      setPosition((current) =>
+        current ? { ...current, messagesCount: event.messagesCount } : current,
+      )
+
+      if (event.type === 'positionMessageCreated' && event.message) {
+        setMessages((current) => {
+          if (current.some((item) => item.id === event.message.id)) {
+            return current
+          }
+
+          return [event.message, ...current]
+        })
+        return
+      }
+
+      if (event.type === 'positionMessageDeleted' && event.messageId != null) {
+        setMessages((current) => current.filter((item) => item.id !== event.messageId))
+      }
+    })
+  }, [positionId])
 
   useEffect(() => {
     if (!isEditModalOpen) {
@@ -315,6 +404,60 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
     }
   }, [canCreateResume, existingResumeId, navigate, position])
 
+  const handleCreateMessage = useCallback(
+    async (content: string) => {
+      if (!canPostMessage) {
+        return
+      }
+
+      setIsMessageSubmitting(true)
+      setMessagesError(null)
+
+      try {
+        const created = await createPositionMessage(positionId, { content })
+        setMessages((current) => {
+          if (current.some((item) => item.id === created.id)) {
+            return current
+          }
+
+          return [created, ...current]
+        })
+        setPosition((current) =>
+          current ? { ...current, messagesCount: current.messagesCount + 1 } : current,
+        )
+      } catch (createError) {
+        setMessagesError(getErrorKey(createError, 'error.messages.create'))
+        throw createError
+      } finally {
+        setIsMessageSubmitting(false)
+      }
+    },
+    [canPostMessage, positionId],
+  )
+
+  const handleDeleteMessage = useCallback(
+    async (messageId: number) => {
+      if (!canDeleteMessages) {
+        return
+      }
+
+      setMessagesError(null)
+
+      try {
+        await deletePositionMessage(positionId, messageId)
+        setMessages((current) => current.filter((item) => item.id !== messageId))
+        setPosition((current) =>
+          current
+            ? { ...current, messagesCount: Math.max(0, current.messagesCount - 1) }
+            : current,
+        )
+      } catch (deleteError) {
+        setMessagesError(getErrorKey(deleteError, 'error.messages.delete'))
+      }
+    },
+    [canDeleteMessages, positionId],
+  )
+
   const value = useMemo(
     () => ({
       position,
@@ -324,17 +467,27 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
       actionError,
       canEdit,
       canCreateResume,
+      canPostMessage,
+      canDeleteMessages,
+      canLinkCandidateProfile,
       existingResumeId,
       isEditModalOpen,
       editDraft,
       tab,
+      messages,
+      isMessagesLoading,
+      isMessageSubmitting,
+      messagesError,
       setTab,
       setActionError,
+      setMessagesError,
       setIsEditModalOpen,
       handleEditClick,
       handleEditSubmit,
       handleDescriptionSubmit,
       handleResumeAction,
+      handleCreateMessage,
+      handleDeleteMessage,
       loadAttributeOptions,
     }),
     [
@@ -345,14 +498,23 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
       actionError,
       canEdit,
       canCreateResume,
+      canPostMessage,
+      canDeleteMessages,
+      canLinkCandidateProfile,
       existingResumeId,
       isEditModalOpen,
       editDraft,
       tab,
+      messages,
+      isMessagesLoading,
+      isMessageSubmitting,
+      messagesError,
       handleEditClick,
       handleEditSubmit,
       handleDescriptionSubmit,
       handleResumeAction,
+      handleCreateMessage,
+      handleDeleteMessage,
       loadAttributeOptions,
     ],
   )

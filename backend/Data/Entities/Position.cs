@@ -21,4 +21,5 @@ public class Position
     public ICollection<PositionAttribute> PositionAttributes { get; set; } = [];
     public ICollection<Resume> Resumes { get; set; } = [];
     public ICollection<PositionTag> PositionTags { get; set; } = [];
+    public ICollection<PositionMessage> Messages { get; set; } = [];
 }

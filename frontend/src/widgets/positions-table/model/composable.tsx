@@ -29,6 +29,7 @@ import { fetchRestrictionsByPosition } from '@entities/restriction'
 import { createResume, fetchResumePositionIds } from '@entities/resume'
 import { $session, isCandidate, isRecruiterOrAdmin } from '@entities/user'
 import { getErrorKey } from '@shared/lib/errors'
+import { notificationsSocket } from '@shared/lib/websocket'
 import type { PositionFormSubmitPayload } from '../ui/PositionFormModal'
 import { restrictionsToDrafts } from './lib'
 import {
@@ -206,6 +207,16 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
     void loadResumePositionIds(controller.signal)
     return () => controller.abort()
   }, [loadResumePositionIds])
+
+  useEffect(() => {
+    return notificationsSocket.subscribe((event) => {
+      setRows((current) =>
+        current.map((row) =>
+          row.id === event.positionId ? { ...row, messagesCount: event.messagesCount } : row,
+        ),
+      )
+    })
+  }, [])
 
   useEffect(() => {
     if (!isEditModalOpen && !isViewModalOpen) {

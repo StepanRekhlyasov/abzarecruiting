@@ -77,7 +77,16 @@ public class PositionService(
                 || position.Description.Contains(search));
         }
 
-        query = query.ApplySort(pagination, position => position.CreatedAt);
+        if (string.Equals(pagination.NormalizedSortBy, "messagescount", StringComparison.Ordinal))
+        {
+            query = pagination.IsDescending
+                ? query.OrderByDescending(position => position.Messages.Count)
+                : query.OrderBy(position => position.Messages.Count);
+        }
+        else
+        {
+            query = query.ApplySort(pagination, position => position.CreatedAt);
+        }
 
         var allIds = await query.Select(position => position.Id).ToListAsync(cancellationToken);
         var filteredIds = await FilterPositionIdsAsync(allIds, user, cancellationToken);
@@ -437,6 +446,7 @@ public class PositionService(
                 CreatedAt = item.CreatedAt,
                 Version = item.Version,
                 CreatedByName = item.CreatedByName,
+                MessagesCount = item.MessagesCount,
                 Attributes = item.Attributes,
                 Tags = item.Tags,
             };
@@ -475,6 +485,13 @@ public class PositionService(
             .ToList();
         var creatorNames = await LoadCreatorNameMapAsync(creatorIds, cancellationToken);
 
+        var messageCounts = await db.PositionMessages
+            .AsNoTracking()
+            .Where(message => ids.Contains(message.PositionId))
+            .GroupBy(message => message.PositionId)
+            .Select(group => new { PositionId = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.PositionId, item => item.Count, cancellationToken);
+
         var orderMap = ids.Select((id, index) => (id, index)).ToDictionary(pair => pair.id, pair => pair.index);
 
         return positions
@@ -492,6 +509,7 @@ public class PositionService(
                 CreatedAt = position.CreatedAt,
                 Version = position.Version,
                 CreatedByName = creatorNames.GetValueOrDefault(position.CreatedById) ?? string.Empty,
+                MessagesCount = messageCounts.GetValueOrDefault(position.Id),
                 Attributes = attributes
                     .Where(item => item.PositionId == position.Id)
                     .Select(item => new PositionAttributeDto

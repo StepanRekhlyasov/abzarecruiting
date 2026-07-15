@@ -14,6 +14,7 @@ using Backend.Api.Services.Project;
 using Backend.Api.Services.Restriction;
 using Backend.Api.Services.Resume;
 using Backend.Api.Services.Tag;
+using Backend.Api.Services.Message;
 using Backend.Api.Services.Files;
 using Backend.Api.Services.User;
 using Backend.Api.WebSockets;
@@ -113,6 +114,7 @@ builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<IResumeService, ResumeService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
+builder.Services.AddScoped<IPositionMessageService, PositionMessageService>();
 builder.Services.AddSingleton<NotificationWebSocketHandler>();
 
 builder.Services.AddControllers()

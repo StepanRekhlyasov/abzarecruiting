@@ -22,6 +22,7 @@ import type {
 import { loadTagOptions } from '@entities/tag'
 import { AutosaveButton } from '@shared/ui'
 import { PositionFormModal } from '../../positions-table/ui/PositionFormModal'
+import { PositionDiscussion } from './PositionDiscussion'
 import {
   PositionDetailProvider,
   positionAttributesToOptions,
@@ -63,6 +64,16 @@ function PositionDetailContent() {
     handleDescriptionSubmit,
     handleResumeAction,
     loadAttributeOptions,
+    messages,
+    isMessagesLoading,
+    isMessageSubmitting,
+    messagesError,
+    canPostMessage,
+    canDeleteMessages,
+    canLinkCandidateProfile,
+    handleCreateMessage,
+    handleDeleteMessage,
+    setMessagesError,
   } = usePositionDetail()
 
   const [formValues, setFormValues] = useState<AbzaFormValues>(EMPTY_FORM_VALUES)
@@ -287,7 +298,18 @@ function PositionDetailContent() {
             }}
           />
         ) : (
-          <Typography color="text.secondary">{t('positions.detail.tabsEmpty')}</Typography>
+          <PositionDiscussion
+            messages={messages}
+            isLoading={isMessagesLoading}
+            isSubmitting={isMessageSubmitting}
+            error={messagesError}
+            canPost={canPostMessage}
+            canDelete={canDeleteMessages}
+            canLinkCandidateProfile={canLinkCandidateProfile}
+            onSubmit={handleCreateMessage}
+            onDelete={handleDeleteMessage}
+            onClearError={() => setMessagesError(null)}
+          />
         )}
       </Box>
 

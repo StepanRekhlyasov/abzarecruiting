@@ -315,6 +315,7 @@
       "maxProjects": "Max projects",
       "attributes": "Attributes",
       "tags": "Tags",
+      "messagesCount": "Comments",
       "createdAt": "Created at"
     },
     "fields": {
@@ -385,6 +386,15 @@
         "discussion": "Discussion"
       },
       "tabsEmpty": "Content coming soon"
+    },
+    "discussion": {
+      "empty": "No messages yet",
+      "write": "Write",
+      "preview": "Preview",
+      "previewEmpty": "Nothing to preview",
+      "placeholder": "Write a Markdown message…",
+      "submit": "Send",
+      "delete": "Delete message"
     },
     "toolbar": {
       "createResume": "Create resume",
@@ -529,6 +539,12 @@
       "update": "Failed to update position",
       "delete": "Failed to delete positions",
       "duplicate": "Failed to duplicate positions"
+    },
+    "messages": {
+      "load": "Failed to load messages",
+      "create": "Failed to send message",
+      "delete": "Failed to delete message",
+      "contentRequired": "Message cannot be empty"
     },
     "resumes": {
       "load": "Failed to load resumes",

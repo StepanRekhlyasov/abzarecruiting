@@ -79,6 +79,12 @@ function PositionsTableContent() {
         render: (row) => row.maxProjects,
       },
       {
+        id: 'messagesCount',
+        label: t('positions.columns.messagesCount'),
+        sortable: true,
+        render: (row) => row.messagesCount ?? 0,
+      },
+      {
         id: 'createdAt',
         label: t('positions.columns.createdAt'),
         sortable: true,

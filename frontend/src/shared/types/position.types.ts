@@ -28,6 +28,7 @@ export type PositionDto = {
   createdAt: string
   version: number
   createdByName: string
+  messagesCount: number
   attributes: PositionAttributeDto[]
   tags: PositionTagDto[]
 }

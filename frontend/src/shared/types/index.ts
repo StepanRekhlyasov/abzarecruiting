@@ -39,6 +39,14 @@ export type {
 export { POSITION_LEVELS, WORK_FORMATS } from './position.types'
 
 export type {
+  CreatePositionMessageRequest,
+  PositionMessageCreatedEvent,
+  PositionMessageDeletedEvent,
+  PositionMessageDto,
+  PositionMessageWsEvent,
+} from './message.types'
+
+export type {
   CreateProjectRequest,
   ProjectDto,
   ProjectTagDto,
