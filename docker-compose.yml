@@ -43,7 +43,7 @@ services:
       - Jwt__SecretKey=gdbL7Y4PkEDTp8isj2MTLzlOMbCLmfCo
       - App__FrontendBaseUrl=http://localhost:8000
       - Authentication__Google__ClientId=846055016668-p8rj8p7n1a0kg6c7mobgigh796c98saf.apps.googleusercontent.com
-      - Authentication__Google__ClientSecret=
+      - Authentication__Google__ClientSecret=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
       - Authentication__Facebook__AppId=
       - Authentication__Facebook__AppSecret=
       - Smtp__Host=smtp.gmail.com
