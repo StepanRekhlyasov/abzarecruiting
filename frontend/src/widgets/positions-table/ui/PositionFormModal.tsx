@@ -215,6 +215,7 @@ export function PositionFormModal({
           onChange={setTags}
           loadOptions={loadTagOptions}
           disabled={isLoading || isViewMode}
+          allowCreate={true}
         />
       </Box>
 

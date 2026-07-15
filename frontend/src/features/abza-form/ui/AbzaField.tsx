@@ -97,7 +97,7 @@ export function AbzaField({
           }
           onChange={(options) => onChange(options)}
           loadOptions={field.loadOptions ?? (async () => [])}
-          allowCreate={field.allowCreateOptions}
+          allowCreate={field.allowCreateOptions === true}
           disabled={isDisabled}
           error={hasError}
           helperText={error}

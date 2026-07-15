@@ -73,7 +73,7 @@ public sealed class ResumePdfStrings
     }
 
     private static readonly ResumePdfStrings Russian = new(
-        forPosition: "Резюме для позиции: {0}",
+        forPosition: "Резюме для вакансии: {0}",
         candidateFallback: "Кандидат",
         emailLabel: "email",
         phoneLabel: "tel.",

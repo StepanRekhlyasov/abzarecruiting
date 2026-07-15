@@ -6,6 +6,7 @@ export const ROUTES = {
   attributes: '/attributes',
   tags: '/tags',
   positions: '/positions',
+  positionDetail: '/position/:positionId',
   cvs: '/cvs',
   cvDetail: '/cvs/:id',
   projects: '/projects',
@@ -20,6 +21,10 @@ export function profileDetailPath(candidateId: string) {
 
 export function cvDetailPath(id: number) {
   return `/cvs/${id}`
+}
+
+export function positionDetailPath(positionId: number) {
+  return `/position/${positionId}`
 }
 
 export function homeRedirectPath(session: { roles: string[] } | null): string {

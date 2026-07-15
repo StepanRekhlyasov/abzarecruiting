@@ -76,6 +76,8 @@ public class PositionListItemDto
 
     public int Version { get; set; }
 
+    public string CreatedByName { get; set; } = string.Empty;
+
     public IReadOnlyList<PositionAttributeDto> Attributes { get; set; } = [];
 
     public IReadOnlyList<PositionTagDto> Tags { get; set; } = [];
@@ -102,6 +104,8 @@ public class PositionDetailDto
     public DateTime CreatedAt { get; set; }
 
     public int Version { get; set; }
+
+    public string CreatedByName { get; set; } = string.Empty;
 
     public IReadOnlyList<PositionAttributeDto> Attributes { get; set; } = [];
 

@@ -62,17 +62,25 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
         </Box>
         <Divider />
         <List>
-          {navItems.map((item) => (
-            <ListItemButton
-              key={item.to}
-              component={RouterLink}
-              to={item.to}
-              selected={location.pathname === item.to}
-              onClick={onClose}
-            >
-              <ListItemText primary={t(item.labelKey)} />
-            </ListItemButton>
-          ))}
+          {navItems.map((item) => {
+              const selected =
+                item.to === ROUTES.positions
+                  ? location.pathname === ROUTES.positions ||
+                    location.pathname.startsWith('/position/')
+                  : location.pathname === item.to
+
+              return (
+                <ListItemButton
+                  key={item.to}
+                  component={RouterLink}
+                  to={item.to}
+                  selected={selected}
+                  onClick={onClose}
+                >
+                  <ListItemText primary={t(item.labelKey)} />
+                </ListItemButton>
+              )
+            })}
         </List>
       </Box>
     </Drawer>

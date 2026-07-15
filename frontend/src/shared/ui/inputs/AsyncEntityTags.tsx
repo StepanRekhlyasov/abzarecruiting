@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete'
+import Autocomplete from '@mui/material/Autocomplete'
 import TextField from '@mui/material/TextField'
 import type { SxProps, Theme } from '@mui/material/styles'
 import type { AbzaSelectOption } from '@shared/types'
-
-const filter = createFilterOptions<AbzaSelectOption>()
 
 export const NEW_TAG_VALUE_PREFIX = '__new__:'
 
@@ -34,6 +32,10 @@ function toOption(value: string | AbzaSelectOption): AbzaSelectOption {
     label: trimmed,
     isNew: true,
   }
+}
+
+function isSameLabel(a: string, b: string) {
+  return a.trim().toLowerCase() === b.trim().toLowerCase()
 }
 
 export function AsyncEntityTags({
@@ -93,6 +95,9 @@ export function AsyncEntityTags({
     <Autocomplete
       multiple
       freeSolo={allowCreate}
+      selectOnFocus={allowCreate}
+      clearOnBlur={allowCreate}
+      handleHomeEndKeys={allowCreate}
       filterSelectedOptions
       options={mergedOptions}
       value={value}
@@ -102,40 +107,37 @@ export function AsyncEntityTags({
       size={size}
       sx={{ width: '100%', ...sx }}
       filterOptions={(current, params) => {
-        const filtered = allowCreate
-          ? filter(current, params)
-          : current
-
         const input = params.inputValue.trim()
         if (!allowCreate || !input) {
-          return allowCreate ? filtered : current
+          return current
         }
 
-        const alreadyExists = [...filtered, ...value].some(
-          (option) => option.label.toLowerCase() === input.toLowerCase(),
+        const alreadyExists = [...current, ...value].some((option) =>
+          isSameLabel(option.label, input),
         )
 
-        if (!alreadyExists) {
-          filtered.push({
+        if (alreadyExists) {
+          return current
+        }
+
+        return [
+          ...current,
+          {
             value: `${NEW_TAG_VALUE_PREFIX}${input}`,
             label: input,
             isNew: true,
-          })
-        }
-
-        return filtered
+          },
+        ]
       }}
       getOptionLabel={(option) => (typeof option === 'string' ? option : option.label)}
       isOptionEqualToValue={(option, selected) => {
         if (typeof option === 'string' || typeof selected === 'string') {
-          return false
+          return isSameLabel(typeof option === 'string' ? option : option.label, typeof selected === 'string' ? selected : selected.label)
         }
         return option.value === selected.value
       }}
-      onInputChange={(_, nextInputValue, reason) => {
-        if (reason !== 'reset') {
-          setInputValue(nextInputValue)
-        }
+      onInputChange={(_, nextInputValue) => {
+        setInputValue(nextInputValue)
       }}
       onChange={(_, nextValue) => {
         const normalized = nextValue
@@ -144,15 +146,18 @@ export function AsyncEntityTags({
 
         const unique = new Map<string, AbzaSelectOption>()
         for (const option of normalized) {
-          unique.set(option.value, option)
+          const key = option.isNew ? option.label.toLowerCase() : option.value
+          unique.set(key, option)
         }
 
         onChange([...unique.values()])
+        setInputValue('')
       }}
       renderOption={(props, option) => {
         const item = typeof option === 'string' ? toOption(option) : option
+        const { key, ...rest } = props
         return (
-          <li {...props} key={item.value}>
+          <li key={key ?? item.value} {...rest}>
             {item.isNew
               ? (createOptionLabel?.(item.label) ?? t('form.createOption', { name: item.label }))
               : item.label}

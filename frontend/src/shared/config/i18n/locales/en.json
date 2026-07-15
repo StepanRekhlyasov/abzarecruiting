@@ -372,6 +372,20 @@
       "createResume": "Create resume",
       "cancel": "Close"
     },
+    "detail": {
+      "title": "Position: {{name}}",
+      "postedBy": "Posted by: {{name}}",
+      "postedAt": "Posted on: {{date}}",
+      "unknownAuthor": "Unknown",
+      "edit": "Edit",
+      "generateResume": "Generate resume",
+      "viewResume": "View resume",
+      "tabs": {
+        "description": "Description",
+        "discussion": "Discussion"
+      },
+      "tabsEmpty": "Content coming soon"
+    },
     "toolbar": {
       "createResume": "Create resume",
       "duplicate": "Duplicate"

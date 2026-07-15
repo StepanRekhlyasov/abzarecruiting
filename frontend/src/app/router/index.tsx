@@ -6,7 +6,7 @@ import { RegisterPage } from '@pages/register'
 import { ConfirmEmailPage } from '@pages/confirm-email'
 import { AttributesPage } from '@pages/attributes'
 import { TagsPage } from '@pages/tags'
-import { PositionsPage } from '@pages/positions'
+import { PositionsPage, PositionDetailPage } from '@pages/positions'
 import { CvDetailPage, CvsPage } from '@pages/cvs'
 import { ProjectsPage } from '@pages/projects'
 import { UsersPage } from '@pages/users'
@@ -31,6 +31,7 @@ const publicRoutes: { path: string; element: ReactNode }[] = [
   { path: ROUTES.register, element: <RegisterPage /> },
   { path: ROUTES.confirmEmail, element: <ConfirmEmailPage /> },
   { path: ROUTES.positions, element: <PositionsPage /> },
+  { path: ROUTES.positionDetail, element: <PositionDetailPage /> },
 ]
 
 export function AppRouter() {

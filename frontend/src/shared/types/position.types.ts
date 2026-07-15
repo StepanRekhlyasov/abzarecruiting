@@ -27,6 +27,7 @@ export type PositionDto = {
   maxProjects: number
   createdAt: string
   version: number
+  createdByName: string
   attributes: PositionAttributeDto[]
   tags: PositionTagDto[]
 }

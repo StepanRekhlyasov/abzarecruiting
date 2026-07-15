@@ -436,6 +436,7 @@ public class PositionService(
                 MaxProjects = item.MaxProjects,
                 CreatedAt = item.CreatedAt,
                 Version = item.Version,
+                CreatedByName = item.CreatedByName,
                 Attributes = item.Attributes,
                 Tags = item.Tags,
             };
@@ -467,6 +468,13 @@ public class PositionService(
             .Where(item => ids.Contains(item.PositionId) && (!keyOnly || item.IsKey))
             .ToListAsync(cancellationToken);
 
+        var creatorIds = positions
+            .Select(position => position.CreatedById)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct()
+            .ToList();
+        var creatorNames = await LoadCreatorNameMapAsync(creatorIds, cancellationToken);
+
         var orderMap = ids.Select((id, index) => (id, index)).ToDictionary(pair => pair.id, pair => pair.index);
 
         return positions
@@ -483,6 +491,7 @@ public class PositionService(
                 MaxProjects = position.MaxProjects,
                 CreatedAt = position.CreatedAt,
                 Version = position.Version,
+                CreatedByName = creatorNames.GetValueOrDefault(position.CreatedById) ?? string.Empty,
                 Attributes = attributes
                     .Where(item => item.PositionId == position.Id)
                     .Select(item => new PositionAttributeDto
@@ -503,5 +512,66 @@ public class PositionService(
                     .ToList(),
             })
             .ToList();
+    }
+
+    private async Task<Dictionary<string, string>> LoadCreatorNameMapAsync(
+        IReadOnlyList<string> userIds,
+        CancellationToken cancellationToken)
+    {
+        if (userIds.Count == 0)
+        {
+            return [];
+        }
+
+        var userIdSet = userIds.ToHashSet(StringComparer.Ordinal);
+
+        var nameAttributeIds = await db.Attributes
+            .AsNoTracking()
+            .Where(attribute =>
+                attribute.Name == DefaultAttributes.FirstName || attribute.Name == DefaultAttributes.LastName)
+            .Select(attribute => new { attribute.Id, attribute.Name })
+            .ToListAsync(cancellationToken);
+
+        var firstNameId = nameAttributeIds.FirstOrDefault(item => item.Name == DefaultAttributes.FirstName)?.Id;
+        var lastNameId = nameAttributeIds.FirstOrDefault(item => item.Name == DefaultAttributes.LastName)?.Id;
+
+        var profileAttributes = await db.ProfileAttributes
+            .AsNoTracking()
+            .Where(profileAttribute =>
+                (firstNameId.HasValue && profileAttribute.AttributeId == firstNameId.Value)
+                || (lastNameId.HasValue && profileAttribute.AttributeId == lastNameId.Value))
+            .Select(profileAttribute => new
+            {
+                profileAttribute.CandidateId,
+                profileAttribute.AttributeId,
+                profileAttribute.ValueString,
+            })
+            .ToListAsync(cancellationToken);
+
+        var relevantAttributes = profileAttributes
+            .Where(item => userIdSet.Contains(item.CandidateId))
+            .ToList();
+
+        return userIds.ToDictionary(
+            userId => userId,
+            userId =>
+            {
+                var firstName = firstNameId.HasValue
+                    ? relevantAttributes
+                        .FirstOrDefault(item => item.CandidateId == userId && item.AttributeId == firstNameId.Value)
+                        ?.ValueString
+                        ?.Trim()
+                        ?? string.Empty
+                    : string.Empty;
+                var lastName = lastNameId.HasValue
+                    ? relevantAttributes
+                        .FirstOrDefault(item => item.CandidateId == userId && item.AttributeId == lastNameId.Value)
+                        ?.ValueString
+                        ?.Trim()
+                        ?? string.Empty
+                    : string.Empty;
+
+                return string.Join(' ', new[] { firstName, lastName }.Where(part => !string.IsNullOrWhiteSpace(part)));
+            });
     }
 }
