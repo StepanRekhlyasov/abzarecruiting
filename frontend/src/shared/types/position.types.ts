@@ -29,6 +29,8 @@ export type PositionDto = {
   version: number
   createdByName: string
   messagesCount: number
+  resumesCount: number
+  hasRestrictions: boolean
   attributes: PositionAttributeDto[]
   tags: PositionTagDto[]
 }

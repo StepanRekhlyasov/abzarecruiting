@@ -80,6 +80,10 @@ public class PositionListItemDto
 
     public int MessagesCount { get; set; }
 
+    public int ResumesCount { get; set; }
+
+    public bool HasRestrictions { get; set; }
+
     public IReadOnlyList<PositionAttributeDto> Attributes { get; set; } = [];
 
     public IReadOnlyList<PositionTagDto> Tags { get; set; } = [];
@@ -110,6 +114,10 @@ public class PositionDetailDto
     public string CreatedByName { get; set; } = string.Empty;
 
     public int MessagesCount { get; set; }
+
+    public int ResumesCount { get; set; }
+
+    public bool HasRestrictions { get; set; }
 
     public IReadOnlyList<PositionAttributeDto> Attributes { get; set; } = [];
 

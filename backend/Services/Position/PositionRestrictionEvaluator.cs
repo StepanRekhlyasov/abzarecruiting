@@ -260,15 +260,38 @@ public class PositionRestrictionEvaluator(
         IReadOnlyList<PositionRestriction> restrictions,
         CandidateRestrictionContext context)
     {
-        foreach (var restriction in restrictions)
+        if (restrictions.Count == 0)
         {
-            if (!EvaluateRestriction(restriction, context.ProfileAttributes, context.TagIds))
+            return true;
+        }
+
+        // Multiple conditions on the same attribute/tag are OR; different targets remain AND.
+        foreach (var group in restrictions
+                     .Where(restriction => restriction.AttributeId.HasValue)
+                     .GroupBy(restriction => restriction.AttributeId!.Value))
+        {
+            if (!group.Any(restriction =>
+                    EvaluateRestriction(restriction, context.ProfileAttributes, context.TagIds)))
             {
                 return false;
             }
         }
 
-        return true;
+        foreach (var group in restrictions
+                     .Where(restriction => restriction.TagId.HasValue)
+                     .GroupBy(restriction => restriction.TagId!.Value))
+        {
+            if (!group.Any(restriction =>
+                    EvaluateRestriction(restriction, context.ProfileAttributes, context.TagIds)))
+            {
+                return false;
+            }
+        }
+
+        return restrictions
+            .Where(restriction => !restriction.AttributeId.HasValue && !restriction.TagId.HasValue)
+            .All(restriction =>
+                EvaluateRestriction(restriction, context.ProfileAttributes, context.TagIds));
     }
 
     private bool EvaluateRestriction(

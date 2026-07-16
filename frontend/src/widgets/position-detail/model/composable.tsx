@@ -53,6 +53,13 @@ type EditDraftState = {
   attributeRestrictionIds: Map<string, { id: number; version: number }>
 }
 
+const emptyRestrictionsDraft = (): EditDraftState => ({
+  requiredTags: [],
+  attributeConditions: [],
+  tagRestrictionIds: new Map(),
+  attributeRestrictionIds: new Map(),
+})
+
 type PositionDetailContextValue = {
   position: PositionDto | null
   isLoading: boolean
@@ -67,6 +74,10 @@ type PositionDetailContextValue = {
   existingResumeId: number | null
   isEditModalOpen: boolean
   editDraft: EditDraftState | null
+  restrictionsDraft: EditDraftState
+  isRestrictionsLoading: boolean
+  isRestrictionsDirty: boolean
+  isRestrictionsSaving: boolean
   tab: string
   messages: PositionMessageDto[]
   isMessagesLoading: boolean
@@ -76,9 +87,12 @@ type PositionDetailContextValue = {
   setActionError: (error: string | null) => void
   setMessagesError: (error: string | null) => void
   setIsEditModalOpen: (open: boolean) => void
+  setRestrictionsRequiredTags: (tags: AbzaSelectOption[]) => void
+  setRestrictionsAttributeConditions: (conditions: AttributeConditionDraft[]) => void
   handleEditClick: () => Promise<void>
   handleEditSubmit: (payload: PositionFormSubmitPayload) => Promise<void>
   handleDescriptionSubmit: (values: AbzaFormValues) => Promise<void>
+  handleRestrictionsSubmit: () => Promise<void>
   handleResumeAction: () => Promise<void>
   handleCreateMessage: (content: string) => Promise<void>
   handleDeleteMessage: (messageId: number) => Promise<void>
@@ -102,6 +116,12 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
   const [actionError, setActionError] = useState<string | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editDraft, setEditDraft] = useState<EditDraftState | null>(null)
+  const [restrictionsDraft, setRestrictionsDraft] = useState<EditDraftState>(emptyRestrictionsDraft)
+  const [savedRestrictionsDraft, setSavedRestrictionsDraft] =
+    useState<EditDraftState>(emptyRestrictionsDraft)
+  const [restrictionsLoadedForId, setRestrictionsLoadedForId] = useState<number | null>(null)
+  const [isRestrictionsLoading, setIsRestrictionsLoading] = useState(false)
+  const [isRestrictionsSaving, setIsRestrictionsSaving] = useState(false)
   const [existingResumeId, setExistingResumeId] = useState<number | null>(null)
   const [tab, setTab] = useState('description')
   const [messages, setMessages] = useState<PositionMessageDto[]>([])
@@ -114,6 +134,41 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
   const canPostMessage = Boolean(session)
   const canDeleteMessages = isAdmin(session)
   const canLinkCandidateProfile = isRecruiterOrAdmin(session)
+
+  const isRestrictionsDirty = useMemo(() => {
+    if (restrictionsDraft.requiredTags.length !== savedRestrictionsDraft.requiredTags.length) {
+      return true
+    }
+
+    const savedTagIds = new Set(savedRestrictionsDraft.requiredTags.map((tag) => tag.value))
+    if (restrictionsDraft.requiredTags.some((tag) => !savedTagIds.has(tag.value))) {
+      return true
+    }
+
+    if (
+      restrictionsDraft.attributeConditions.length
+      !== savedRestrictionsDraft.attributeConditions.length
+    ) {
+      return true
+    }
+
+    const savedByLocalId = new Map(
+      savedRestrictionsDraft.attributeConditions.map((item) => [item.localId, item]),
+    )
+
+    return restrictionsDraft.attributeConditions.some((item) => {
+      const saved = savedByLocalId.get(item.localId)
+      if (!saved) {
+        return true
+      }
+
+      return (
+        saved.attributeId !== item.attributeId
+        || saved.condition !== item.condition
+        || saved.targetValue !== item.targetValue
+      )
+    })
+  }, [restrictionsDraft, savedRestrictionsDraft])
 
   const loadAttributeOptions = useCallback(async (search: string, signal?: AbortSignal) => {
     const result = await fetchAttributes(
@@ -279,6 +334,111 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
     }
   }, [isEditModalOpen])
 
+  useEffect(() => {
+    if (!canEdit && (tab === 'restrictions' || tab === 'cvs')) {
+      setTab('description')
+    }
+  }, [canEdit, tab])
+
+  const applyRestrictionsDraft = useCallback((draft: EditDraftState) => {
+    setRestrictionsDraft(draft)
+    setSavedRestrictionsDraft({
+      requiredTags: draft.requiredTags.map((tag) => ({ ...tag })),
+      attributeConditions: draft.attributeConditions.map((item) => ({ ...item })),
+      tagRestrictionIds: new Map(draft.tagRestrictionIds),
+      attributeRestrictionIds: new Map(draft.attributeRestrictionIds),
+    })
+  }, [])
+
+  const loadRestrictionsDraft = useCallback(
+    async (targetPositionId: number, signal?: AbortSignal) => {
+      setIsRestrictionsLoading(true)
+      setActionError(null)
+
+      try {
+        const restrictions = await fetchRestrictionsByPosition(targetPositionId, { signal })
+        if (signal?.aborted) {
+          return
+        }
+
+        applyRestrictionsDraft(restrictionsToDrafts(restrictions))
+        setRestrictionsLoadedForId(targetPositionId)
+      } catch (loadError) {
+        if (isAxiosError(loadError) && loadError.code === 'ERR_CANCELED') {
+          return
+        }
+
+        setActionError(getErrorKey(loadError, 'error.restrictions.load'))
+      } finally {
+        if (!signal?.aborted) {
+          setIsRestrictionsLoading(false)
+        }
+      }
+    },
+    [applyRestrictionsDraft],
+  )
+
+  useEffect(() => {
+    if (!canEdit || tab !== 'restrictions' || !position) {
+      return
+    }
+
+    if (restrictionsLoadedForId === position.id) {
+      return
+    }
+
+    const controller = new AbortController()
+    void loadRestrictionsDraft(position.id, controller.signal)
+    return () => controller.abort()
+  }, [canEdit, loadRestrictionsDraft, position, restrictionsLoadedForId, tab])
+
+  useEffect(() => {
+    setRestrictionsLoadedForId(null)
+    setRestrictionsDraft(emptyRestrictionsDraft())
+    setSavedRestrictionsDraft(emptyRestrictionsDraft())
+  }, [positionId])
+
+  const setRestrictionsRequiredTags = useCallback((tags: AbzaSelectOption[]) => {
+    setRestrictionsDraft((current) => ({ ...current, requiredTags: tags }))
+    setActionError(null)
+  }, [])
+
+  const setRestrictionsAttributeConditions = useCallback((conditions: AttributeConditionDraft[]) => {
+    setRestrictionsDraft((current) => ({ ...current, attributeConditions: conditions }))
+    setActionError(null)
+  }, [])
+
+  const handleRestrictionsSubmit = useCallback(async () => {
+    if (!canEdit || !position) {
+      return
+    }
+
+    setIsRestrictionsSaving(true)
+    setActionError(null)
+
+    try {
+      await syncPositionRestrictions(
+        position.id,
+        restrictionsDraft.requiredTags,
+        restrictionsDraft.attributeConditions,
+        restrictionsDraft.tagRestrictionIds,
+        restrictionsDraft.attributeRestrictionIds,
+      )
+      const [restrictions, refreshed] = await Promise.all([
+        fetchRestrictionsByPosition(position.id),
+        fetchPosition(position.id),
+      ])
+      applyRestrictionsDraft(restrictionsToDrafts(restrictions))
+      setRestrictionsLoadedForId(position.id)
+      setPosition(refreshed)
+    } catch (submitError) {
+      setActionError(getErrorKey(submitError, 'error.restrictions.update'))
+      throw submitError
+    } finally {
+      setIsRestrictionsSaving(false)
+    }
+  }, [applyRestrictionsDraft, canEdit, position, restrictionsDraft])
+
   const handleEditClick = useCallback(async () => {
     if (!canEdit || !position) {
       return
@@ -331,8 +491,13 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
           payload.initialTagRestrictionIds,
           payload.initialAttributeRestrictionIds,
         )
-        const refreshed = await fetchPosition(position.id)
+        const [refreshed, restrictions] = await Promise.all([
+          fetchPosition(position.id),
+          fetchRestrictionsByPosition(position.id),
+        ])
         setPosition(refreshed)
+        applyRestrictionsDraft(restrictionsToDrafts(restrictions))
+        setRestrictionsLoadedForId(position.id)
         setIsEditModalOpen(false)
       } catch (submitError) {
         setActionError(getErrorKey(submitError, 'error.positions.update'))
@@ -341,7 +506,7 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
         setIsMutating(false)
       }
     },
-    [position],
+    [applyRestrictionsDraft, position],
   )
 
   const handleDescriptionSubmit = useCallback(
@@ -473,6 +638,10 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
       existingResumeId,
       isEditModalOpen,
       editDraft,
+      restrictionsDraft,
+      isRestrictionsLoading,
+      isRestrictionsDirty,
+      isRestrictionsSaving,
       tab,
       messages,
       isMessagesLoading,
@@ -482,9 +651,12 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
       setActionError,
       setMessagesError,
       setIsEditModalOpen,
+      setRestrictionsRequiredTags,
+      setRestrictionsAttributeConditions,
       handleEditClick,
       handleEditSubmit,
       handleDescriptionSubmit,
+      handleRestrictionsSubmit,
       handleResumeAction,
       handleCreateMessage,
       handleDeleteMessage,
@@ -504,14 +676,21 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
       existingResumeId,
       isEditModalOpen,
       editDraft,
+      restrictionsDraft,
+      isRestrictionsLoading,
+      isRestrictionsDirty,
+      isRestrictionsSaving,
       tab,
       messages,
       isMessagesLoading,
       isMessageSubmitting,
       messagesError,
+      setRestrictionsRequiredTags,
+      setRestrictionsAttributeConditions,
       handleEditClick,
       handleEditSubmit,
       handleDescriptionSubmit,
+      handleRestrictionsSubmit,
       handleResumeAction,
       handleCreateMessage,
       handleDeleteMessage,

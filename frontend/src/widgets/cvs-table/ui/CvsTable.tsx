@@ -33,6 +33,7 @@ function CvsTableContent() {
     canDeleteResumes,
     canLikeResumes,
     showCandidateColumn,
+    showPositionColumn,
     showPublishedColumn,
     showCandidateSelect,
     sortBy,
@@ -58,7 +59,7 @@ function CvsTableContent() {
         loadCandidateOptions,
         showCandidateSelect,
       }),
-    [i18n.language, loadCandidateOptions, loadPositionOptions, showCandidateSelect],
+    [i18n.language, loadCandidateOptions, loadPositionOptions, showCandidateSelect, t],
   )
 
   const columns = useMemo<AbzaTableColumn<ResumeListItemDto>[]>(() => {
@@ -69,13 +70,16 @@ function CvsTableContent() {
         sortable: true,
         render: (row) => row.id,
       },
-      {
+    ]
+
+    if (showPositionColumn) {
+      next.push({
         id: 'positionName',
         label: t('cvs.columns.positionName'),
         sortable: true,
         render: (row) => row.positionName,
-      },
-    ]
+      })
+    }
 
     if (showCandidateColumn) {
       next.push({
@@ -133,6 +137,7 @@ function CvsTableContent() {
     i18n.language,
     setActionError,
     showCandidateColumn,
+    showPositionColumn,
     showPublishedColumn,
     t,
   ])
@@ -195,11 +200,12 @@ function CvsTableContent() {
 
 type CvsTableProps = {
   candidateId?: string
+  positionId?: number
 }
 
-export function CvsTable({ candidateId }: CvsTableProps) {
+export function CvsTable({ candidateId, positionId }: CvsTableProps) {
   return (
-    <CvsTableProvider candidateId={candidateId}>
+    <CvsTableProvider candidateId={candidateId} positionId={positionId}>
       <CvsTableContent />
     </CvsTableProvider>
   )

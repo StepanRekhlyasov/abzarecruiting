@@ -83,6 +83,12 @@ public class PositionService(
                 ? query.OrderByDescending(position => position.Messages.Count)
                 : query.OrderBy(position => position.Messages.Count);
         }
+        else if (string.Equals(pagination.NormalizedSortBy, "resumescount", StringComparison.Ordinal))
+        {
+            query = pagination.IsDescending
+                ? query.OrderByDescending(position => position.Resumes.Count)
+                : query.OrderBy(position => position.Resumes.Count);
+        }
         else
         {
             query = query.ApplySort(pagination, position => position.CreatedAt);
@@ -447,6 +453,8 @@ public class PositionService(
                 Version = item.Version,
                 CreatedByName = item.CreatedByName,
                 MessagesCount = item.MessagesCount,
+                ResumesCount = item.ResumesCount,
+                HasRestrictions = item.HasRestrictions,
                 Attributes = item.Attributes,
                 Tags = item.Tags,
             };
@@ -493,6 +501,21 @@ public class PositionService(
             .Select(group => new { PositionId = group.Key, Count = group.Count() })
             .ToDictionaryAsync(item => item.PositionId, item => item.Count, cancellationToken);
 
+        var resumeCounts = await db.Resumes
+            .AsNoTracking()
+            .Where(resume => ids.Contains(resume.PositionId))
+            .GroupBy(resume => resume.PositionId)
+            .Select(group => new { PositionId = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.PositionId, item => item.Count, cancellationToken);
+
+        var positionsWithRestrictions = await db.PositionRestrictions
+            .AsNoTracking()
+            .Where(restriction => ids.Contains(restriction.PositionId))
+            .Select(restriction => restriction.PositionId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        var restrictionPositionIds = positionsWithRestrictions.ToHashSet();
+
         var orderMap = ids.Select((id, index) => (id, index)).ToDictionary(pair => pair.id, pair => pair.index);
 
         return positions
@@ -513,6 +536,8 @@ public class PositionService(
                     ? string.Empty
                     : creatorNames.GetValueOrDefault(position.CreatedById) ?? string.Empty,
                 MessagesCount = messageCounts.GetValueOrDefault(position.Id),
+                ResumesCount = resumeCounts.GetValueOrDefault(position.Id),
+                HasRestrictions = restrictionPositionIds.Contains(position.Id),
                 Attributes = attributes
                     .Where(item => item.PositionId == position.Id)
                     .Select(item => new PositionAttributeDto

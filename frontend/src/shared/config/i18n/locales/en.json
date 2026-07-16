@@ -327,6 +327,7 @@
       "attributes": "Attributes",
       "tags": "Tags",
       "messagesCount": "Comments",
+      "resumesCount": "Resumes",
       "createdAt": "Created at"
     },
     "fields": {
@@ -394,6 +395,8 @@
       "viewResume": "View resume",
       "tabs": {
         "description": "Description",
+        "restrictions": "Restrictions",
+        "cvs": "CV",
         "discussion": "Discussion"
       },
       "tabsEmpty": "Content coming soon"
@@ -581,6 +584,8 @@
       "delete": "Failed to delete projects"
     },
     "restrictions": {
+      "load": "Failed to load restrictions",
+      "update": "Failed to update restrictions",
       "conditionNotSupported": "Condition Not is not supported",
       "attributeOrTagRequired": "Either attribute or tag must be provided",
       "attributeAndTagExclusive": "Attribute and tag cannot be set together",

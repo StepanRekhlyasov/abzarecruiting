@@ -85,6 +85,12 @@ function PositionsTableContent() {
         render: (row) => row.messagesCount ?? 0,
       },
       {
+        id: 'resumesCount',
+        label: t('positions.columns.resumesCount'),
+        sortable: true,
+        render: (row) => row.resumesCount ?? 0,
+      },
+      {
         id: 'createdAt',
         label: t('positions.columns.createdAt'),
         sortable: true,
@@ -134,12 +140,17 @@ function PositionsTableContent() {
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
         onRowClick={(row) => navigate(positionDetailPath(row.id))}
-        getRowSx={
-          canCreateResumes
-            ? (row) =>
-                resumePositionIdSet.has(row.id) ? { bgcolor: 'rgba(76, 175, 80, 0.12)' } : undefined
-            : undefined
-        }
+        getRowSx={(row) => {
+          if (canManagePositions && row.hasRestrictions) {
+            return { bgcolor: 'rgba(244, 67, 54, 0.12)' }
+          }
+
+          if (canCreateResumes && resumePositionIdSet.has(row.id)) {
+            return { bgcolor: 'rgba(76, 175, 80, 0.12)' }
+          }
+
+          return undefined
+        }}
         loading={isLoading}
         emptyMessage={t('positions.empty')}
         loadingMessage={t('positions.loading')}

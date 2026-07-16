@@ -327,6 +327,7 @@
       "attributes": "Атрибуты",
       "tags": "Теги",
       "messagesCount": "Комментарии",
+      "resumesCount": "Резюме",
       "createdAt": "Создана"
     },
     "fields": {
@@ -394,6 +395,8 @@
       "viewResume": "Просмотреть резюме",
       "tabs": {
         "description": "Описание",
+        "restrictions": "Ограничения",
+        "cvs": "CV",
         "discussion": "Обсуждение"
       },
       "tabsEmpty": "Контент появится позже"
@@ -581,6 +584,8 @@
       "delete": "Не удалось удалить проекты"
     },
     "restrictions": {
+      "load": "Не удалось загрузить ограничения",
+      "update": "Не удалось обновить ограничения",
       "conditionNotSupported": "Условие Not не поддерживается",
       "attributeOrTagRequired": "Нужно указать атрибут или тег",
       "attributeAndTagExclusive": "Нельзя указать атрибут и тег одновременно",

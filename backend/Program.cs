@@ -269,9 +269,17 @@ using (var scope = app.Services.CreateScope())
         .CreateLogger("Startup");
     var defaultAttributesSettings = scope.ServiceProvider
         .GetRequiredService<IOptions<DefaultAttributesSettings>>();
+    var seedFileStorageSettings = scope.ServiceProvider.GetRequiredService<IOptions<FileStorageSettings>>();
     var profileAttributeService = scope.ServiceProvider.GetRequiredService<IProfileAttributeService>();
     await AttributeSeeder.SeedAsync(db, userManager, profileAttributeService, defaultAttributesSettings, logger);
-    await UserSeeder.SeedAsync(userManager, profileAttributeService, logger);
+    await UserSeeder.SeedAsync(
+        db,
+        userManager,
+        profileAttributeService,
+        seedFileStorageSettings,
+        app.Environment,
+        logger);
+    await MockDataSeeder.SeedAsync(db, userManager, logger);
 }
 
 if (app.Environment.IsDevelopment())

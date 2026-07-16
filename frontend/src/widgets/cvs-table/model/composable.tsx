@@ -45,6 +45,7 @@ type CvsTableContextValue = {
   canDeleteResumes: boolean
   canLikeResumes: boolean
   showCandidateColumn: boolean
+  showPositionColumn: boolean
   showPublishedColumn: boolean
   showCandidateSelect: boolean
   createFormRef: RefObject<HTMLFormElement | null>
@@ -69,9 +70,10 @@ const CvsTableContext = createContext<CvsTableContextValue | null>(null)
 
 type CvsTableProviderProps = PropsWithChildren<{
   candidateId?: string
+  positionId?: number
 }>
 
-export function CvsTableProvider({ candidateId, children }: CvsTableProviderProps) {
+export function CvsTableProvider({ candidateId, positionId, children }: CvsTableProviderProps) {
   const session = useUnit($session)
   const createFormRef = useRef<HTMLFormElement>(null)
 
@@ -88,12 +90,14 @@ export function CvsTableProvider({ candidateId, children }: CvsTableProviderProp
   const [actionError, setActionError] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
-  const canCreateResumes = isAdmin(session) || isCandidate(session)
+  const isPositionScoped = positionId != null
+  const canCreateResumes = !isPositionScoped && (isAdmin(session) || isCandidate(session))
   const canDeleteResumes = canCreateResumes
   const canLikeResumes = isRecruiter(session)
   const showCandidateColumn = isRecruiterOrAdmin(session) && !candidateId
+  const showPositionColumn = !isPositionScoped
   const showPublishedColumn = !isRecruiter(session)
-  const showCandidateSelect = isAdmin(session) && !candidateId
+  const showCandidateSelect = isAdmin(session) && !candidateId && !isPositionScoped
   const isAdminUser = isAdmin(session)
 
   const loadPositionOptions = useCallback(async (search: string, signal?: AbortSignal) => {
@@ -152,7 +156,7 @@ export function CvsTableProvider({ candidateId, children }: CvsTableProviderProp
             sortBy,
             sortDir,
           },
-          { signal, candidateId },
+          { signal, candidateId, positionId },
         )
 
         if (!signal?.aborted) {
@@ -173,7 +177,7 @@ export function CvsTableProvider({ candidateId, children }: CvsTableProviderProp
         }
       }
     },
-    [candidateId, page, pageSize, searchQuery, sortBy, sortDir],
+    [candidateId, page, pageSize, positionId, searchQuery, sortBy, sortDir],
   )
 
   useEffect(() => {
@@ -297,6 +301,7 @@ export function CvsTableProvider({ candidateId, children }: CvsTableProviderProp
       canDeleteResumes,
       canLikeResumes,
       showCandidateColumn,
+      showPositionColumn,
       showPublishedColumn,
       showCandidateSelect,
       createFormRef,
@@ -332,6 +337,7 @@ export function CvsTableProvider({ candidateId, children }: CvsTableProviderProp
       canDeleteResumes,
       canLikeResumes,
       showCandidateColumn,
+      showPositionColumn,
       showPublishedColumn,
       showCandidateSelect,
       loadPositionOptions,

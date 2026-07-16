@@ -22,6 +22,8 @@ import type {
 import { loadTagOptions } from '@entities/tag'
 import { AutosaveButton } from '@shared/ui'
 import { PositionFormModal } from '../../positions-table/ui/PositionFormModal'
+import { RestrictionsTab } from '../../positions-table/ui/RestrictionsTab'
+import { CvsTable } from '../../cvs-table'
 import { PositionDiscussion } from './PositionDiscussion'
 import {
   PositionDetailProvider,
@@ -55,13 +57,20 @@ function PositionDetailContent() {
     existingResumeId,
     isEditModalOpen,
     editDraft,
+    restrictionsDraft,
+    isRestrictionsLoading,
+    isRestrictionsDirty,
+    isRestrictionsSaving,
     tab,
     setTab,
     setActionError,
     setIsEditModalOpen,
+    setRestrictionsRequiredTags,
+    setRestrictionsAttributeConditions,
     handleEditClick,
     handleEditSubmit,
     handleDescriptionSubmit,
+    handleRestrictionsSubmit,
     handleResumeAction,
     loadAttributeOptions,
     messages,
@@ -107,7 +116,8 @@ function PositionDetailContent() {
   )
 
   const isDirty = !areAbzaFormValuesEqual(formValues, savedValuesRef.current)
-  const showSaveButton = canEdit && tab === 'description'
+  const showDescriptionSaveButton = canEdit && tab === 'description'
+  const showRestrictionsSaveButton = canEdit && tab === 'restrictions'
 
   const onFlush = useCallback(async () => {
     if (areAbzaFormValuesEqual(formValuesRef.current, savedValuesRef.current)) {
@@ -198,7 +208,16 @@ function PositionDetailContent() {
     void flush()
   }, [flush, isDirty, isSaving])
 
+  const handleRestrictionsSave = useCallback(() => {
+    if (!isRestrictionsDirty || isRestrictionsSaving) {
+      return
+    }
+
+    void handleRestrictionsSubmit()
+  }, [handleRestrictionsSubmit, isRestrictionsDirty, isRestrictionsSaving])
+
   const canSave = autosaveEnabled && (isDirty || isSaving)
+  const canSaveRestrictions = isRestrictionsDirty || isRestrictionsSaving
 
   if (isLoading) {
     return (
@@ -228,12 +247,20 @@ function PositionDetailContent() {
             <Typography variant="h5" component="h1" sx={{ minWidth: 0 }}>
               {t('positions.detail.title', { name: position.name })}
             </Typography>
-            {showSaveButton ? (
+            {showDescriptionSaveButton ? (
               <AutosaveButton
                 label={t('profile.save')}
                 onClick={handleManualSave}
                 disabled={!canSave}
                 active={isAutosaveActive || isDirty}
+              />
+            ) : null}
+            {showRestrictionsSaveButton ? (
+              <AutosaveButton
+                label={t('profile.save')}
+                onClick={handleRestrictionsSave}
+                disabled={!canSaveRestrictions}
+                active={isRestrictionsDirty || isRestrictionsSaving}
               />
             ) : null}
           </Box>
@@ -284,6 +311,10 @@ function PositionDetailContent() {
           allowScrollButtonsMobile
         >
           <Tab value="description" label={t('positions.detail.tabs.description')} />
+          {canEdit ? (
+            <Tab value="restrictions" label={t('positions.detail.tabs.restrictions')} />
+          ) : null}
+          {canEdit ? <Tab value="cvs" label={t('positions.detail.tabs.cvs')} /> : null}
           <Tab value="discussion" label={t('positions.detail.tabs.discussion')} />
         </Tabs>
 
@@ -297,6 +328,23 @@ function PositionDetailContent() {
               void flush()
             }}
           />
+        ) : tab === 'restrictions' && canEdit ? (
+          isRestrictionsLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress size={32} />
+            </Box>
+          ) : (
+            <RestrictionsTab
+              requiredTags={restrictionsDraft.requiredTags}
+              onRequiredTagsChange={setRestrictionsRequiredTags}
+              attributeConditions={restrictionsDraft.attributeConditions}
+              onAttributeConditionsChange={setRestrictionsAttributeConditions}
+              loadAttributeOptions={loadAttributeOptions}
+              disabled={isRestrictionsSaving || isMutating}
+            />
+          )
+        ) : tab === 'cvs' && canEdit ? (
+          <CvsTable positionId={position.id} />
         ) : (
           <PositionDiscussion
             messages={messages}

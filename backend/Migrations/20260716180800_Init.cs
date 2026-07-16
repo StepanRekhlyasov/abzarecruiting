@@ -7,7 +7,7 @@ using MySql.EntityFrameworkCore.Metadata;
 namespace Backend.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class init : Migration
+    public partial class Init : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -195,7 +195,7 @@ namespace Backend.Api.Migrations
                     InputType = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Version = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
-                    CreatedById = table.Column<string>(type: "varchar(255)", nullable: false)
+                    CreatedById = table.Column<string>(type: "varchar(255)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -205,7 +205,7 @@ namespace Backend.Api.Migrations
                         column: x => x.CreatedById,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.SetNull);
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
@@ -224,7 +224,7 @@ namespace Backend.Api.Migrations
                     MaxProjects = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Version = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
-                    CreatedById = table.Column<string>(type: "varchar(255)", nullable: false)
+                    CreatedById = table.Column<string>(type: "varchar(255)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -234,7 +234,7 @@ namespace Backend.Api.Migrations
                         column: x => x.CreatedById,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.SetNull);
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
@@ -272,7 +272,7 @@ namespace Backend.Api.Migrations
                     Name = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Version = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
-                    CreatedById = table.Column<string>(type: "varchar(255)", nullable: false)
+                    CreatedById = table.Column<string>(type: "varchar(255)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -282,7 +282,7 @@ namespace Backend.Api.Migrations
                         column: x => x.CreatedById,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.SetNull);
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
@@ -367,6 +367,35 @@ namespace Backend.Api.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "PositionMessages",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    PositionId = table.Column<int>(type: "int", nullable: false),
+                    Content = table.Column<string>(type: "longtext", nullable: false),
+                    CreatedById = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PositionMessages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PositionMessages_AspNetUsers_CreatedById",
+                        column: x => x.CreatedById,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_PositionMessages_Positions_PositionId",
+                        column: x => x.PositionId,
+                        principalTable: "Positions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "Resumes",
                 columns: table => new
                 {
@@ -407,7 +436,7 @@ namespace Backend.Api.Migrations
                     TargetValue = table.Column<string>(type: "longtext", nullable: true),
                     Condition = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    CreatedById = table.Column<string>(type: "varchar(255)", nullable: false),
+                    CreatedById = table.Column<string>(type: "varchar(255)", nullable: true),
                     Version = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     TagId = table.Column<int>(type: "int", nullable: true)
                 },
@@ -419,7 +448,7 @@ namespace Backend.Api.Migrations
                         column: x => x.CreatedById,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_PositionRestrictions_Attributes_AttributeId",
                         column: x => x.AttributeId,
@@ -492,6 +521,32 @@ namespace Backend.Api.Migrations
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
+            migrationBuilder.CreateTable(
+                name: "LikesResume",
+                columns: table => new
+                {
+                    UserId = table.Column<string>(type: "varchar(255)", nullable: false),
+                    ResumeId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_LikesResume", x => new { x.UserId, x.ResumeId });
+                    table.ForeignKey(
+                        name: "FK_LikesResume_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_LikesResume_Resumes_ResumeId",
+                        column: x => x.ResumeId,
+                        principalTable: "Resumes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 table: "AspNetRoleClaims",
@@ -547,9 +602,29 @@ namespace Backend.Api.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_LikesResume_ResumeId",
+                table: "LikesResume",
+                column: "ResumeId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PositionAttributes_AttributeId",
                 table: "PositionAttributes",
                 column: "AttributeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PositionMessages_CreatedAt",
+                table: "PositionMessages",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PositionMessages_CreatedById",
+                table: "PositionMessages",
+                column: "CreatedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PositionMessages_PositionId",
+                table: "PositionMessages",
+                column: "PositionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PositionRestrictions_AttributeId",
@@ -638,7 +713,13 @@ namespace Backend.Api.Migrations
                 name: "Files");
 
             migrationBuilder.DropTable(
+                name: "LikesResume");
+
+            migrationBuilder.DropTable(
                 name: "PositionAttributes");
+
+            migrationBuilder.DropTable(
+                name: "PositionMessages");
 
             migrationBuilder.DropTable(
                 name: "PositionRestrictions");
@@ -653,10 +734,10 @@ namespace Backend.Api.Migrations
                 name: "ProfileProjectTags");
 
             migrationBuilder.DropTable(
-                name: "Resumes");
+                name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "AspNetRoles");
+                name: "Resumes");
 
             migrationBuilder.DropTable(
                 name: "Attributes");
