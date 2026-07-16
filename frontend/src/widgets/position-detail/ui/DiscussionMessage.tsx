@@ -28,6 +28,7 @@ export function DiscussionMessage({
   const roleLabel = message.createdByRole
     ? t(`auth.roles.${message.createdByRole.toLowerCase()}`, message.createdByRole)
     : ''
+  const showAuthorLink = linkAuthorToProfile && Boolean(message.createdById)
 
   return (
     <Box
@@ -44,10 +45,10 @@ export function DiscussionMessage({
       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, minWidth: 0 }}>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 1 }}>
-            {linkAuthorToProfile ? (
+            {showAuthorLink ? (
               <Link
                 component={RouterLink}
-                to={profileDetailPath(message.createdById)}
+                to={profileDetailPath(message.createdById!)}
                 underline="hover"
                 variant="subtitle1"
                 sx={{ fontWeight: 600 }}

@@ -148,6 +148,7 @@ public class PositionMessageService(
         var userIds = messages
             .Select(message => message.CreatedById)
             .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id!)
             .Distinct()
             .ToList();
 
@@ -161,8 +162,12 @@ public class PositionMessageService(
                 PositionId = message.PositionId,
                 Content = message.Content,
                 CreatedById = message.CreatedById,
-                CreatedByName = nameMap.GetValueOrDefault(message.CreatedById) ?? string.Empty,
-                CreatedByRole = roleMap.GetValueOrDefault(message.CreatedById) ?? string.Empty,
+                CreatedByName = message.CreatedById is null
+                    ? string.Empty
+                    : nameMap.GetValueOrDefault(message.CreatedById) ?? string.Empty,
+                CreatedByRole = message.CreatedById is null
+                    ? string.Empty
+                    : roleMap.GetValueOrDefault(message.CreatedById) ?? string.Empty,
                 CreatedAt = message.CreatedAt,
             })
             .ToList();

@@ -19,18 +19,6 @@ public static class AttributeSeeder
         IOptions<DefaultAttributesSettings> settings,
         ILogger logger)
     {
-        var systemUserId = await ResolveSystemUserIdAsync(userManager, settings.Value, logger);
-
-        if (string.IsNullOrWhiteSpace(systemUserId))
-        {
-            logger.LogWarning(
-                "Default attributes were not seeded: configure {UserId} or {Email} with {Password}.",
-                $"{DefaultAttributesSettings.SectionName}:{nameof(DefaultAttributesSettings.SystemUserId)}",
-                $"{DefaultAttributesSettings.SectionName}:{nameof(DefaultAttributesSettings.SystemUserEmail)}",
-                $"{DefaultAttributesSettings.SectionName}:{nameof(DefaultAttributesSettings.SystemUserPassword)}");
-            return;
-        }
-
         await RenameLegacyDefaultAttributesAsync(db, logger);
 
         var createdAt = DateTime.UtcNow;
@@ -68,6 +56,12 @@ public static class AttributeSeeder
                     changed = true;
                 }
 
+                if (existing.CreatedById is not null)
+                {
+                    existing.CreatedById = null;
+                    changed = true;
+                }
+
                 continue;
             }
 
@@ -79,7 +73,7 @@ public static class AttributeSeeder
                 Category = definition.Category,
                 Description = definition.Description,
                 CreatedAt = createdAt,
-                CreatedById = systemUserId,
+                CreatedById = null,
             });
             changed = true;
         }
@@ -88,6 +82,17 @@ public static class AttributeSeeder
         {
             await db.SaveChangesAsync();
             logger.LogInformation("Default profile attributes were seeded.");
+        }
+
+        var systemUserId = await ResolveSystemUserIdAsync(userManager, settings.Value, logger);
+        if (string.IsNullOrWhiteSpace(systemUserId))
+        {
+            logger.LogWarning(
+                "System user profile was not set: configure {UserId} or {Email} with {Password}.",
+                $"{DefaultAttributesSettings.SectionName}:{nameof(DefaultAttributesSettings.SystemUserId)}",
+                $"{DefaultAttributesSettings.SectionName}:{nameof(DefaultAttributesSettings.SystemUserEmail)}",
+                $"{DefaultAttributesSettings.SectionName}:{nameof(DefaultAttributesSettings.SystemUserPassword)}");
+            return;
         }
 
         try
@@ -123,26 +128,24 @@ public static class AttributeSeeder
             }
 
             var currentExists = await db.Attributes
-                .AnyAsync(attribute => attribute.Name == currentName && attribute.Id != legacyAttribute.Id);
+                .AnyAsync(attribute => attribute.Name == currentName);
 
             if (currentExists)
             {
-                db.Attributes.Remove(legacyAttribute);
-                logger.LogInformation(
-                    "Removed legacy default attribute '{LegacyName}' because '{CurrentName}' already exists.",
+                logger.LogWarning(
+                    "Skipping rename of legacy attribute '{Legacy}' because '{Current}' already exists.",
                     legacyName,
                     currentName);
-            }
-            else
-            {
-                legacyAttribute.Name = currentName;
-                logger.LogInformation(
-                    "Renamed legacy default attribute '{LegacyName}' to '{CurrentName}'.",
-                    legacyName,
-                    currentName);
+                continue;
             }
 
+            legacyAttribute.Name = currentName;
+            legacyAttribute.CreatedById = null;
             renamed = true;
+            logger.LogInformation(
+                "Renamed legacy attribute '{Legacy}' to '{Current}'.",
+                legacyName,
+                currentName);
         }
 
         if (renamed)

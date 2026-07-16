@@ -2,7 +2,7 @@ export type PositionMessageDto = {
   id: number
   positionId: number
   content: string
-  createdById: string
+  createdById: string | null
   createdByName: string
   createdByRole: string
   createdAt: string

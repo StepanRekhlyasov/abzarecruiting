@@ -60,7 +60,9 @@ export function PositionDiscussion({
               message={message}
               canDelete={canDelete}
               linkAuthorToProfile={
-                canLinkCandidateProfile && message.createdByRole.toLowerCase() === 'candidate'
+                canLinkCandidateProfile
+                && Boolean(message.createdById)
+                && message.createdByRole.toLowerCase() === 'candidate'
               }
               onDelete={(messageId) => {
                 void onDelete(messageId)

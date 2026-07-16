@@ -30,29 +30,13 @@ services:
             - ./backend/obj/
             - ./backend/bin/
             - ./backend/uploads/
+            - ./backend/.env
+    env_file:
+      - ./backend/.env
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - DOTNET_USE_POLLING_FILE_WATCHER=true
-      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=camp_project;User=app;Password=app;
-      - Cors__AllowedOrigins__0=http://localhost:8000
-      - Cors__AllowedOrigins__1=http://127.0.0.1:8000
-      - Cors__AllowedOrigins__2=http://abzabza.ru
-      - Cors__AllowedOrigins__3=https://abzabza.ru
-      - Cors__AllowedOrigins__4=http://44.194.248.98:8000
-      - Jwt__SecretKey=gdbL7Y4PkEDTp8isj2MTLzlOMbCLmfCo
-      - App__FrontendBaseUrl=http://localhost:8000
-      - Authentication__Google__ClientId=846055016668-p8rj8p7n1a0kg6c7mobgigh796c98saf.apps.googleusercontent.com
-      - Authentication__Google__ClientSecret=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
-      - Authentication__Facebook__AppId=
-      - Authentication__Facebook__AppSecret=
-      - Smtp__Host=smtp.gmail.com
-      - Smtp__Port=587
-      - Smtp__User=mailtestingchamber@gmail.com
-      - Smtp__Password=migryirkejbeeuhw
-      - Smtp__From=mailtestingchamber@gmail.com
-      - DefaultAttributes__SystemUserEmail=srekhlyasov@gmail.com
-      - DefaultAttributes__SystemUserPassword=1
       - FileStorage__RootPath=/app/uploads
       - FileStorage__RequestPath=/uploads
       - FileStorage__MaxFileSizeBytes=10485760

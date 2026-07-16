@@ -523,7 +523,8 @@
     "users": {
       "notFound": "Один или несколько пользователей не найдены",
       "emailMissing": "У пользователя отсутствует email",
-      "alreadyActivated": "Пользователь уже активирован"
+      "alreadyActivated": "Пользователь уже активирован",
+      "deleteFailed": "Не удалось удалить пользователя и связанные данные."
     },
     "email": {
       "smtpNotConfigured": "SMTP не настроен",

@@ -13,8 +13,8 @@ public class Attribute
     public string InputType { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public int Version { get; set; }
-    public string CreatedById { get; set; } = string.Empty;
-    public ApplicationUser CreatedBy { get; set; } = null!;
+    public string? CreatedById { get; set; }
+    public ApplicationUser? CreatedBy { get; set; }
     public ICollection<AttributeOption> Options { get; set; } = [];
     public ICollection<ProfileAttribute> ProfileAttributes { get; set; } = [];
     public ICollection<PositionRestriction> PositionRestrictions { get; set; } = [];

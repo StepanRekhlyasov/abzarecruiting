@@ -523,7 +523,8 @@
     "users": {
       "notFound": "One or more users were not found",
       "emailMissing": "User email is missing",
-      "alreadyActivated": "User is already activated"
+      "alreadyActivated": "User is already activated",
+      "deleteFailed": "Failed to delete user and related data."
     },
     "email": {
       "smtpNotConfigured": "SMTP is not configured",

@@ -481,6 +481,7 @@ public class PositionService(
         var creatorIds = positions
             .Select(position => position.CreatedById)
             .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id!)
             .Distinct()
             .ToList();
         var creatorNames = await LoadCreatorNameMapAsync(creatorIds, cancellationToken);
@@ -508,7 +509,9 @@ public class PositionService(
                 MaxProjects = position.MaxProjects,
                 CreatedAt = position.CreatedAt,
                 Version = position.Version,
-                CreatedByName = creatorNames.GetValueOrDefault(position.CreatedById) ?? string.Empty,
+                CreatedByName = position.CreatedById is null
+                    ? string.Empty
+                    : creatorNames.GetValueOrDefault(position.CreatedById) ?? string.Empty,
                 MessagesCount = messageCounts.GetValueOrDefault(position.Id),
                 Attributes = attributes
                     .Where(item => item.PositionId == position.Id)

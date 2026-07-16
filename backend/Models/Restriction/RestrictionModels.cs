@@ -45,7 +45,7 @@ public class RestrictionDto
 
     public DateTime CreatedAt { get; set; }
 
-    public string CreatedById { get; set; } = string.Empty;
+    public string? CreatedById { get; set; }
 
     public int Version { get; set; }
 }

@@ -15,8 +15,8 @@ public class Position
     public int MaxProjects { get; set; }
     public DateTime CreatedAt { get; set; }
     public int Version { get; set; }
-    public string CreatedById { get; set; } = string.Empty;
-    public ApplicationUser CreatedBy { get; set; } = null!;
+    public string? CreatedById { get; set; }
+    public ApplicationUser? CreatedBy { get; set; }
     public ICollection<PositionRestriction> PositionRestrictions { get; set; } = [];
     public ICollection<PositionAttribute> PositionAttributes { get; set; } = [];
     public ICollection<Resume> Resumes { get; set; } = [];

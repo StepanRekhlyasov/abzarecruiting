@@ -69,7 +69,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(attribute => attribute.CreatedBy)
                 .WithMany()
                 .HasForeignKey(attribute => attribute.CreatedById)
-                .OnDelete(DeleteBehavior.Restrict);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasIndex(attribute => attribute.Name)
                 .IsUnique();
@@ -156,7 +157,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(position => position.CreatedBy)
                 .WithMany()
                 .HasForeignKey(position => position.CreatedById)
-                .OnDelete(DeleteBehavior.Restrict);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
         });
         builder.Entity<PositionRestriction>(entity =>
         {
@@ -184,7 +186,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(restriction => restriction.CreatedBy)
                 .WithMany()
                 .HasForeignKey(restriction => restriction.CreatedById)
-                .OnDelete(DeleteBehavior.Restrict);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(restriction => restriction.Tag)
                 .WithMany(tag => tag.PositionRestrictions)
@@ -253,7 +256,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(tag => tag.CreatedBy)
                 .WithMany()
                 .HasForeignKey(tag => tag.CreatedById)
-                .OnDelete(DeleteBehavior.Restrict);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<ProfileProjectTag>(entity =>
@@ -338,8 +342,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .IsRequired();
 
             entity.Property(message => message.CreatedById)
-                .HasMaxLength(255)
-                .IsRequired();
+                .HasMaxLength(255);
 
             entity.Property(message => message.CreatedAt)
                 .HasColumnType("datetime(6)");
@@ -355,7 +358,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(message => message.CreatedBy)
                 .WithMany(user => user.PositionMessages)
                 .HasForeignKey(message => message.CreatedById)
-                .OnDelete(DeleteBehavior.Cascade);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<FileEntity>(entity =>

@@ -17,7 +17,7 @@ public class PositionMessageDto
 
     public string Content { get; set; } = string.Empty;
 
-    public string CreatedById { get; set; } = string.Empty;
+    public string? CreatedById { get; set; }
 
     public string CreatedByName { get; set; } = string.Empty;
 

@@ -130,12 +130,19 @@ public class ExternalAuthService(
                 await userManager.AddToRoleAsync(user, Roles.Candidate);
 
                 var (firstName, lastName) = ExtractNames(loginInfo.Principal);
-                await profileAttributeService.SetStringValuesAsync(user.Id, new Dictionary<string, string>
+                try
                 {
-                    [DefaultAttributes.FirstName] = firstName,
-                    [DefaultAttributes.LastName] = lastName,
-                    [DefaultAttributes.Email] = email,
-                });
+                    await profileAttributeService.SetStringValuesAsync(user.Id, new Dictionary<string, string>
+                    {
+                        [DefaultAttributes.FirstName] = firstName,
+                        [DefaultAttributes.LastName] = lastName,
+                        [DefaultAttributes.Email] = email,
+                    });
+                }
+                catch (InvalidOperationException)
+                {
+                    // Default profile attributes may be missing after data wipe; login must still succeed.
+                }
             }
 
             var addLoginResult = await userManager.AddLoginAsync(user, loginInfo);

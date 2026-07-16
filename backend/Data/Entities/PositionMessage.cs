@@ -10,9 +10,9 @@ public class PositionMessage
 
     public string Content { get; set; } = string.Empty;
 
-    public string CreatedById { get; set; } = string.Empty;
+    public string? CreatedById { get; set; }
 
-    public ApplicationUser CreatedBy { get; set; } = null!;
+    public ApplicationUser? CreatedBy { get; set; }
 
     public DateTime CreatedAt { get; set; }
 }

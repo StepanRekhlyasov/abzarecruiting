@@ -62,6 +62,9 @@ App_Data/*.ldf
 uploads/
 
 ## Secrets and local config
+.env
+.env.*
+!.env.example
 appsettings.*.local.json
 secrets.json
 *.pfx

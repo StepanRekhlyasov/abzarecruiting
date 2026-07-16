@@ -12,7 +12,7 @@ export type RestrictionDto = {
   targetValue: string | null
   condition: RestrictionCondition
   createdAt: string
-  createdById: string
+  createdById: string | null
   version: number
 }
 

@@ -225,13 +225,57 @@ public class UserService(
             {
                 throw new InvalidOperationException("error.users.notFound");
             }
+        }
 
-            var result = await userManager.DeleteAsync(user);
-            if (!result.Succeeded)
+        foreach (var userId in distinctIds)
+        {
+            await DeleteUserOwnedContentAsync(userId, cancellationToken);
+
+            var user = await userManager.FindByIdAsync(userId);
+            if (user is null)
             {
-                throw new InvalidOperationException(string.Join(" ", result.Errors.Select(error => error.Description)));
+                throw new InvalidOperationException("error.users.notFound");
+            }
+
+            try
+            {
+                var result = await userManager.DeleteAsync(user);
+                if (!result.Succeeded)
+                {
+                    throw new InvalidOperationException(
+                        string.Join(" ", result.Errors.Select(error => error.Description)));
+                }
+            }
+            catch (DbUpdateException)
+            {
+                throw new InvalidOperationException("error.users.deleteFailed");
             }
         }
+    }
+
+    private async Task DeleteUserOwnedContentAsync(string userId, CancellationToken cancellationToken)
+    {
+        // Explicit cleanup of user-owned content. Remaining CreatedBy FKs use SetNull.
+        await db.Positions
+            .Where(position => position.CreatedById == userId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await db.PositionRestrictions
+            .Where(restriction => restriction.CreatedById == userId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await db.PositionMessages
+            .Where(message => message.CreatedById == userId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await db.Tags
+            .Where(tag => tag.CreatedById == userId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        // Default attributes have CreatedById = null and are never deleted here.
+        await db.Attributes
+            .Where(attribute => attribute.CreatedById == userId)
+            .ExecuteDeleteAsync(cancellationToken);
     }
 
     public async Task SetLockoutAsync(string userId, bool locked, CancellationToken cancellationToken)
