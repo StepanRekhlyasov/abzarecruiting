@@ -10,6 +10,7 @@ import {
 } from '@features/abza-form'
 import type {
   AbzaSelectOption,
+  AsyncEntityLoadOptions,
   AttributeDraftValue,
   ProfileAttributeDto,
 } from '@shared/types'
@@ -25,7 +26,7 @@ export type AttributeSectionProps = {
   onChange: (attributeId: number, value: AttributeDraftValue) => void
   onForceSave?: () => void
   emptyMessage?: string
-  loadAttributeOptions?: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
+  loadAttributeOptions?: AsyncEntityLoadOptions
   onAddAttributes?: (attributeIds: number[]) => Promise<void>
   onRemoveAttribute?: (attributeId: number) => Promise<void>
   isAdding?: boolean

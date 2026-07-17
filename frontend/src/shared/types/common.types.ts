@@ -71,13 +71,24 @@ export type AbzaSelectOption = {
   isNew?: boolean
 }
 
+export type AsyncEntityOptionsPage = {
+  options: AbzaSelectOption[]
+  hasMore: boolean
+}
+
+export type AsyncEntityLoadOptions = (
+  search: string,
+  signal?: AbortSignal,
+  page?: number,
+) => Promise<AbzaSelectOption[] | AsyncEntityOptionsPage>
+
 export type AbzaFieldConfig = {
   name: string
   label: string
   type: AbzaFieldType
   validation?: AbzaValidationRule
   options?: AbzaSelectOption[]
-  loadOptions?: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
+  loadOptions?: AsyncEntityLoadOptions
   allowCreateOptions?: boolean
   autoComplete?: string
   disabled?: boolean

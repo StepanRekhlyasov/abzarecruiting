@@ -98,6 +98,8 @@ export type {
   AbzaModalConfig,
   AbzaModalProps,
   AbzaSelectOption,
+  AsyncEntityLoadOptions,
+  AsyncEntityOptionsPage,
   AbzaTableColumn,
   AbzaTableProps,
   AbzaTableRowId,

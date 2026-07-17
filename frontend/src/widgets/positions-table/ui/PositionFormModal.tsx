@@ -11,7 +11,7 @@ import { i18n } from '@shared/config/i18n'
 import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
 import type { AttributeConditionDraft } from '@entities/restriction'
-import type { AbzaFormValues, AbzaSelectOption } from '@shared/types'
+import type { AbzaFormValues, AbzaSelectOption, AsyncEntityLoadOptions } from '@shared/types'
 import { getTagOptionsFromValues, loadTagOptions } from '@entities/tag'
 import { RestrictionsTab } from './RestrictionsTab'
 
@@ -38,7 +38,7 @@ type PositionFormModalProps = {
   initialAttributeConditions?: AttributeConditionDraft[]
   initialTagRestrictionIds?: Map<number, RestrictionMeta>
   initialAttributeRestrictionIds?: Map<string, RestrictionMeta>
-  loadAttributeOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
+  loadAttributeOptions: AsyncEntityLoadOptions
   onOpenChange: (open: boolean) => void
   onSubmit?: (payload: PositionFormSubmitPayload) => Promise<void>
   onCreateResume?: () => Promise<void>

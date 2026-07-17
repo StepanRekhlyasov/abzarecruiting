@@ -1,11 +1,11 @@
 import type { TFunction } from 'i18next'
 import { POSITION_LEVELS, WORK_FORMATS } from '@shared/types'
-import type { AbzaFormConfig, AbzaSelectOption } from '@shared/types'
+import type { AbzaFormConfig, AsyncEntityLoadOptions } from '@shared/types'
 
 type CreatePositionInfoFormConfigOptions = {
   readOnly?: boolean
-  loadAttributeOptions?: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
-  loadTagOptions?: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
+  loadAttributeOptions?: AsyncEntityLoadOptions
+  loadTagOptions?: AsyncEntityLoadOptions
   withRelations?: boolean
 }
 
@@ -109,8 +109,8 @@ export function createPositionRelationsFormConfig(
   t: TFunction,
   options: {
     readOnly?: boolean
-    loadAttributeOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
-    loadTagOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
+    loadAttributeOptions: AsyncEntityLoadOptions
+    loadTagOptions: AsyncEntityLoadOptions
   },
 ): AbzaFormConfig {
   const { readOnly = false, loadAttributeOptions, loadTagOptions } = options

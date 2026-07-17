@@ -1,16 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import Autocomplete from '@mui/material/Autocomplete'
 import TextField from '@mui/material/TextField'
-import type { AbzaSelectOption } from '@shared/types'
+import type { AbzaSelectOption, AsyncEntityLoadOptions, AsyncEntityOptionsPage } from '@shared/types'
 
 type AsyncEntitySelectProps = {
   label: string
   value: AbzaSelectOption | null
   onChange: (option: AbzaSelectOption | null) => void
-  loadOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
+  loadOptions: AsyncEntityLoadOptions
   disabled?: boolean
   error?: boolean
   helperText?: string
+}
+
+function normalizeOptions(
+  result: AbzaSelectOption[] | AsyncEntityOptionsPage,
+): AbzaSelectOption[] {
+  return Array.isArray(result) ? result : result.options
 }
 
 export function AsyncEntitySelect({
@@ -38,7 +44,7 @@ export function AsyncEntitySelect({
       try {
         const nextOptions = await loadOptions(inputValue.trim(), controller.signal)
         if (!controller.signal.aborted) {
-          setOptions(nextOptions)
+          setOptions(normalizeOptions(nextOptions))
         }
       } catch {
         if (!controller.signal.aborted) {

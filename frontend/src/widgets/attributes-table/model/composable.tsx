@@ -14,7 +14,7 @@ import { useUnit } from 'effector-react'
 import type { AbzaFormValues } from '@features/abza-form'
 import type { AbzaTableRowId } from '@features/abza-table'
 import type { AttributeCategory, AttributeDto } from '@entities/attribute'
-import type { AbzaSelectOption, SortDirection } from '@shared/types'
+import type { AbzaSelectOption, AsyncEntityLoadOptions, SortDirection } from '@shared/types'
 import {
   createAttribute,
   deleteAttributesBatch,
@@ -31,7 +31,7 @@ import {
   toSubmitStringArray,
   toSubmitValues,
 } from '@shared/lib/helpers'
-import { NEW_TAG_VALUE_PREFIX } from '@shared/ui/inputs'
+import { ASYNC_ENTITY_TAGS_PAGE_SIZE, NEW_TAG_VALUE_PREFIX } from '@shared/ui/inputs'
 
 function toAttributeSubmitValues(values: AbzaFormValues) {
   const { name, valueType, category } = toSubmitValues(values, ['name', 'valueType', 'category'])
@@ -103,7 +103,7 @@ type AttributesTableContextValue = {
   handleDeleteSelected: () => Promise<void>
   handleLinkSelected: () => Promise<void>
   handleUnlinkSelected: () => Promise<void>
-  loadAttributeOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
+  loadAttributeOptions: AsyncEntityLoadOptions
 }
 
 const AttributesTableContext = createContext<AttributesTableContextValue | null>(null)
@@ -164,11 +164,11 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
     }
   }, [session?.id, canLinkToProfile])
 
-  const loadAttributeOptions = useCallback(async (search: string, signal?: AbortSignal) => {
+  const loadAttributeOptions = useCallback(async (search: string, signal?: AbortSignal, page = 1) => {
     const result = await fetchAttributes(
       {
-        page: 1,
-        size: 20,
+        page,
+        size: ASYNC_ENTITY_TAGS_PAGE_SIZE,
         search: search || undefined,
         sortBy: 'name',
         sortDir: 'asc',
@@ -176,11 +176,14 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       { signal },
     )
 
-    return result.items.map((item) => ({
-      value: String(item.id),
-      label: item.name,
-      valueType: item.valueType,
-    }))
+    return {
+      options: result.items.map((item) => ({
+        value: String(item.id),
+        label: item.name,
+        valueType: item.valueType,
+      })),
+      hasMore: result.page * result.size < result.totalCount,
+    }
   }, [])
 
   const loadAttributes = useCallback(async (signal?: AbortSignal) => {

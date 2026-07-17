@@ -13,7 +13,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { RESTRICTION_CONDITIONS } from '@entities/restriction'
 import type { AttributeConditionDraft, RestrictionCondition } from '@entities/restriction'
-import type { AbzaSelectOption } from '@shared/types'
+import type { AbzaSelectOption, AsyncEntityLoadOptions } from '@shared/types'
 import { TagsField } from '@entities/tag'
 import { AsyncEntitySelect } from '@shared/ui/inputs'
 
@@ -22,7 +22,7 @@ type RestrictionsTabProps = {
   onRequiredTagsChange: (tags: AbzaSelectOption[]) => void
   attributeConditions: AttributeConditionDraft[]
   onAttributeConditionsChange: (conditions: AttributeConditionDraft[]) => void
-  loadAttributeOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
+  loadAttributeOptions: AsyncEntityLoadOptions
   disabled?: boolean
 }
 
@@ -58,9 +58,19 @@ export function RestrictionsTab({
   }
 
   const loadNumericAttributeOptions = useCallback(
-    async (search: string, signal?: AbortSignal) => {
-      const options = await loadAttributeOptions(search, signal)
-      return options.filter((option) => isNumericAttribute(option.valueType ?? ''))
+    async (search: string, signal?: AbortSignal, page?: number) => {
+      const result = await loadAttributeOptions(search, signal, page)
+      const options = Array.isArray(result) ? result : result.options
+      const filtered = options.filter((option) => isNumericAttribute(option.valueType ?? ''))
+
+      if (Array.isArray(result)) {
+        return filtered
+      }
+
+      return {
+        options: filtered,
+        hasMore: result.hasMore,
+      }
     },
     [loadAttributeOptions],
   )

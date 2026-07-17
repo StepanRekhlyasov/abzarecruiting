@@ -1,5 +1,5 @@
 import type { AbzaFormValues, AbzaSelectOption } from '@shared/types'
-import { NEW_TAG_VALUE_PREFIX } from '@shared/ui/inputs'
+import { ASYNC_ENTITY_TAGS_PAGE_SIZE, NEW_TAG_VALUE_PREFIX } from '@shared/ui/inputs'
 import { createTag, fetchTags } from '../api/tagApi'
 
 export function isNewTagOption(option: AbzaSelectOption) {
@@ -31,11 +31,12 @@ export function getTagOptionsFromValues(
 export async function loadTagOptions(
   search: string,
   signal?: AbortSignal,
-): Promise<AbzaSelectOption[]> {
+  page = 1,
+) {
   const result = await fetchTags(
     {
-      page: 1,
-      size: 20,
+      page,
+      size: ASYNC_ENTITY_TAGS_PAGE_SIZE,
       search: search || undefined,
       sortBy: 'name',
       sortDir: 'asc',
@@ -43,7 +44,10 @@ export async function loadTagOptions(
     { signal },
   )
 
-  return tagsToSelectOptions(result.items)
+  return {
+    options: tagsToSelectOptions(result.items),
+    hasMore: result.page * result.size < result.totalCount,
+  }
 }
 
 export async function ensureTagByName(name: string): Promise<AbzaSelectOption> {
@@ -54,7 +58,7 @@ export async function ensureTagByName(name: string): Promise<AbzaSelectOption> {
 
   const existing = await fetchTags({
     page: 1,
-    size: 20,
+    size: ASYNC_ENTITY_TAGS_PAGE_SIZE,
     search: trimmed,
     sortBy: 'name',
     sortDir: 'asc',

@@ -13,6 +13,7 @@ import type { AbzaTableRowId } from '@features/abza-table'
 import type { PositionDto } from '@entities/position'
 import type {
   AbzaSelectOption,
+  AsyncEntityLoadOptions,
   AttributeConditionDraft,
   SortDirection,
 } from '@shared/types'
@@ -28,6 +29,7 @@ import {
 import { fetchRestrictionsByPosition } from '@entities/restriction'
 import { createResume, fetchResumePositionIds } from '@entities/resume'
 import { $session, isCandidate, isRecruiterOrAdmin } from '@entities/user'
+import { ASYNC_ENTITY_TAGS_PAGE_SIZE } from '@shared/ui/inputs'
 import { getErrorKey } from '@shared/lib/errors'
 import { notificationsSocket } from '@shared/lib/websocket'
 import type { PositionFormSubmitPayload } from '../ui/PositionFormModal'
@@ -65,7 +67,7 @@ type PositionsTableContextValue = {
   canManagePositions: boolean
   canCreateResumes: boolean
   resumePositionIdSet: Set<number>
-  loadAttributeOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
+  loadAttributeOptions: AsyncEntityLoadOptions
   setSearchInput: (value: string) => void
   setPage: (page: number) => void
   setPageSize: (size: number) => void
@@ -120,11 +122,11 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
   const canCreateResumes = isCandidate(session)
   const resumePositionIdSet = useMemo(() => new Set(resumePositionIds), [resumePositionIds])
 
-  const loadAttributeOptions = useCallback(async (search: string, signal?: AbortSignal) => {
+  const loadAttributeOptions = useCallback(async (search: string, signal?: AbortSignal, page = 1) => {
     const result = await fetchAttributes(
       {
-        page: 1,
-        size: 20,
+        page,
+        size: ASYNC_ENTITY_TAGS_PAGE_SIZE,
         search: search || undefined,
         sortBy: 'name',
         sortDir: 'asc',
@@ -132,11 +134,14 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
       { signal },
     )
 
-    return result.items.map((item) => ({
-      value: String(item.id),
-      label: item.name,
-      valueType: item.valueType,
-    }))
+    return {
+      options: result.items.map((item) => ({
+        value: String(item.id),
+        label: item.name,
+        valueType: item.valueType,
+      })),
+      hasMore: result.page * result.size < result.totalCount,
+    }
   }, [])
 
   const loadResumePositionIds = useCallback(async (signal?: AbortSignal) => {

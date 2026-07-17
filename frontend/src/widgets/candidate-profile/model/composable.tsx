@@ -22,8 +22,10 @@ import { getErrorKey } from '@shared/lib/errors'
 import {
   toPersistedAttributeValue,
   type AbzaSelectOption,
+  type AsyncEntityLoadOptions,
   type AttributeDraftValue,
 } from '@shared/types'
+import { ASYNC_ENTITY_TAGS_PAGE_SIZE } from '@shared/ui/inputs'
 
 type CandidateProfileContextValue = {
   candidateId: string
@@ -40,7 +42,7 @@ type CandidateProfileContextValue = {
     value: AttributeDraftValue,
     version: number,
   ) => Promise<number>
-  loadAttributeOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
+  loadAttributeOptions: AsyncEntityLoadOptions
   addAttributesToProfile: (attributeIds: number[]) => Promise<void>
   removeAttributesFromProfile: (attributeIds: number[]) => Promise<void>
   reloadProfile: () => Promise<void>
@@ -117,11 +119,11 @@ export function CandidateProfileProvider({ candidateId, children }: CandidatePro
   )
 
   const loadAttributeOptions = useCallback(
-    async (search: string, signal?: AbortSignal) => {
+    async (search: string, signal?: AbortSignal, page = 1) => {
       const result = await fetchAttributes(
         {
-          page: 1,
-          size: 20,
+          page,
+          size: ASYNC_ENTITY_TAGS_PAGE_SIZE,
           search: search || undefined,
           sortBy: 'name',
           sortDir: 'asc',
@@ -129,13 +131,16 @@ export function CandidateProfileProvider({ candidateId, children }: CandidatePro
         { signal },
       )
 
-      return result.items
-        .filter((item) => !linkedAttributeIdSet.has(item.id))
-        .map((item) => ({
-          value: String(item.id),
-          label: item.name,
-          valueType: item.valueType,
-        }))
+      return {
+        options: result.items
+          .filter((item) => !linkedAttributeIdSet.has(item.id))
+          .map((item) => ({
+            value: String(item.id),
+            label: item.name,
+            valueType: item.valueType,
+          })),
+        hasMore: result.page * result.size < result.totalCount,
+      }
     },
     [linkedAttributeIdSet],
   )
