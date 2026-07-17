@@ -66,7 +66,7 @@ export async function syncPositionRestrictions(
       .filter((condition) => Boolean(condition.attributeId))
       .map((condition) => {
         const needsTarget =
-          condition.condition === 'equal'
+          condition.condition === 'Equal'
           || condition.condition === 'More'
           || condition.condition === 'Less'
         const targetValue = needsTarget ? condition.targetValue.trim() : null

@@ -14,6 +14,7 @@ import type { AbzaTableColumn } from '@features/abza-table'
 import { ResumeLike } from '@features/resume-like'
 import type { ResumeListItemDto } from '@entities/resume'
 import { getErrorKey } from '@shared/lib/errors'
+import { CandidateProfileLink } from '@shared/ui'
 import { CvsTableProvider, useCvsTable } from '../model'
 import { CvsTableToolbar } from './Toolbar'
 
@@ -86,7 +87,11 @@ function CvsTableContent() {
         id: 'candidateName',
         label: t('cvs.columns.candidateId'),
         sortable: true,
-        render: (row) => row.candidateName || row.candidateId,
+        render: (row) => (
+          <CandidateProfileLink candidateId={row.candidateId}>
+            {row.candidateName || row.candidateId}
+          </CandidateProfileLink>
+        ),
       })
     }
 

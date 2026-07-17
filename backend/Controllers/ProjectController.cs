@@ -18,6 +18,8 @@ public class ProjectController(IProjectService projectService, ApplicationDbCont
     public async Task<ActionResult<PagedResult<ProjectDto>>> GetList(
         [FromQuery] PaginationParams pagination,
         [FromQuery] string? candidateId,
+        [FromQuery] List<int>? tagIds,
+        [FromQuery] List<string>? candidateIds,
         CancellationToken cancellationToken)
     {
         if (!User.IsAdmin() && !User.IsCandidate() && !User.IsRecruiter())
@@ -25,7 +27,10 @@ public class ProjectController(IProjectService projectService, ApplicationDbCont
             return Forbid();
         }
 
-        if (User.IsRecruiter() && !User.IsAdmin() && string.IsNullOrWhiteSpace(candidateId))
+        var hasCandidateFilter = !string.IsNullOrWhiteSpace(candidateId)
+            || (candidateIds?.Any(id => !string.IsNullOrWhiteSpace(id)) ?? false);
+
+        if (User.IsRecruiter() && !User.IsAdmin() && !hasCandidateFilter)
         {
             return Forbid();
         }
@@ -36,6 +41,8 @@ public class ProjectController(IProjectService projectService, ApplicationDbCont
             User.IsAdmin(),
             candidateId,
             User.IsRecruiter(),
+            tagIds,
+            candidateIds,
             cancellationToken);
 
         return Ok(result);

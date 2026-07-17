@@ -6,12 +6,14 @@ import type {
   ProjectDto,
   UpdateProjectRequest,
 } from '@shared/types'
-import { apiClient } from '@shared/api'
+import { apiClient, serializeListQueryParams } from '@shared/api'
 import { parseApiError } from '@shared/lib/errors'
 
 type FetchProjectsOptions = {
   signal?: AbortSignal
   candidateId?: string
+  candidateIds?: string[]
+  tagIds?: number[]
 }
 
 export async function fetchProjects(
@@ -23,7 +25,10 @@ export async function fetchProjects(
       params: {
         ...params,
         candidateId: options?.candidateId,
+        candidateIds: options?.candidateIds,
+        tagIds: options?.tagIds,
       },
+      paramsSerializer: serializeListQueryParams,
       signal: options?.signal,
     })
     return data

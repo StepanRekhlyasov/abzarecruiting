@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next'
 import AddIcon from '@mui/icons-material/Add'
 import BackspaceIcon from '@mui/icons-material/Backspace'
-import FilterListIcon from '@mui/icons-material/FilterList'
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd'
 import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove'
 import Button from '@mui/material/Button'
 import Grid from '@mui/material/Grid'
 import Tooltip from '@mui/material/Tooltip'
+import { AbzaFilterButton } from '@features/abza-filter'
 import { AsyncEntityTags } from '@shared/ui/inputs'
 import { useAttributesTable } from '../model'
 import { AttributesFilterModal } from './FilterModal'
@@ -55,22 +55,12 @@ export function AttributesTableToolbar() {
           />
         </Grid>
         <Grid>
-          <Button
-            variant={isFilterActive ? 'contained' : 'outlined'}
+          <AbzaFilterButton
+            active={isFilterActive}
             onClick={() => setIsFilterModalOpen(true)}
             disabled={isLoading}
-            sx={
-              isFilterActive
-                ? undefined
-                : {
-                    color: 'action.active',
-                    borderColor: 'divider',
-                  }
-            }
             aria-label={t('attributes.actions.filter')}
-          >
-            <FilterListIcon />
-          </Button>
+          />
         </Grid>
         {canManageAttributes && (
           <Grid>

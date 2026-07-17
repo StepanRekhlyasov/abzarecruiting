@@ -3,6 +3,9 @@ import type { PaginationParams } from '@shared/types'
 type ListQueryParams = PaginationParams & {
   ids?: number[]
   searches?: string[]
+  tagIds?: number[]
+  candidateId?: string
+  candidateIds?: string[]
   category?: string
   valueType?: string
 }
@@ -31,9 +34,24 @@ export function serializeListQueryParams(params: ListQueryParams): string {
   if (params.valueType) {
     searchParams.set('valueType', params.valueType)
   }
+  if (params.candidateId) {
+    searchParams.set('candidateId', params.candidateId)
+  }
 
   for (const id of params.ids ?? []) {
     searchParams.append('ids', String(id))
+  }
+
+  for (const id of params.tagIds ?? []) {
+    if (id > 0) {
+      searchParams.append('tagIds', String(id))
+    }
+  }
+
+  for (const id of params.candidateIds ?? []) {
+    if (id.trim()) {
+      searchParams.append('candidateIds', id.trim())
+    }
   }
 
   for (const term of params.searches ?? []) {

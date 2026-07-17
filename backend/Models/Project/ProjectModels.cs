@@ -47,6 +47,8 @@ public class ProjectDto
 
     public string CandidateId { get; set; } = string.Empty;
 
+    public string CandidateName { get; set; } = string.Empty;
+
     public string Name { get; set; } = string.Empty;
 
     public string Description { get; set; } = string.Empty;

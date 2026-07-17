@@ -15,7 +15,13 @@
     "profile": "Profile",
     "users": "Users",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "filter": {
+      "apply": "Apply",
+      "reset": "Reset",
+      "cancel": "Cancel",
+      "any": "Any"
+    }
   },
   "users": {
     "title": "Users"
@@ -365,7 +371,7 @@
     },
     "restrictions": {
       "requiredTags": "Required tags",
-      "requiredTagsHint": "The candidate must have the selected tags",
+      "requiredTagsHint": "The candidate must have projects with the selected tags",
       "tags": "Tags",
       "attributeConditions": "Attribute conditions",
       "attributeConditionsHint": "Add conditions for candidate attributes. More/Less are numeric only",
@@ -482,6 +488,14 @@
   "projects": {
     "title": "Projects",
     "search": "Search by name or description",
+    "filter": {
+      "title": "Filter projects",
+      "tags": "Tags",
+      "candidates": "Candidates"
+    },
+    "actions": {
+      "filter": "Filter"
+    },
     "loading": "Loading...",
     "empty": "No projects found",
     "columns": {
@@ -490,6 +504,7 @@
       "startAt": "Start date",
       "endAt": "End date",
       "tags": "Tags",
+      "candidate": "Candidate",
       "candidateId": "Candidate",
       "createdAt": "Created"
     },

@@ -48,6 +48,16 @@ function toProjectSubmitValues(values: AbzaFormValues, includeCandidateId: boole
   }
 }
 
+export type ProjectTableFilters = {
+  tags: AbzaSelectOption[]
+  candidates: AbzaSelectOption[]
+}
+
+const EMPTY_FILTERS: ProjectTableFilters = {
+  tags: [],
+  candidates: [],
+}
+
 type ProjectsTableContextValue = {
   rows: ProjectDto[]
   totalCount: number
@@ -61,13 +71,17 @@ type ProjectsTableContextValue = {
   actionError: string | null
   isCreateModalOpen: boolean
   isEditModalOpen: boolean
+  isFilterModalOpen: boolean
   editingProject: ProjectDto | null
   createTags: AbzaSelectOption[]
   editTags: AbzaSelectOption[]
+  appliedFilters: ProjectTableFilters
+  isFilterActive: boolean
   canAccessProjects: boolean
   canCreateProjects: boolean
   showCandidateColumn: boolean
   showCandidateSelect: boolean
+  showCandidateFilter: boolean
   createFormRef: RefObject<HTMLFormElement | null>
   editFormRef: RefObject<HTMLFormElement | null>
   loadCandidateOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
@@ -77,11 +91,14 @@ type ProjectsTableContextValue = {
   setSelectedIds: (ids: AbzaTableRowId[]) => void
   setIsCreateModalOpen: (open: boolean) => void
   setIsEditModalOpen: (open: boolean) => void
+  setIsFilterModalOpen: (open: boolean) => void
   setCreateTags: (tags: AbzaSelectOption[]) => void
   setEditTags: (tags: AbzaSelectOption[]) => void
   setActionError: (error: string | null) => void
   handleSortChange: (nextSortBy: string, nextSortDir: SortDirection) => void
   handleFilter: () => void
+  handleApplyFilters: (filters: ProjectTableFilters) => void
+  handleResetFilters: () => void
   handleCreateClick: () => void
   handleCreateSubmit: (values: AbzaFormValues) => Promise<void>
   handleEditSubmit: (values: AbzaFormValues) => Promise<void>
@@ -108,6 +125,7 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
   const [pageSize, setPageSize] = useState(20)
   const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [appliedFilters, setAppliedFilters] = useState<ProjectTableFilters>(EMPTY_FILTERS)
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
   const [selectedIds, setSelectedIds] = useState<AbzaTableRowId[]>([])
@@ -115,6 +133,7 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
   const [actionError, setActionError] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<ProjectDto | null>(null)
   const [createTags, setCreateTags] = useState<AbzaSelectOption[]>([])
   const [editTags, setEditTags] = useState<AbzaSelectOption[]>([])
@@ -124,7 +143,10 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
   const canCreateProjects = isCandidate(session) || isAdmin(session)
   const showCandidateColumn = isAdmin(session) && !candidateId
   const showCandidateSelect = showCandidateColumn
+  const showCandidateFilter = showCandidateColumn
   const isAdminUser = isAdmin(session)
+  const isFilterActive =
+    appliedFilters.tags.length > 0 || appliedFilters.candidates.length > 0
 
   const loadCandidateOptions = useCallback(async (search: string, signal?: AbortSignal) => {
     const result = await fetchUsers(
@@ -160,6 +182,14 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
     setIsLoading(true)
     setActionError(null)
 
+    const tagIds = appliedFilters.tags
+      .map((tag) => Number(tag.value))
+      .filter((id) => Number.isFinite(id) && id > 0)
+
+    const candidateIds = appliedFilters.candidates
+      .map((item) => item.value.trim())
+      .filter(Boolean)
+
     try {
       const result = await fetchProjects(
         {
@@ -169,7 +199,12 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
           sortBy,
           sortDir,
         },
-        { signal, candidateId },
+        {
+          signal,
+          candidateId,
+          candidateIds: !candidateId && candidateIds.length > 0 ? candidateIds : undefined,
+          tagIds: tagIds.length > 0 ? tagIds : undefined,
+        },
       )
 
       if (!signal?.aborted) {
@@ -189,7 +224,16 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
         setIsLoading(false)
       }
     }
-  }, [canAccessProjects, candidateId, page, pageSize, searchQuery, sortBy, sortDir])
+  }, [
+    appliedFilters,
+    canAccessProjects,
+    candidateId,
+    page,
+    pageSize,
+    searchQuery,
+    sortBy,
+    sortDir,
+  ])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -214,6 +258,21 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
     setSearchQuery(searchInput.trim())
     setPage(0)
   }, [searchInput])
+
+  const handleApplyFilters = useCallback((filters: ProjectTableFilters) => {
+    setAppliedFilters({
+      tags: filters.tags,
+      candidates: filters.candidates,
+    })
+    setIsFilterModalOpen(false)
+    setPage(0)
+  }, [])
+
+  const handleResetFilters = useCallback(() => {
+    setAppliedFilters(EMPTY_FILTERS)
+    setIsFilterModalOpen(false)
+    setPage(0)
+  }, [])
 
   const handleSortChange = useCallback((nextSortBy: string, nextSortDir: SortDirection) => {
     setSortBy(nextSortBy)
@@ -341,13 +400,17 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
       actionError,
       isCreateModalOpen,
       isEditModalOpen,
+      isFilterModalOpen,
       editingProject,
       createTags,
       editTags,
+      appliedFilters,
+      isFilterActive,
       canAccessProjects,
       canCreateProjects,
       showCandidateColumn,
       showCandidateSelect,
+      showCandidateFilter,
       createFormRef,
       editFormRef,
       loadCandidateOptions,
@@ -357,11 +420,14 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
       setSelectedIds,
       setIsCreateModalOpen,
       setIsEditModalOpen,
+      setIsFilterModalOpen,
       setCreateTags,
       setEditTags,
       setActionError,
       handleSortChange,
       handleFilter,
+      handleApplyFilters,
+      handleResetFilters,
       handleCreateClick,
       handleCreateSubmit,
       handleEditSubmit,
@@ -383,16 +449,22 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
       actionError,
       isCreateModalOpen,
       isEditModalOpen,
+      isFilterModalOpen,
       editingProject,
       createTags,
       editTags,
+      appliedFilters,
+      isFilterActive,
       canAccessProjects,
       canCreateProjects,
       showCandidateColumn,
       showCandidateSelect,
+      showCandidateFilter,
       loadCandidateOptions,
       handleSortChange,
       handleFilter,
+      handleApplyFilters,
+      handleResetFilters,
       handleCreateClick,
       handleCreateSubmit,
       handleEditSubmit,

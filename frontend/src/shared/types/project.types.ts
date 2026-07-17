@@ -6,6 +6,7 @@ export type ProjectTagDto = {
 export type ProjectDto = {
   id: number
   candidateId: string
+  candidateName: string
   name: string
   description: string
   startAt: string

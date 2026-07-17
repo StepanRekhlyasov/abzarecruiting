@@ -1,1 +1,6 @@
-export { ProjectsTableProvider, useProjectsTable } from './composable'
+export {
+  ProjectsTableProvider,
+  useProjectsTable,
+  type ProjectTableFilters,
+} from './composable'
+

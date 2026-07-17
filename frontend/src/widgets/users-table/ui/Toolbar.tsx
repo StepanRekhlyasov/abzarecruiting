@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next'
 import AddIcon from '@mui/icons-material/Add'
 import BackspaceIcon from '@mui/icons-material/Backspace'
-import FilterListIcon from '@mui/icons-material/FilterList'
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts'
 import SearchIcon from '@mui/icons-material/Search'
 import Button from '@mui/material/Button'
 import Grid from '@mui/material/Grid'
 import TextField from '@mui/material/TextField'
+import { AbzaFilterButton } from '@features/abza-filter'
 import { useUsersTable } from '../model'
 import { UsersFilterModal } from './FilterModal'
 
@@ -51,22 +51,12 @@ export function UsersTableToolbar() {
         </Grid>
         {canManageUsers && (
           <Grid>
-            <Button
-              variant={isFilterActive ? 'contained' : 'outlined'}
+            <AbzaFilterButton
+              active={isFilterActive}
               onClick={() => setIsFilterModalOpen(true)}
               disabled={isLoading}
-              sx={
-                isFilterActive
-                  ? undefined
-                  : {
-                      color: 'action.active',
-                      borderColor: 'divider',
-                    }
-              }
               aria-label={t('profile.users.actions.filter')}
-            >
-              <FilterListIcon />
-            </Button>
+            />
           </Grid>
         )}
         {canManageUsers && (

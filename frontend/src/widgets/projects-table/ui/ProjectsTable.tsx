@@ -13,6 +13,7 @@ import { AbzaTable } from '@features/abza-table'
 import type { AbzaTableColumn } from '@features/abza-table'
 import { projectToFormValues, type ProjectDto } from '@entities/project'
 import { TagsField } from '@entities/tag'
+import { CandidateProfileLink } from '@shared/ui'
 import { ProjectsTableProvider, useProjectsTable } from '../model'
 import { ProjectsTableToolbar } from './Toolbar'
 
@@ -110,10 +111,14 @@ function ProjectsTableContent() {
 
     if (showCandidateColumn) {
       next.push({
-        id: 'candidateId',
-        label: t('projects.columns.candidateId'),
+        id: 'candidateName',
+        label: t('projects.columns.candidate'),
         sortable: true,
-        render: (row) => row.candidateId,
+        render: (row) => (
+          <CandidateProfileLink candidateId={row.candidateId}>
+            {row.candidateName || row.candidateId}
+          </CandidateProfileLink>
+        ),
       })
     }
 
