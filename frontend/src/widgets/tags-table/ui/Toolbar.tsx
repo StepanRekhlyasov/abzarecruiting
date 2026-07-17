@@ -1,32 +1,10 @@
 import { useTranslation } from 'react-i18next'
 import AddIcon from '@mui/icons-material/Add'
 import BackspaceIcon from '@mui/icons-material/Backspace'
-import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Grid from '@mui/material/Grid'
 import { TagsField } from '@entities/tag'
 import { useTagsTable } from '../model'
-
-const toolbarRootSx = {
-  display: 'flex',
-  flexWrap: { xs: 'wrap', md: 'nowrap' },
-  gap: 2,
-  alignItems: 'stretch',
-} as const
-
-const searchSx = {
-  minWidth: 300,
-  flex: '1 1 300px',
-  width: { xs: '100%', md: 'auto' },
-} as const
-
-const actionsSx = {
-  display: 'flex',
-  flexWrap: 'nowrap',
-  gap: 2,
-  flexShrink: 0,
-  width: { xs: '100%', md: 'auto' },
-  overflowX: 'auto',
-} as const
 
 export function TagsTableToolbar() {
   const { t } = useTranslation()
@@ -42,24 +20,28 @@ export function TagsTableToolbar() {
   } = useTagsTable()
 
   return (
-    <Box sx={toolbarRootSx}>
-      <TagsField
-        label={t('tags.search')}
-        value={searchTags}
-        onChange={setSearchTags}
-        allowCreate
-        createOnSelect={false}
-        size="small"
-        sx={searchSx}
-        createOptionLabel={(name) => t('tags.searchAdd', { name })}
-      />
-      <Box sx={actionsSx}>
-        {canCreateTags && (
+    <Grid container spacing={2}>
+      <Grid sx={{ flex: 1 }}>
+        <TagsField
+          label={t('tags.search')}
+          value={searchTags}
+          onChange={setSearchTags}
+          allowCreate
+          createOnSelect={false}
+          size="small"
+          sx={{ minWidth: 260, width: '100%' }}
+          createOptionLabel={(name) => t('tags.searchAdd', { name })}
+        />
+      </Grid>
+      {canCreateTags && (
+        <Grid>
           <Button variant="contained" onClick={handleCreateClick} disabled={isLoading} sx={{ boxShadow: 'none' }}>
             <AddIcon />
           </Button>
-        )}
-        {canManageTags && (
+        </Grid>
+      )}
+      {canManageTags && (
+        <Grid>
           <Button
             variant="contained"
             color="error"
@@ -69,8 +51,8 @@ export function TagsTableToolbar() {
           >
             <BackspaceIcon />
           </Button>
-        )}
-      </Box>
-    </Box>
+        </Grid>
+      )}
+    </Grid>
   )
 }

@@ -4,34 +4,12 @@ import BackspaceIcon from '@mui/icons-material/Backspace'
 import FilterListIcon from '@mui/icons-material/FilterList'
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd'
 import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove'
-import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Grid from '@mui/material/Grid'
 import Tooltip from '@mui/material/Tooltip'
 import { AsyncEntityTags } from '@shared/ui/inputs'
 import { useAttributesTable } from '../model'
 import { AttributesFilterModal } from './FilterModal'
-
-const toolbarRootSx = {
-  display: 'flex',
-  flexWrap: { xs: 'wrap', md: 'nowrap' },
-  gap: 2,
-  alignItems: 'stretch',
-} as const
-
-const searchSx = {
-  minWidth: 300,
-  flex: '1 1 300px',
-  width: { xs: '100%', md: 'auto' },
-} as const
-
-const actionsSx = {
-  display: 'flex',
-  flexWrap: 'nowrap',
-  gap: 2,
-  flexShrink: 0,
-  width: { xs: '100%', md: 'auto' },
-  overflowX: 'auto',
-} as const
 
 export function AttributesTableToolbar() {
   const { t } = useTranslation()
@@ -62,87 +40,99 @@ export function AttributesTableToolbar() {
     : unlinkableSelectedCount === 0 || isLoading
 
   return (
-    <Box sx={toolbarRootSx}>
-      <AsyncEntityTags
-        label={t('attributes.search')}
-        value={searchTags}
-        onChange={setSearchTags}
-        loadOptions={loadAttributeOptions}
-        allowCreate
-        size="small"
-        sx={searchSx}
-        createOptionLabel={(name) => t('attributes.searchAdd', { name })}
-      />
-      <Box sx={actionsSx}>
-        <Button
-          variant={isFilterActive ? 'contained' : 'outlined'}
-          onClick={() => setIsFilterModalOpen(true)}
-          disabled={isLoading}
-          sx={
-            isFilterActive
-              ? undefined
-              : {
-                  color: 'action.active',
-                  borderColor: 'divider',
-                }
-          }
-          aria-label={t('attributes.actions.filter')}
-        >
-          <FilterListIcon />
-        </Button>
-        {canManageAttributes && (
-          <Button variant="contained" onClick={handleCreateClick} disabled={isLoading} sx={{ boxShadow: 'none' }}>
-            <AddIcon />
-          </Button>
-        )}
-        {canManageAttributes && (
+    <>
+      <Grid container spacing={2}>
+        <Grid sx={{ flex: 1 }}>
+          <AsyncEntityTags
+            label={t('attributes.search')}
+            value={searchTags}
+            onChange={setSearchTags}
+            loadOptions={loadAttributeOptions}
+            allowCreate
+            size="small"
+            sx={{ minWidth: 260, width: '100%' }}
+            createOptionLabel={(name) => t('attributes.searchAdd', { name })}
+          />
+        </Grid>
+        <Grid>
           <Button
-            variant="contained"
-            color="error"
-            onClick={handleDeleteSelected}
-            disabled={selectedIds.length === 0 || isLoading}
-            sx={{ boxShadow: 'none' }}
+            variant={isFilterActive ? 'contained' : 'outlined'}
+            onClick={() => setIsFilterModalOpen(true)}
+            disabled={isLoading}
+            sx={
+              isFilterActive
+                ? undefined
+                : {
+                    color: 'action.active',
+                    borderColor: 'divider',
+                  }
+            }
+            aria-label={t('attributes.actions.filter')}
           >
-            <BackspaceIcon />
+            <FilterListIcon />
           </Button>
+        </Grid>
+        {canManageAttributes && (
+          <Grid>
+            <Button variant="contained" onClick={handleCreateClick} disabled={isLoading} sx={{ boxShadow: 'none' }}>
+              <AddIcon />
+            </Button>
+          </Grid>
+        )}
+        {canManageAttributes && (
+          <Grid>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={handleDeleteSelected}
+              disabled={selectedIds.length === 0 || isLoading}
+              sx={{ boxShadow: 'none' }}
+            >
+              <BackspaceIcon />
+            </Button>
+          </Grid>
         )}
         {canUseProfileActions && (
-          <Tooltip title={t('attributes.actions.linkSelected')}>
-            <span>
-              <Button
-                variant="contained"
-                onClick={canLinkToCandidateProfile ? handleOpenLinkToProfileModal : () => void handleLinkSelected()}
-                disabled={linkDisabled}
-                aria-label={t('attributes.actions.linkSelected')}
-                sx={{ boxShadow: 'none', minWidth: 40 }}
-              >
-                <PlaylistAddIcon />
-              </Button>
-            </span>
-          </Tooltip>
+          <Grid>
+            <Tooltip title={t('attributes.actions.linkSelected')}>
+              <span>
+                <Button
+                  variant="contained"
+                  onClick={canLinkToCandidateProfile ? handleOpenLinkToProfileModal : () => void handleLinkSelected()}
+                  disabled={linkDisabled}
+                  aria-label={t('attributes.actions.linkSelected')}
+                  sx={{ boxShadow: 'none', minWidth: 40 }}
+                >
+                  <PlaylistAddIcon />
+                </Button>
+              </span>
+            </Tooltip>
+          </Grid>
         )}
         {canUseProfileActions && (
-          <Tooltip title={t('attributes.actions.unlinkSelected')}>
-            <span>
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={
-                  canLinkToCandidateProfile
-                    ? handleOpenUnlinkFromProfileModal
-                    : () => void handleUnlinkSelected()
-                }
-                disabled={unlinkDisabled}
-                aria-label={t('attributes.actions.unlinkSelected')}
-                sx={{ minWidth: 40 }}
-              >
-                <PlaylistRemoveIcon />
-              </Button>
-            </span>
-          </Tooltip>
+          <Grid>
+            <Tooltip title={t('attributes.actions.unlinkSelected')}>
+              <span>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={
+                    canLinkToCandidateProfile
+                      ? handleOpenUnlinkFromProfileModal
+                      : () => void handleUnlinkSelected()
+                  }
+                  disabled={unlinkDisabled}
+                  aria-label={t('attributes.actions.unlinkSelected')}
+                  sx={{ minWidth: 40 }}
+                >
+                  <PlaylistRemoveIcon />
+                </Button>
+              </span>
+            </Tooltip>
+          </Grid>
         )}
-      </Box>
+      </Grid>
       <AttributesFilterModal />
-    </Box>
+    </>
   )
 }

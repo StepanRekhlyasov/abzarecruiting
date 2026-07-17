@@ -3,9 +3,9 @@ import AddIcon from '@mui/icons-material/Add'
 import BackspaceIcon from '@mui/icons-material/Backspace'
 import SearchIcon from '@mui/icons-material/Search'
 import Button from '@mui/material/Button'
+import Grid from '@mui/material/Grid'
 import TextField from '@mui/material/TextField'
 import { useProjectsTable } from '../model'
-import { Grid } from '@mui/material'
 
 export function ProjectsTableToolbar() {
   const { t } = useTranslation()
@@ -22,7 +22,7 @@ export function ProjectsTableToolbar() {
 
   return (
     <Grid container spacing={2}>
-      <Grid sx={{ flex: 1}}>
+      <Grid sx={{ flex: 1 }}>
         <TextField
           size="small"
           label={t('projects.search')}
@@ -34,10 +34,10 @@ export function ProjectsTableToolbar() {
               handleFilter()
             }
           }}
-          sx={{ minWidth: 260, flexGrow: 1, width: '100%' }}
+          sx={{ minWidth: 260, width: '100%' }}
         />
-        </Grid>
-      <Grid >
+      </Grid>
+      <Grid>
         <Button variant="outlined" onClick={handleFilter} disabled={isLoading}>
           <SearchIcon />
         </Button>
