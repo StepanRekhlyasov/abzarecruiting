@@ -16,6 +16,7 @@ import {
   useAttributesTable,
 } from '../model'
 import { AttributesTableToolbar } from './Toolbar'
+import { LinkToProfileModal } from './LinkToProfileModal'
 
 function AttributesTableContent() {
   const { t } = useTranslation()
@@ -189,6 +190,8 @@ function AttributesTableContent() {
           />
         ) : null}
       </AbzaModal>
+
+      <LinkToProfileModal />
     </>
   )
 }

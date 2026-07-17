@@ -102,7 +102,7 @@
       "present": "present"
     },
     "resumes": {
-      "title": "Resumes"
+      "title": "CVs"
     }
   },
   "home": {
@@ -249,6 +249,17 @@
       "unlinkSelected": "Remove selected from profile",
       "deleteSelected": "Delete selected"
     },
+    "linkToProfile": {
+      "title": "Add attributes to candidate profile",
+      "unlinkTitle": "Remove attributes from candidate profile",
+      "candidate": "Candidate",
+      "hint": "Selected attributes: {{count}}",
+      "hint_one": "Selected attribute: {{count}}",
+      "hint_other": "Selected attributes: {{count}}",
+      "submit": "Add",
+      "unlinkSubmit": "Remove",
+      "cancel": "Cancel"
+    },
     "create": {
       "title": "New attribute",
       "submit": "Create",
@@ -327,7 +338,7 @@
       "attributes": "Attributes",
       "tags": "Tags",
       "messagesCount": "Comments",
-      "resumesCount": "Resumes",
+      "resumesCount": "CVs",
       "createdAt": "Created at"
     },
     "fields": {

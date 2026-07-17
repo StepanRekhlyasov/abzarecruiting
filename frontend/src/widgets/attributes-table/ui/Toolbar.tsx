@@ -2,8 +2,11 @@ import { useTranslation } from 'react-i18next'
 import AddIcon from '@mui/icons-material/Add'
 import BackspaceIcon from '@mui/icons-material/Backspace'
 import FilterListIcon from '@mui/icons-material/FilterList'
+import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd'
+import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Tooltip from '@mui/material/Tooltip'
 import { AsyncEntityTags } from '@shared/ui/inputs'
 import { useAttributesTable } from '../model'
 import { AttributesFilterModal } from './FilterModal'
@@ -38,6 +41,7 @@ export function AttributesTableToolbar() {
     isLoading,
     canManageAttributes,
     canLinkToProfile,
+    canLinkToCandidateProfile,
     selectedIds,
     unlinkableSelectedCount,
     isFilterActive,
@@ -46,8 +50,16 @@ export function AttributesTableToolbar() {
     handleDeleteSelected,
     handleLinkSelected,
     handleUnlinkSelected,
+    handleOpenLinkToProfileModal,
+    handleOpenUnlinkFromProfileModal,
     loadAttributeOptions,
   } = useAttributesTable()
+
+  const canUseProfileActions = canLinkToProfile || canLinkToCandidateProfile
+  const linkDisabled = selectedIds.length === 0 || isLoading
+  const unlinkDisabled = canLinkToCandidateProfile
+    ? selectedIds.length === 0 || isLoading
+    : unlinkableSelectedCount === 0 || isLoading
 
   return (
     <Box sx={toolbarRootSx}>
@@ -94,26 +106,40 @@ export function AttributesTableToolbar() {
             <BackspaceIcon />
           </Button>
         )}
-        {canLinkToProfile && (
-          <Button
-            variant="contained"
-            onClick={handleLinkSelected}
-            disabled={selectedIds.length === 0 || isLoading}
-            sx={{ boxShadow: 'none', whiteSpace: 'nowrap' }}
-          >
-            {t('attributes.actions.linkSelected')}
-          </Button>
+        {canUseProfileActions && (
+          <Tooltip title={t('attributes.actions.linkSelected')}>
+            <span>
+              <Button
+                variant="contained"
+                onClick={canLinkToCandidateProfile ? handleOpenLinkToProfileModal : () => void handleLinkSelected()}
+                disabled={linkDisabled}
+                aria-label={t('attributes.actions.linkSelected')}
+                sx={{ boxShadow: 'none', minWidth: 40 }}
+              >
+                <PlaylistAddIcon />
+              </Button>
+            </span>
+          </Tooltip>
         )}
-        {canLinkToProfile && (
-          <Button
-            variant="outlined"
-            color="error"
-            onClick={handleUnlinkSelected}
-            disabled={unlinkableSelectedCount === 0 || isLoading}
-            sx={{ whiteSpace: 'nowrap' }}
-          >
-            {t('attributes.actions.unlinkSelected')}
-          </Button>
+        {canUseProfileActions && (
+          <Tooltip title={t('attributes.actions.unlinkSelected')}>
+            <span>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={
+                  canLinkToCandidateProfile
+                    ? handleOpenUnlinkFromProfileModal
+                    : () => void handleUnlinkSelected()
+                }
+                disabled={unlinkDisabled}
+                aria-label={t('attributes.actions.unlinkSelected')}
+                sx={{ minWidth: 40 }}
+              >
+                <PlaylistRemoveIcon />
+              </Button>
+            </span>
+          </Tooltip>
         )}
       </Box>
       <AttributesFilterModal />

@@ -24,7 +24,7 @@ import {
   unlinkAttributesFromProfileBatch,
   updateAttribute,
 } from '@entities/attribute'
-import { $session, isCandidate, isRecruiterOrAdmin } from '@entities/user'
+import { $session, fetchUsers, isAdmin, isCandidate, isRecruiterOrAdmin } from '@entities/user'
 import { getErrorKey } from '@shared/lib/errors'
 import {
   toSubmitNullableString,
@@ -76,11 +76,15 @@ type AttributesTableContextValue = {
   editingAttribute: AttributeDto | null
   canManageAttributes: boolean
   canLinkToProfile: boolean
+  canLinkToCandidateProfile: boolean
   isSelectable: boolean
   linkedAttributeIdSet: Set<number>
   unlinkableSelectedCount: number
   appliedFilters: AttributeTableFilters
   isFilterActive: boolean
+  isLinkToProfileModalOpen: boolean
+  linkToProfileModalMode: 'link' | 'unlink'
+  linkCandidate: AbzaSelectOption | null
   createFormRef: RefObject<HTMLFormElement | null>
   editFormRef: RefObject<HTMLFormElement | null>
   setSearchTags: (value: AbzaSelectOption[]) => void
@@ -90,6 +94,8 @@ type AttributesTableContextValue = {
   setIsCreateModalOpen: (open: boolean) => void
   setIsEditModalOpen: (open: boolean) => void
   setIsFilterModalOpen: (open: boolean) => void
+  setIsLinkToProfileModalOpen: (open: boolean) => void
+  setLinkCandidate: (candidate: AbzaSelectOption | null) => void
   setActionError: (error: string | null) => void
   handleSortChange: (nextSortBy: string, nextSortDir: SortDirection) => void
   handleApplyFilters: (filters: AttributeTableFilters) => void
@@ -103,7 +109,11 @@ type AttributesTableContextValue = {
   handleDeleteSelected: () => Promise<void>
   handleLinkSelected: () => Promise<void>
   handleUnlinkSelected: () => Promise<void>
+  handleOpenLinkToProfileModal: () => void
+  handleOpenUnlinkFromProfileModal: () => void
+  handleLinkToCandidateSubmit: () => Promise<void>
   loadAttributeOptions: AsyncEntityLoadOptions
+  loadCandidateOptions: AsyncEntityLoadOptions
 }
 
 const AttributesTableContext = createContext<AttributesTableContextValue | null>(null)
@@ -127,12 +137,16 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
+  const [isLinkToProfileModalOpen, setIsLinkToProfileModalOpen] = useState(false)
+  const [linkToProfileModalMode, setLinkToProfileModalMode] = useState<'link' | 'unlink'>('link')
+  const [linkCandidate, setLinkCandidate] = useState<AbzaSelectOption | null>(null)
   const [editingAttribute, setEditingAttribute] = useState<AttributeDto | null>(null)
   const [linkedAttributeIds, setLinkedAttributeIds] = useState<number[]>([])
 
   const canManageAttributes = isRecruiterOrAdmin(session)
   const canLinkToProfile = isCandidate(session)
-  const isSelectable = canLinkToProfile || canManageAttributes
+  const canLinkToCandidateProfile = isAdmin(session)
+  const isSelectable = canLinkToProfile || canManageAttributes || canLinkToCandidateProfile
   const isFilterActive = Boolean(appliedFilters.category || appliedFilters.valueType)
 
   const linkedAttributeIdSet = useMemo(() => new Set(linkedAttributeIds), [linkedAttributeIds])
@@ -182,6 +196,31 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
         label: item.name,
         valueType: item.valueType,
       })),
+      hasMore: result.page * result.size < result.totalCount,
+    }
+  }, [])
+
+  const loadCandidateOptions = useCallback(async (search: string, signal?: AbortSignal, page = 1) => {
+    const result = await fetchUsers(
+      {
+        page,
+        size: ASYNC_ENTITY_TAGS_PAGE_SIZE,
+        search: search || undefined,
+        role: 'Candidate',
+        sortBy: 'firstName',
+        sortDir: 'asc',
+      },
+      { signal },
+    )
+
+    return {
+      options: result.items.map((item) => {
+        const fullName = [item.firstName, item.lastName].filter(Boolean).join(' ').trim()
+        return {
+          value: item.id,
+          label: fullName || item.email,
+        }
+      }),
       hasMore: result.page * result.size < result.totalCount,
     }
   }, [])
@@ -256,6 +295,12 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       setEditingAttribute(null)
     }
   }, [isEditModalOpen])
+
+  useEffect(() => {
+    if (!isLinkToProfileModalOpen) {
+      setLinkCandidate(null)
+    }
+  }, [isLinkToProfileModalOpen])
 
   const handleApplyFilters = useCallback((filters: AttributeTableFilters) => {
     setAppliedFilters({
@@ -387,6 +432,57 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
     }
   }, [loadLinkedAttributeIds, selectedIds, session?.id])
 
+  const handleOpenLinkToProfileModal = useCallback(() => {
+    if (!canLinkToCandidateProfile || selectedIds.length === 0) {
+      return
+    }
+
+    setActionError(null)
+    setLinkToProfileModalMode('link')
+    setIsLinkToProfileModalOpen(true)
+  }, [canLinkToCandidateProfile, selectedIds.length])
+
+  const handleOpenUnlinkFromProfileModal = useCallback(() => {
+    if (!canLinkToCandidateProfile || selectedIds.length === 0) {
+      return
+    }
+
+    setActionError(null)
+    setLinkToProfileModalMode('unlink')
+    setIsLinkToProfileModalOpen(true)
+  }, [canLinkToCandidateProfile, selectedIds.length])
+
+  const handleLinkToCandidateSubmit = useCallback(async () => {
+    if (!linkCandidate?.value || selectedIds.length === 0) {
+      return
+    }
+
+    const attributeIds = selectedIds.map((id) => Number(id))
+
+    setIsLoading(true)
+    setActionError(null)
+
+    try {
+      if (linkToProfileModalMode === 'unlink') {
+        await unlinkAttributesFromProfileBatch(attributeIds, linkCandidate.value)
+      } else {
+        await linkAttributesToProfileBatch(attributeIds, linkCandidate.value)
+      }
+
+      setSelectedIds([])
+      setIsLinkToProfileModalOpen(false)
+    } catch (error) {
+      setActionError(
+        getErrorKey(
+          error,
+          linkToProfileModalMode === 'unlink' ? 'error.attributes.unlink' : 'error.attributes.link',
+        ),
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }, [linkCandidate?.value, linkToProfileModalMode, selectedIds])
+
   const handleUnlinkSelected = useCallback(async () => {
     if (!session?.id) {
       return
@@ -428,9 +524,13 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       isCreateModalOpen,
       isEditModalOpen,
       isFilterModalOpen,
+      isLinkToProfileModalOpen,
+      linkToProfileModalMode,
+      linkCandidate,
       editingAttribute,
       canManageAttributes,
       canLinkToProfile,
+      canLinkToCandidateProfile,
       isSelectable,
       linkedAttributeIdSet,
       unlinkableSelectedCount,
@@ -445,6 +545,8 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       setIsCreateModalOpen,
       setIsEditModalOpen,
       setIsFilterModalOpen,
+      setIsLinkToProfileModalOpen,
+      setLinkCandidate,
       setActionError,
       handleSortChange,
       handleApplyFilters,
@@ -458,7 +560,11 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       handleDeleteSelected,
       handleLinkSelected,
       handleUnlinkSelected,
+      handleOpenLinkToProfileModal,
+      handleOpenUnlinkFromProfileModal,
+      handleLinkToCandidateSubmit,
       loadAttributeOptions,
+      loadCandidateOptions,
     }),
     [
       rows,
@@ -474,9 +580,13 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       isCreateModalOpen,
       isEditModalOpen,
       isFilterModalOpen,
+      isLinkToProfileModalOpen,
+      linkToProfileModalMode,
+      linkCandidate,
       editingAttribute,
       canManageAttributes,
       canLinkToProfile,
+      canLinkToCandidateProfile,
       isSelectable,
       linkedAttributeIdSet,
       unlinkableSelectedCount,
@@ -495,7 +605,11 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
       handleDeleteSelected,
       handleLinkSelected,
       handleUnlinkSelected,
+      handleOpenLinkToProfileModal,
+      handleOpenUnlinkFromProfileModal,
+      handleLinkToCandidateSubmit,
       loadAttributeOptions,
+      loadCandidateOptions,
     ],
   )
 

@@ -12,3 +12,7 @@ body {
 #root {
   min-height: 100vh;
 }
+
+.MuiButtonBase-root {
+  height: 100%;
+}
