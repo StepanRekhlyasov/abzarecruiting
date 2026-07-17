@@ -47,8 +47,6 @@ public static class EnvFileLoader
 
                 Environment.SetEnvironmentVariable(key, value);
             }
-
-            return;
         }
     }
 }

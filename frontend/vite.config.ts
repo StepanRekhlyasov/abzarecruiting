@@ -33,7 +33,6 @@ export default defineConfig({
     watch: { usePolling: true },
     proxy: {
       '/api': backendProxy,
-      '/uploads': backendProxy,
       '/signin-google': backendProxy,
       '/signin-facebook': backendProxy,
       '/ws': withForwardedHost({

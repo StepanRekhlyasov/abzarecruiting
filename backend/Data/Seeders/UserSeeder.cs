@@ -1,10 +1,8 @@
-using Backend.Api.Configuration;
 using Backend.Api.Data;
+using Backend.Api.Services.Files;
 using Backend.Api.Services.Profile;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using FileEntity = Backend.Api.Data.Entities.File;
 
 namespace Backend.Api.Data.Seeders;
 
@@ -59,11 +57,11 @@ public static class UserSeeder
         ApplicationDbContext db,
         UserManager<ApplicationUser> userManager,
         IProfileAttributeService profileAttributeService,
-        IOptions<FileStorageSettings> fileStorageOptions,
+        IFileStorageService fileStorageService,
         IWebHostEnvironment environment,
         ILogger logger)
     {
-        var defaultAvatarUid = await EnsureDefaultAvatarAsync(db, fileStorageOptions.Value, environment, logger);
+        var defaultAvatarUid = await EnsureDefaultAvatarAsync(db, fileStorageService, environment, logger);
 
         foreach (var seedUser in SeedUsers)
         {
@@ -149,15 +147,20 @@ public static class UserSeeder
 
     private static async Task<Guid?> EnsureDefaultAvatarAsync(
         ApplicationDbContext db,
-        FileStorageSettings settings,
+        IFileStorageService fileStorageService,
         IWebHostEnvironment environment,
         ILogger logger)
     {
-        var existing = await db.Files.AsNoTracking()
-            .FirstOrDefaultAsync(file => file.Uid == DefaultAvatarUid);
+        var existing = await db.Files.FirstOrDefaultAsync(file => file.Uid == DefaultAvatarUid);
         if (existing is not null)
         {
-            return existing.Uid;
+            if (existing.Url.Contains("res.cloudinary.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return existing.Uid;
+            }
+
+            db.Files.Remove(existing);
+            await db.SaveChangesAsync();
         }
 
         var sourcePath = ResolveAvatarSourcePath(environment);
@@ -169,37 +172,30 @@ public static class UserSeeder
             return null;
         }
 
-        var bytes = await System.IO.File.ReadAllBytesAsync(sourcePath);
-        if (bytes.Length == 0)
+        await using var stream = System.IO.File.OpenRead(sourcePath);
+        if (stream.Length == 0)
         {
             logger.LogWarning("Default avatar file is empty: '{Path}'.", sourcePath);
             return null;
         }
 
-        var relativeFolder = Path.Combine("seed", "avatars");
-        var rootPath = Path.IsPathRooted(settings.RootPath)
-            ? settings.RootPath
-            : Path.GetFullPath(Path.Combine(environment.ContentRootPath, settings.RootPath));
-        var absoluteFolder = Path.Combine(rootPath, relativeFolder);
-        Directory.CreateDirectory(absoluteFolder);
-
-        var storedName = $"{DefaultAvatarUid:N}.svg";
-        var absolutePath = Path.Combine(absoluteFolder, storedName);
-        await System.IO.File.WriteAllBytesAsync(absolutePath, bytes);
-
-        var requestPath = settings.RequestPath.TrimEnd('/');
-        var url = $"{requestPath}/{relativeFolder.Replace('\\', '/')}/{storedName}";
-
-        db.Files.Add(new FileEntity
+        IFormFile formFile = new FormFile(stream, 0, stream.Length, "file", "avatar-default.svg")
         {
-            Uid = DefaultAvatarUid,
-            Url = url,
-            Name = "avatar-default.svg",
-        });
-        await db.SaveChangesAsync();
+            Headers = new HeaderDictionary(),
+            ContentType = "image/svg+xml",
+        };
 
-        logger.LogInformation("Seeded default candidate avatar file '{Uid}'.", DefaultAvatarUid);
-        return DefaultAvatarUid;
+        try
+        {
+            var uploaded = await fileStorageService.SaveAsync(formFile, UploadKind.Image, DefaultAvatarUid);
+            logger.LogInformation("Seeded default candidate avatar file '{Uid}'.", uploaded.Uid);
+            return uploaded.Uid;
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Failed to upload default avatar to Cloudinary.");
+            return null;
+        }
     }
 
     private static string ResolveAvatarSourcePath(IWebHostEnvironment environment)

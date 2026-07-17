@@ -12,8 +12,8 @@ namespace Backend.Api.Controllers;
 public class FileController(IFileStorageService fileStorageService) : ControllerBase
 {
     [HttpPost]
-    [RequestSizeLimit(FileStorageSettings.DefaultMaxFileSizeBytes)]
-    [RequestFormLimits(MultipartBodyLengthLimit = FileStorageSettings.DefaultMaxFileSizeBytes)]
+    [RequestSizeLimit(CloudinarySettings.DefaultMaxFileSizeBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = CloudinarySettings.DefaultMaxFileSizeBytes)]
     public async Task<ActionResult<UploadFileResponse>> Upload(
         IFormFile? file,
         [FromQuery] string kind = "file",
@@ -31,7 +31,7 @@ public class FileController(IFileStorageService fileStorageService) : Controller
 
         try
         {
-            var uploaded = await fileStorageService.SaveAsync(file, uploadKind, cancellationToken);
+            var uploaded = await fileStorageService.SaveAsync(file, uploadKind, cancellationToken: cancellationToken);
             return Ok(new UploadFileResponse
             {
                 Uid = uploaded.Uid,

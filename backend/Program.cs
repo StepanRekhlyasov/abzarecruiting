@@ -24,7 +24,6 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Microsoft.Extensions.Options;
@@ -34,6 +33,7 @@ QuestPDF.Settings.License = LicenseType.Community;
 
 Backend.Api.EnvFileLoader.Load(
     Path.Combine(Directory.GetCurrentDirectory(), ".env"),
+    Path.Combine(Directory.GetCurrentDirectory(), "backend", ".env"),
     Path.Combine(AppContext.BaseDirectory, ".env"));
 
 var builder = WebApplication.CreateBuilder(args);
@@ -45,11 +45,11 @@ builder.Services.Configure<AuthenticationSettings>(
     builder.Configuration.GetSection(AuthenticationSettings.SectionName));
 builder.Services.Configure<DefaultAttributesSettings>(
     builder.Configuration.GetSection(DefaultAttributesSettings.SectionName));
-builder.Services.Configure<FileStorageSettings>(
-    builder.Configuration.GetSection(FileStorageSettings.SectionName));
+builder.Services.Configure<CloudinarySettings>(
+    builder.Configuration.GetSection(CloudinarySettings.SectionName));
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = FileStorageSettings.DefaultMaxFileSizeBytes;
+    options.MultipartBodyLengthLimit = CloudinarySettings.DefaultMaxFileSizeBytes;
 });
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -61,7 +61,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.Limits.MaxRequestBodySize = FileStorageSettings.DefaultMaxFileSizeBytes;
+    options.Limits.MaxRequestBodySize = CloudinarySettings.DefaultMaxFileSizeBytes;
 });
 
 var dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, "dataprotection-keys");
@@ -208,7 +208,25 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<IResumeService, ResumeService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddSingleton(sp =>
+{
+    var settings = sp.GetRequiredService<IOptions<CloudinarySettings>>().Value;
+    if (string.IsNullOrWhiteSpace(settings.CloudName)
+        || string.IsNullOrWhiteSpace(settings.ApiKey)
+        || string.IsNullOrWhiteSpace(settings.ApiSecret))
+    {
+        throw new InvalidOperationException(
+            "Cloudinary settings (CloudName, ApiKey, ApiSecret) are not configured.");
+    }
+
+    var account = new CloudinaryDotNet.Account(settings.CloudName, settings.ApiKey, settings.ApiSecret);
+    return new CloudinaryDotNet.Cloudinary(account);
+});
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
+builder.Services.AddHttpClient("CloudinaryAssets", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 builder.Services.AddScoped<IPositionMessageService, PositionMessageService>();
 builder.Services.AddSingleton<NotificationWebSocketHandler>();
 
@@ -269,14 +287,14 @@ using (var scope = app.Services.CreateScope())
         .CreateLogger("Startup");
     var defaultAttributesSettings = scope.ServiceProvider
         .GetRequiredService<IOptions<DefaultAttributesSettings>>();
-    var seedFileStorageSettings = scope.ServiceProvider.GetRequiredService<IOptions<FileStorageSettings>>();
+    var fileStorageService = scope.ServiceProvider.GetRequiredService<IFileStorageService>();
     var profileAttributeService = scope.ServiceProvider.GetRequiredService<IProfileAttributeService>();
     await AttributeSeeder.SeedAsync(db, userManager, profileAttributeService, defaultAttributesSettings, logger);
     await UserSeeder.SeedAsync(
         db,
         userManager,
         profileAttributeService,
-        seedFileStorageSettings,
+        fileStorageService,
         app.Environment,
         logger);
     await MockDataSeeder.SeedAsync(db, userManager, logger);
@@ -292,20 +310,9 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-var fileStorageSettings = app.Services.GetRequiredService<IOptions<FileStorageSettings>>().Value;
-var uploadsRootPath = Path.IsPathRooted(fileStorageSettings.RootPath)
-    ? fileStorageSettings.RootPath
-    : Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, fileStorageSettings.RootPath));
-Directory.CreateDirectory(uploadsRootPath);
-
 app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(uploadsRootPath),
-    RequestPath = fileStorageSettings.RequestPath.TrimEnd('/'),
-});
 app.UseWebSockets();
 app.UseAuthentication();
 app.UseMiddleware<RejectLockedOutUsersMiddleware>();

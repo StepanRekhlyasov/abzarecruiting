@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using Backend.Api.Configuration;
 using Backend.Api.Data;
 using Backend.Api.Data.Relations;
 using Backend.Api.Models.Common;
@@ -11,7 +10,6 @@ using Backend.Api.Services.Files;
 using Backend.Api.Services.Position;
 using Backend.Api.Services.Profile;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 using FileEntity = Backend.Api.Data.Entities.File;
 using ProfileProjectEntity = Backend.Api.Data.Entities.ProfileProject;
@@ -80,13 +78,11 @@ public class ResumeService(
     IPositionRestrictionEvaluator restrictionEvaluator,
     IAttributeValueMapper valueMapper,
     IProfileService profileService,
-    IOptions<FileStorageSettings> fileStorageOptions,
-    IWebHostEnvironment environment) : IResumeService
+    IHttpClientFactory httpClientFactory) : IResumeService
 {
     private const string VersionChangedMessage = "error.oldVersion";
     private const string AlreadyExistsMessage = "error.resumes.alreadyExists";
     private const string IncompleteAttributesMessage = "error.resumes.incompleteAttributes";
-    private readonly FileStorageSettings _fileStorage = fileStorageOptions.Value;
 
     public async Task<ResumeDto?> CreateAsync(int positionId, string candidateId, CancellationToken cancellationToken = default)
     {
@@ -485,13 +481,13 @@ public class ResumeService(
             return ResumePdfResult.NotPublishedResult();
         }
 
-        var photoBytes = TryLoadPhotoBytes(result.Dto);
+        var photoBytes = await TryLoadPhotoBytesAsync(result.Dto, cancellationToken);
         var content = ResumePdfGenerator.Generate(result.Dto, photoBytes, locale);
         var fileName = ResumePdfGenerator.BuildFileName(result.Dto, locale);
         return ResumePdfResult.Ok(content, fileName);
     }
 
-    private byte[]? TryLoadPhotoBytes(ResumeDto resume)
+    private async Task<byte[]?> TryLoadPhotoBytesAsync(ResumeDto resume, CancellationToken cancellationToken)
     {
         var photo = resume.Attributes.FirstOrDefault(attribute => attribute.Name == DefaultAttributes.Photo);
         if (photo?.Value is not FileAttributeValueDto file || string.IsNullOrWhiteSpace(file.Url))
@@ -499,38 +495,31 @@ public class ResumeService(
             return null;
         }
 
-        var absolutePath = ResolveStoredFilePath(file.Url);
-        if (absolutePath is null || !System.IO.File.Exists(absolutePath))
+        if (!Uri.TryCreate(file.Url, UriKind.Absolute, out var photoUri)
+            || (photoUri.Scheme != Uri.UriSchemeHttps && photoUri.Scheme != Uri.UriSchemeHttp))
         {
             return null;
         }
 
-        return System.IO.File.ReadAllBytes(absolutePath);
-    }
+        try
+        {
+            var httpClient = httpClientFactory.CreateClient("CloudinaryAssets");
+            using var response = await httpClient.GetAsync(photoUri, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
 
-    private string? ResolveStoredFilePath(string url)
-    {
-        var requestPath = _fileStorage.RequestPath.TrimEnd('/');
-        var relativeUrl = url.StartsWith(requestPath, StringComparison.OrdinalIgnoreCase)
-            ? url[requestPath.Length..].TrimStart('/')
-            : url.TrimStart('/');
-
-        if (string.IsNullOrWhiteSpace(relativeUrl))
+            return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        }
+        catch (HttpRequestException)
         {
             return null;
         }
-
-        var rootPath = Path.IsPathRooted(_fileStorage.RootPath)
-            ? _fileStorage.RootPath
-            : Path.GetFullPath(Path.Combine(environment.ContentRootPath, _fileStorage.RootPath));
-
-        var absolutePath = Path.GetFullPath(Path.Combine(rootPath, relativeUrl.Replace('/', Path.DirectorySeparatorChar)));
-        if (!absolutePath.StartsWith(rootPath, StringComparison.OrdinalIgnoreCase))
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             return null;
         }
-
-        return absolutePath;
     }
 
     public bool CanView(ResumeEntity resume, string? userId, bool isAdmin, bool isRecruiter) =>

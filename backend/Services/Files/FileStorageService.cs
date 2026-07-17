@@ -2,6 +2,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Backend.Api.Configuration;
 using Backend.Api.Data;
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
 using Microsoft.Extensions.Options;
 using FileEntity = Backend.Api.Data.Entities.File;
 
@@ -17,12 +19,16 @@ public record UploadedFileDto(Guid Uid, string Url, string Name, string ContentT
 
 public interface IFileStorageService
 {
-    Task<UploadedFileDto> SaveAsync(IFormFile file, UploadKind kind, CancellationToken cancellationToken = default);
+    Task<UploadedFileDto> SaveAsync(
+        IFormFile file,
+        UploadKind kind,
+        Guid? uid = null,
+        CancellationToken cancellationToken = default);
 }
 
 public class FileStorageService(
-    IOptions<FileStorageSettings> options,
-    IWebHostEnvironment environment,
+    Cloudinary cloudinary,
+    IOptions<CloudinarySettings> options,
     ApplicationDbContext db) : IFileStorageService
 {
     private static readonly Regex ConsecutiveUnderscores = new("_{2,}", RegexOptions.Compiled);
@@ -37,11 +43,12 @@ public class FileStorageService(
         "image/svg+xml",
     };
 
-    private readonly FileStorageSettings _settings = options.Value;
+    private readonly CloudinarySettings _settings = options.Value;
 
     public async Task<UploadedFileDto> SaveAsync(
         IFormFile file,
         UploadKind kind,
+        Guid? uid = null,
         CancellationToken cancellationToken = default)
     {
         if (file.Length <= 0)
@@ -70,45 +77,86 @@ public class FileStorageService(
         }
 
         var safeFileName = SanitizeFileName(originalFileName);
-        var extension = Path.GetExtension(safeFileName);
-        var uid = Guid.NewGuid();
-        var storedName = $"{uid:N}{extension}";
-        var relativeFolder = Path.Combine(
-            DateTime.UtcNow.ToString("yyyy"),
-            DateTime.UtcNow.ToString("MM"));
+        var fileUid = uid ?? Guid.NewGuid();
+        var publicId = fileUid.ToString("N");
+        var assetFolder = string.IsNullOrWhiteSpace(_settings.AssetFolder)
+            ? null
+            : _settings.AssetFolder.Trim().Trim('/');
 
-        var rootPath = ResolveRootPath();
-        var absoluteFolder = Path.Combine(rootPath, relativeFolder);
-        Directory.CreateDirectory(absoluteFolder);
+        await using var stream = file.OpenReadStream();
+        var fileDescription = new FileDescription(safeFileName, stream);
 
-        var absolutePath = Path.Combine(absoluteFolder, storedName);
-        await using (var stream = System.IO.File.Create(absolutePath))
+        UploadResult uploadResult = kind == UploadKind.Image
+            ? await UploadImageAsync(fileDescription, publicId, assetFolder, cancellationToken)
+            : await UploadRawAsync(fileDescription, publicId, assetFolder, cancellationToken);
+
+        if (uploadResult.Error is not null)
         {
-            await file.CopyToAsync(stream, cancellationToken);
+            throw new InvalidOperationException(
+                string.IsNullOrWhiteSpace(uploadResult.Error.Message)
+                    ? "error.files.upload"
+                    : uploadResult.Error.Message);
         }
 
-        var requestPath = _settings.RequestPath.TrimEnd('/');
-        var url = $"{requestPath}/{relativeFolder.Replace('\\', '/')}/{storedName}";
+        var url = uploadResult.SecureUrl?.ToString()
+            ?? uploadResult.Url?.ToString()
+            ?? throw new InvalidOperationException("error.files.upload");
 
         db.Files.Add(new FileEntity
         {
-            Uid = uid,
+            Uid = fileUid,
             Url = url,
             Name = safeFileName,
         });
         await db.SaveChangesAsync(cancellationToken);
 
-        return new UploadedFileDto(uid, url, safeFileName, contentType, file.Length);
+        return new UploadedFileDto(fileUid, url, safeFileName, contentType, file.Length);
     }
 
-    private string ResolveRootPath()
+    private async Task<ImageUploadResult> UploadImageAsync(
+        FileDescription fileDescription,
+        string publicId,
+        string? assetFolder,
+        CancellationToken cancellationToken)
     {
-        if (Path.IsPathRooted(_settings.RootPath))
+        var uploadParams = new ImageUploadParams
         {
-            return _settings.RootPath;
+            File = fileDescription,
+            PublicId = publicId,
+            Overwrite = true,
+            UniqueFilename = false,
+            UseFilename = false,
+        };
+
+        if (assetFolder is not null)
+        {
+            uploadParams.AssetFolder = assetFolder;
         }
 
-        return Path.GetFullPath(Path.Combine(environment.ContentRootPath, _settings.RootPath));
+        return await cloudinary.UploadAsync(uploadParams, cancellationToken);
+    }
+
+    private async Task<RawUploadResult> UploadRawAsync(
+        FileDescription fileDescription,
+        string publicId,
+        string? assetFolder,
+        CancellationToken cancellationToken)
+    {
+        var uploadParams = new RawUploadParams
+        {
+            File = fileDescription,
+            PublicId = publicId,
+            Overwrite = true,
+            UniqueFilename = false,
+            UseFilename = false,
+        };
+
+        if (assetFolder is not null)
+        {
+            uploadParams.AssetFolder = assetFolder;
+        }
+
+        return await cloudinary.UploadAsync(uploadParams, "upload", cancellationToken);
     }
 
     private static string SanitizeFileName(string fileName)
