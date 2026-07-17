@@ -23,43 +23,43 @@ export function ProjectsTableToolbar() {
   return (
     <Grid container spacing={2}>
       <Grid sx={{ flex: 1}}>
-      <TextField
-        size="small"
-        label={t('projects.search')}
-        value={searchInput}
-        onChange={(event) => setSearchInput(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            event.preventDefault()
-            handleFilter()
-          }
-        }}
-        sx={{ minWidth: 260, flexGrow: 1, width: '100%' }}
-      />
-      </Grid>
+        <TextField
+          size="small"
+          label={t('projects.search')}
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              handleFilter()
+            }
+          }}
+          sx={{ minWidth: 260, flexGrow: 1, width: '100%' }}
+        />
+        </Grid>
       <Grid >
-      <Button variant="outlined" onClick={handleFilter} disabled={isLoading}>
-        <SearchIcon />
-      </Button>
+        <Button variant="outlined" onClick={handleFilter} disabled={isLoading}>
+          <SearchIcon />
+        </Button>
       </Grid>
       {canCreateProjects && (
         <Grid>
           <Button variant="contained" onClick={handleCreateClick} disabled={isLoading} sx={{ boxShadow: 'none' }}>
             <AddIcon />
           </Button>
-          </Grid>
+        </Grid>
       )}
       {canCreateProjects && (
         <Grid>
-        <Button
-          variant="contained"
-          color="error"
-          onClick={handleDeleteSelected}
-          disabled={selectedIds.length === 0 || isLoading}
-          sx={{ boxShadow: 'none' }}
-        >
-          <BackspaceIcon />
-        </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDeleteSelected}
+            disabled={selectedIds.length === 0 || isLoading}
+            sx={{ boxShadow: 'none' }}
+          >
+            <BackspaceIcon />
+          </Button>
         </Grid>
       )}
     </Grid>
