@@ -324,9 +324,6 @@ function PositionDetailContent() {
             config={formConfig}
             values={formValues}
             onFieldChange={handleFieldChange}
-            onFieldBlur={() => {
-              void flush()
-            }}
           />
         ) : tab === 'restrictions' && canEdit ? (
           isRestrictionsLoading ? (

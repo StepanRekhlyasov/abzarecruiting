@@ -199,17 +199,38 @@ public class UserService(
         }
 
         var distinctIds = request.UserIds.Distinct().ToList();
-
-        foreach (var userId in distinctIds)
+        if (distinctIds.Count == 0)
         {
-            var user = await userManager.FindByIdAsync(userId);
-            if (user is null)
-            {
-                throw new InvalidOperationException("error.users.notFound");
-            }
-
-            await ReplaceRolesAsync(user, request.Role);
+            return;
         }
+
+        var idSet = distinctIds.ToHashSet(StringComparer.Ordinal);
+        var users = await userManager.Users.ToListAsync(cancellationToken);
+        var matched = users.Where(user => idSet.Contains(user.Id)).ToList();
+
+        if (matched.Count != distinctIds.Count)
+        {
+            throw new InvalidOperationException("error.users.notFound");
+        }
+
+        var role = await db.Roles.FirstOrDefaultAsync(item => item.Name == request.Role, cancellationToken)
+            ?? throw new InvalidOperationException("error.auth.invalidRole");
+
+        // Avoid Contains(string[]) — MySql.EntityFrameworkCore 10 fails type mapping for string collections.
+        var userRoles = await db.UserRoles.ToListAsync(cancellationToken);
+        var rolesToRemove = userRoles.Where(userRole => idSet.Contains(userRole.UserId)).ToList();
+        if (rolesToRemove.Count > 0)
+        {
+            db.UserRoles.RemoveRange(rolesToRemove);
+        }
+
+        db.UserRoles.AddRange(matched.Select(user => new IdentityUserRole<string>
+        {
+            UserId = user.Id,
+            RoleId = role.Id,
+        }));
+
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task DeleteBatchAsync(
@@ -217,26 +238,24 @@ public class UserService(
         CancellationToken cancellationToken)
     {
         var distinctIds = userIds.Distinct().ToList();
-
-        foreach (var userId in distinctIds)
+        if (distinctIds.Count == 0)
         {
-            var user = await userManager.FindByIdAsync(userId);
-            if (user is null)
-            {
-                throw new InvalidOperationException("error.users.notFound");
-            }
+            return;
         }
 
-        foreach (var userId in distinctIds)
+        var idSet = distinctIds.ToHashSet(StringComparer.Ordinal);
+        var users = await userManager.Users.ToListAsync(cancellationToken);
+        var matched = users.Where(user => idSet.Contains(user.Id)).ToList();
+
+        if (matched.Count != distinctIds.Count)
         {
-            await DeleteUserOwnedContentAsync(userId, cancellationToken);
+            throw new InvalidOperationException("error.users.notFound");
+        }
 
-            var user = await userManager.FindByIdAsync(userId);
-            if (user is null)
-            {
-                throw new InvalidOperationException("error.users.notFound");
-            }
+        await DeleteUsersOwnedContentAsync(distinctIds, cancellationToken);
 
+        foreach (var user in matched)
+        {
             try
             {
                 var result = await userManager.DeleteAsync(user);
@@ -250,6 +269,16 @@ public class UserService(
             {
                 throw new InvalidOperationException("error.users.deleteFailed");
             }
+        }
+    }
+
+    private async Task DeleteUsersOwnedContentAsync(
+        IReadOnlyList<string> userIds,
+        CancellationToken cancellationToken)
+    {
+        foreach (var userId in userIds)
+        {
+            await DeleteUserOwnedContentAsync(userId, cancellationToken);
         }
     }
 
@@ -353,17 +382,6 @@ public class UserService(
         }
 
         await accountEmailService.SendActivationEmailAsync(user, frontendBaseUrl, cancellationToken);
-    }
-
-    private async Task ReplaceRolesAsync(ApplicationUser user, string role)
-    {
-        var currentRoles = await userManager.GetRolesAsync(user);
-        if (currentRoles.Count > 0)
-        {
-            await userManager.RemoveFromRolesAsync(user, currentRoles);
-        }
-
-        await userManager.AddToRoleAsync(user, role);
     }
 
     private async Task<Dictionary<string, (string FirstName, string LastName)>> LoadNameMapAsync(

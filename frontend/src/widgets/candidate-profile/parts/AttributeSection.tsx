@@ -24,7 +24,6 @@ export type AttributeSectionProps = {
   attributes: ProfileAttributeDto[]
   draftValues: Record<number, AttributeDraftValue>
   onChange: (attributeId: number, value: AttributeDraftValue) => void
-  onForceSave?: () => void
   emptyMessage?: string
   loadAttributeOptions?: AsyncEntityLoadOptions
   onAddAttributes?: (attributeIds: number[]) => Promise<void>
@@ -38,7 +37,6 @@ export function AttributeSection({
   attributes,
   draftValues,
   onChange,
-  onForceSave,
   emptyMessage,
   loadAttributeOptions,
   onAddAttributes,
@@ -117,7 +115,6 @@ export function AttributeSection({
                 onFieldChange={(name, value) => {
                   onChange(Number(name), value as AttributeDraftValue)
                 }}
-                onFieldBlur={() => onForceSave?.()}
                 onFieldDelete={
                   onRemoveAttribute
                     ? (name) => {

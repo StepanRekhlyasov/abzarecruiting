@@ -237,9 +237,6 @@ function ResumeDetailContent() {
             attributes={personalAttributes}
             draftValues={draft}
             onChange={handleChange}
-            onForceSave={() => {
-              void flush()
-            }}
             emptyMessage={t('cvs.detail.personalEmpty')}
             editable={canEdit}
           />
@@ -251,9 +248,6 @@ function ResumeDetailContent() {
             attributes={infoAttributes}
             draftValues={draft}
             onChange={handleChange}
-            onForceSave={() => {
-              void flush()
-            }}
             emptyMessage={t('cvs.detail.attributesEmpty')}
             editable={canEdit}
           />

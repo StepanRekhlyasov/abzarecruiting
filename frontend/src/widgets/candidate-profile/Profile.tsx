@@ -50,7 +50,6 @@ function ProfileContent() {
     canSave,
     handleChange,
     handleManualSave,
-    flush,
     clearTimer,
   } = useAttributeAutosave({
     attributes: meAttributes,
@@ -148,9 +147,6 @@ function ProfileContent() {
                   attributes={defaultAttributes}
                   draftValues={draft}
                   onChange={handleChange}
-                  onForceSave={() => {
-                    void flush()
-                  }}
                   editable={canEditProfile}
                 />
               ) : null}
@@ -161,9 +157,6 @@ function ProfileContent() {
                   attributes={addedAttributes}
                   draftValues={draft}
                   onChange={handleChange}
-                  onForceSave={() => {
-                    void flush()
-                  }}
                   emptyMessage={t('profile.addedAttributes.empty')}
                   loadAttributeOptions={canEditProfile ? loadAttributeOptions : undefined}
                   onAddAttributes={canEditProfile ? handleAddAttributes : undefined}

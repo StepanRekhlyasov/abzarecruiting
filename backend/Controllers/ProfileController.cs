@@ -1,6 +1,8 @@
 using Backend.Api.Data;
 using Backend.Api.Extensions;
+using Backend.Api.Models.Attribute;
 using Backend.Api.Models.Profile;
+using Backend.Api.Services.Attribute;
 using Backend.Api.Services.Profile;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +11,7 @@ namespace Backend.Api.Controllers;
 
 [ApiController]
 [Route("api/profile")]
-public class ProfileController(IProfileService profileService) : ControllerBase
+public class ProfileController(IProfileService profileService, IAttributeService attributeService) : ControllerBase
 {
     [Authorize(Roles = Roles.Admin)]
     [HttpGet("{candidateId}")]
@@ -95,6 +97,32 @@ public class ProfileController(IProfileService profileService) : ControllerBase
         {
             var removed = await profileService.RemoveAttributesAsync(candidateId, request.AttributeIds, cancellationToken);
             return removed ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    [Authorize]
+    [HttpPost("{candidateId}/values")]
+    public async Task<ActionResult<IReadOnlyList<SetProfileAttributeBatchResultItem>>> SetCandidateValuesBatch(
+        string candidateId,
+        [FromBody] SetProfileAttributesBatchRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!User.IsAdmin() && User.GetUserId() != candidateId)
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            var results = await attributeService.SetCandidateValuesBatchAsync(
+                candidateId,
+                request.Items,
+                cancellationToken);
+            return Ok(results);
         }
         catch (InvalidOperationException exception)
         {

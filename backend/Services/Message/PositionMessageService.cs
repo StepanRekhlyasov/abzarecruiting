@@ -3,7 +3,6 @@ using Backend.Api.Data.Entities;
 using Backend.Api.Extensions;
 using Backend.Api.Models.Message;
 using Backend.Api.WebSockets;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Api.Services.Message;
@@ -25,7 +24,6 @@ public interface IPositionMessageService
 
 public class PositionMessageService(
     ApplicationDbContext db,
-    UserManager<ApplicationUser> userManager,
     NotificationWebSocketHandler webSocketHandler) : IPositionMessageService
 {
     public const string CreatedEventType = "positionMessageCreated";
@@ -177,22 +175,27 @@ public class PositionMessageService(
         IReadOnlyList<string> userIds,
         CancellationToken cancellationToken)
     {
-        var result = new Dictionary<string, string>(StringComparer.Ordinal);
-
-        foreach (var userId in userIds)
+        if (userIds.Count == 0)
         {
-            var user = await userManager.FindByIdAsync(userId);
-            if (user is null)
-            {
-                result[userId] = string.Empty;
-                continue;
-            }
-
-            var roles = await userManager.GetRolesAsync(user);
-            result[userId] = roles.FirstOrDefault() ?? string.Empty;
+            return [];
         }
 
-        return result;
+        var userIdSet = userIds.ToHashSet(StringComparer.Ordinal);
+
+        // Avoid Contains(string[]) — MySql.EntityFrameworkCore 10 fails type mapping for string collections.
+        var roleRows = await (
+            from userRole in db.UserRoles.AsNoTracking()
+            join role in db.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+            select new { userRole.UserId, role.Name }
+        ).ToListAsync(cancellationToken);
+
+        return roleRows
+            .Where(row => userIdSet.Contains(row.UserId))
+            .GroupBy(row => row.UserId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(row => row.Name).FirstOrDefault(name => !string.IsNullOrWhiteSpace(name))
+                    ?? string.Empty);
     }
 
     private async Task<Dictionary<string, string>> LoadCreatorNameMapAsync(

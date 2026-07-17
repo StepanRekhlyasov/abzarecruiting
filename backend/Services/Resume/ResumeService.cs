@@ -3,6 +3,7 @@ using Backend.Api.Data;
 using Backend.Api.Data.Relations;
 using Backend.Api.Models.Common;
 using Backend.Api.Models.Files;
+using Backend.Api.Models.Profile;
 using Backend.Api.Models.Project;
 using Backend.Api.Models.Resume;
 using Backend.Api.Services.Attributes;
@@ -150,18 +151,80 @@ public class ResumeService(
         CancellationToken cancellationToken = default)
     {
         var uniqueIds = positionIds.Where(id => id > 0).Distinct().ToList();
-        var results = new List<ResumeDto>();
-
-        foreach (var positionId in uniqueIds)
+        if (uniqueIds.Count == 0)
         {
-            var created = await CreateAsync(positionId, candidateId, cancellationToken);
-            if (created is not null)
-            {
-                results.Add(created);
-            }
+            return [];
         }
 
-        return results;
+        var isCandidate = await (
+            from userRole in db.UserRoles.AsNoTracking()
+            join role in db.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+            where userRole.UserId == candidateId && role.Name == Roles.Candidate
+            select role.Id
+        ).AnyAsync(cancellationToken);
+
+        if (!isCandidate)
+        {
+            throw new InvalidOperationException("error.profile.notCandidate");
+        }
+
+        var existingPositionIds = await db.Positions
+            .AsNoTracking()
+            .Where(position => uniqueIds.Contains(position.Id))
+            .Select(position => position.Id)
+            .ToListAsync(cancellationToken);
+
+        var toCreate = uniqueIds.Where(existingPositionIds.Contains).ToList();
+        if (toCreate.Count == 0)
+        {
+            return [];
+        }
+
+        var alreadyExists = await db.Resumes
+            .AsNoTracking()
+            .AnyAsync(
+                resume => resume.CandidateId == candidateId && toCreate.Contains(resume.PositionId),
+                cancellationToken);
+
+        if (alreadyExists)
+        {
+            throw new InvalidOperationException(AlreadyExistsMessage);
+        }
+
+        var now = DateTime.UtcNow;
+        var resumes = toCreate
+            .Select(positionId => new ResumeEntity
+            {
+                CandidateId = candidateId,
+                PositionId = positionId,
+                Published = false,
+                CreatedAt = now,
+            })
+            .ToList();
+
+        db.Resumes.AddRange(resumes);
+        await db.SaveChangesAsync(cancellationToken);
+
+        var positionAttributeIds = await db.PositionAttributes
+            .AsNoTracking()
+            .Where(item => toCreate.Contains(item.PositionId))
+            .Select(item => item.AttributeId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        if (positionAttributeIds.Count > 0)
+        {
+            await profileService.AddAttributesAsync(candidateId, positionAttributeIds, cancellationToken);
+        }
+
+        var createdIds = resumes.Select(resume => resume.Id).ToList();
+        var loaded = await db.Resumes
+            .AsNoTracking()
+            .Include(item => item.Position)
+            .Where(item => createdIds.Contains(item.Id))
+            .ToListAsync(cancellationToken);
+
+        return await MapManyAsync(loaded, viewerUserId: null, cancellationToken);
     }
 
     public async Task<IReadOnlyList<int>> GetPositionIdsForCandidateAsync(
@@ -633,43 +696,117 @@ public class ResumeService(
         string? viewerUserId,
         CancellationToken cancellationToken)
     {
-        var defaultAttributes = await LoadDefaultAttributesAsync(cancellationToken);
-        var profileAttributes = await LoadProfileAttributesAsync([resume.CandidateId], cancellationToken);
-        var files = await LoadFilesForAttributesAsync(defaultAttributes, profileAttributes, cancellationToken);
-        var listItem = MapList([resume], defaultAttributes, profileAttributes, files).FirstOrDefault();
-        if (listItem is null)
+        var items = await MapManyAsync([resume], viewerUserId, cancellationToken);
+        return items.FirstOrDefault();
+    }
+
+    private async Task<IReadOnlyList<ResumeDto>> MapManyAsync(
+        IReadOnlyList<ResumeEntity> resumes,
+        string? viewerUserId,
+        CancellationToken cancellationToken)
+    {
+        if (resumes.Count == 0)
         {
-            return null;
+            return [];
         }
 
-        await EnrichWithLikesAsync([listItem], viewerUserId, cancellationToken);
+        var defaultAttributes = await LoadDefaultAttributesAsync(cancellationToken);
+        var candidateIds = resumes.Select(resume => resume.CandidateId).Distinct().ToList();
+        var profileAttributes = await LoadProfileAttributesAsync(candidateIds, cancellationToken);
+        var files = await LoadFilesForAttributesAsync(defaultAttributes, profileAttributes, cancellationToken);
+        var listItems = MapList(resumes, defaultAttributes, profileAttributes, files).ToList();
+        await EnrichWithLikesAsync(listItems, viewerUserId, cancellationToken);
 
-        var attributes = await profileService.GetMeInfoAsync(resume.CandidateId, cancellationToken) ?? [];
-        var positionAttributeIds = await db.PositionAttributes
+        var positionIds = resumes.Select(resume => resume.PositionId).Distinct().ToList();
+        var positionAttributeRows = await db.PositionAttributes
             .AsNoTracking()
-            .Where(item => item.PositionId == resume.PositionId)
-            .Select(item => item.AttributeId)
-            .ToHashSetAsync(cancellationToken);
+            .Where(item => positionIds.Contains(item.PositionId))
+            .Select(item => new { item.PositionId, item.AttributeId })
+            .ToListAsync(cancellationToken);
+        var attributesByPosition = positionAttributeRows
+            .GroupBy(item => item.PositionId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(item => item.AttributeId).ToHashSet());
 
-        var maxProjects = resume.Position?.MaxProjects
-            ?? await db.Positions
+        var positionTagRows = await db.PositionTags
+            .AsNoTracking()
+            .Where(item => positionIds.Contains(item.PositionId))
+            .Select(item => new { item.PositionId, item.TagId })
+            .ToListAsync(cancellationToken);
+        var tagsByPosition = positionTagRows
+            .GroupBy(item => item.PositionId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(item => item.TagId).ToHashSet());
+
+        var meInfoByCandidate = new Dictionary<string, IReadOnlyList<ProfileAttributeDto>>(
+            StringComparer.Ordinal);
+        foreach (var candidateId in candidateIds)
+        {
+            meInfoByCandidate[candidateId] =
+                await profileService.GetMeInfoAsync(candidateId, cancellationToken) ?? [];
+        }
+
+        var projectsByCandidate = new Dictionary<string, List<ProfileProjectEntity>>(StringComparer.Ordinal);
+        foreach (var candidateId in candidateIds)
+        {
+            projectsByCandidate[candidateId] = await db.ProfileProjects
                 .AsNoTracking()
-                .Where(position => position.Id == resume.PositionId)
-                .Select(position => position.MaxProjects)
-                .FirstOrDefaultAsync(cancellationToken);
+                .Where(project => project.CandidateId == candidateId)
+                .Include(project => project.ProfileProjectTags)
+                .ThenInclude(tag => tag.Tag)
+                .OrderByDescending(project => project.CreatedAt)
+                .ToListAsync(cancellationToken);
+        }
 
-        listItem.Attributes =
-        [
-            .. attributes.Where(attribute => attribute.IsDefault || positionAttributeIds.Contains(attribute.Id)),
-        ];
-        listItem.MaxProjects = maxProjects;
-        listItem.Projects = await SelectMatchingProjectsAsync(
-            resume.CandidateId,
-            resume.PositionId,
-            maxProjects,
-            cancellationToken);
+        var missingMaxProjects = resumes
+            .Where(resume => resume.Position is null)
+            .Select(resume => resume.PositionId)
+            .Distinct()
+            .ToList();
+        var maxProjectsByPosition = missingMaxProjects.Count == 0
+            ? new Dictionary<int, int>()
+            : await db.Positions
+                .AsNoTracking()
+                .Where(position => missingMaxProjects.Contains(position.Id))
+                .ToDictionaryAsync(position => position.Id, position => position.MaxProjects, cancellationToken);
 
-        return listItem;
+        var resumeById = resumes.ToDictionary(resume => resume.Id);
+        foreach (var listItem in listItems)
+        {
+            var resume = resumeById[listItem.Id];
+            var positionAttributeIds = attributesByPosition.GetValueOrDefault(resume.PositionId) ?? [];
+            var attributes = meInfoByCandidate[resume.CandidateId];
+            listItem.Attributes =
+            [
+                .. attributes.Where(attribute =>
+                    attribute.IsDefault || positionAttributeIds.Contains(attribute.Id)),
+            ];
+
+            listItem.MaxProjects = resume.Position?.MaxProjects
+                ?? maxProjectsByPosition.GetValueOrDefault(resume.PositionId);
+
+            var tagIds = tagsByPosition.GetValueOrDefault(resume.PositionId);
+            if (tagIds is null || tagIds.Count == 0)
+            {
+                listItem.Projects = [];
+                continue;
+            }
+
+            var matching = projectsByCandidate[resume.CandidateId]
+                .Where(project => project.ProfileProjectTags.Any(tag => tagIds.Contains(tag.TagId)))
+                .ToList();
+
+            if (listItem.MaxProjects > 0)
+            {
+                matching = matching.Take(listItem.MaxProjects).ToList();
+            }
+
+            listItem.Projects = matching.Select(MapProject).ToList();
+        }
+
+        return listItems;
     }
 
     private async Task EnrichWithLikesAsync(
@@ -705,46 +842,6 @@ public class ResumeService(
             item.LikesCount = counts.GetValueOrDefault(item.Id);
             item.LikedByCurrentUser = likedIds.Contains(item.Id);
         }
-    }
-
-    private async Task<IReadOnlyList<ProjectDto>> SelectMatchingProjectsAsync(
-        string candidateId,
-        int positionId,
-        int maxProjects,
-        CancellationToken cancellationToken)
-    {
-        var positionTagIds = await db.PositionTags
-            .AsNoTracking()
-            .Where(item => item.PositionId == positionId)
-            .Select(item => item.TagId)
-            .ToListAsync(cancellationToken);
-
-        if (positionTagIds.Count == 0)
-        {
-            return [];
-        }
-
-        var tagIdSet = positionTagIds.ToHashSet();
-        var projectsQuery = db.ProfileProjects
-            .AsNoTracking()
-            .Where(project => project.CandidateId == candidateId)
-            .Include(project => project.ProfileProjectTags)
-            .ThenInclude(tag => tag.Tag)
-            .OrderByDescending(project => project.CreatedAt)
-            .AsQueryable();
-
-        // Filter tags in memory — MySQL EF fails type mapping for collection Contains/IN parameters.
-        var projects = await projectsQuery.ToListAsync(cancellationToken);
-        var matching = projects
-            .Where(project => project.ProfileProjectTags.Any(tag => tagIdSet.Contains(tag.TagId)))
-            .ToList();
-
-        if (maxProjects > 0)
-        {
-            matching = matching.Take(maxProjects).ToList();
-        }
-
-        return matching.Select(MapProject).ToList();
     }
 
     private static ProjectDto MapProject(ProfileProjectEntity project) => new()

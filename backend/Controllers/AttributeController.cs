@@ -90,32 +90,6 @@ public class AttributeController(IAttributeService attributeService) : Controlle
     }
 
     [Authorize]
-    [HttpPost("candidate/{candidateId}/values")]
-    public async Task<ActionResult<IReadOnlyList<SetProfileAttributeBatchResultItem>>> SetCandidateValuesBatch(
-        string candidateId,
-        [FromBody] SetProfileAttributesBatchRequest request,
-        CancellationToken cancellationToken)
-    {
-        if (!User.IsAdmin() && User.GetUserId() != candidateId)
-        {
-            return Forbid();
-        }
-
-        try
-        {
-            var results = await attributeService.SetCandidateValuesBatchAsync(
-                candidateId,
-                request.Items,
-                cancellationToken);
-            return Ok(results);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
-    }
-
-    [Authorize]
     [HttpPost("{id:int}/candidate/{candidateId}")]
     public async Task<IActionResult> SetCandidateValue(
         int id,

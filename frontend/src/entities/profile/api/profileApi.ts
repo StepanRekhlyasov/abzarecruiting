@@ -67,7 +67,7 @@ export async function setCandidateAttributeValuesBatch(
 
   try {
     const { data } = await apiClient.post<SetCandidateAttributeBatchResult[]>(
-      `/attribute/candidate/${candidateId}/values`,
+      `/profile/${candidateId}/values`,
       { items },
     )
     return data

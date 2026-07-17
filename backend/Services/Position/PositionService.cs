@@ -440,18 +440,129 @@ public class PositionService(
         CancellationToken cancellationToken = default)
     {
         var uniqueIds = ids.Where(id => id > 0).Distinct().ToList();
-        var results = new List<PositionDetailDto>();
-
-        foreach (var id in uniqueIds)
+        if (uniqueIds.Count == 0)
         {
-            var duplicated = await DuplicateAsync(id, userId, cancellationToken);
-            if (duplicated is not null)
+            return [];
+        }
+
+        var sources = await db.Positions
+            .AsNoTracking()
+            .Where(position => uniqueIds.Contains(position.Id))
+            .ToListAsync(cancellationToken);
+
+        if (sources.Count == 0)
+        {
+            return [];
+        }
+
+        var sourceIds = sources.Select(position => position.Id).ToList();
+
+        var attributes = await db.PositionAttributes
+            .AsNoTracking()
+            .Where(item => sourceIds.Contains(item.PositionId))
+            .ToListAsync(cancellationToken);
+        var tags = await db.PositionTags
+            .AsNoTracking()
+            .Where(item => sourceIds.Contains(item.PositionId))
+            .ToListAsync(cancellationToken);
+        var restrictions = await db.PositionRestrictions
+            .AsNoTracking()
+            .Where(item => sourceIds.Contains(item.PositionId))
+            .ToListAsync(cancellationToken);
+
+        var attributesBySource = attributes
+            .GroupBy(item => item.PositionId)
+            .ToDictionary(group => group.Key, group => group.ToList());
+        var tagsBySource = tags
+            .GroupBy(item => item.PositionId)
+            .ToDictionary(group => group.Key, group => group.ToList());
+        var restrictionsBySource = restrictions
+            .GroupBy(item => item.PositionId)
+            .ToDictionary(group => group.Key, group => group.ToList());
+
+        var now = DateTime.UtcNow;
+        var created = new List<(int SourceId, Data.Entities.Position Position)>();
+
+        foreach (var sourceId in uniqueIds)
+        {
+            var source = sources.FirstOrDefault(position => position.Id == sourceId);
+            if (source is null)
             {
-                results.Add(duplicated);
+                continue;
+            }
+
+            var position = new Data.Entities.Position
+            {
+                Name = source.Name,
+                Description = source.Description,
+                Company = source.Company,
+                Country = source.Country,
+                Level = source.Level,
+                Format = source.Format,
+                MaxProjects = source.MaxProjects,
+                CreatedAt = now,
+                CreatedById = userId,
+            };
+
+            db.Positions.Add(position);
+            created.Add((source.Id, position));
+        }
+
+        if (created.Count == 0)
+        {
+            return [];
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        foreach (var (sourceId, position) in created)
+        {
+            if (attributesBySource.TryGetValue(sourceId, out var sourceAttributes))
+            {
+                db.PositionAttributes.AddRange(sourceAttributes.Select(item => new PositionAttribute
+                {
+                    PositionId = position.Id,
+                    AttributeId = item.AttributeId,
+                    IsKey = item.IsKey,
+                }));
+            }
+
+            if (tagsBySource.TryGetValue(sourceId, out var sourceTags))
+            {
+                db.PositionTags.AddRange(sourceTags.Select(item => new PositionTag
+                {
+                    PositionId = position.Id,
+                    TagId = item.TagId,
+                    IsKey = item.IsKey,
+                }));
+            }
+
+            if (restrictionsBySource.TryGetValue(sourceId, out var sourceRestrictions))
+            {
+                db.PositionRestrictions.AddRange(sourceRestrictions.Select(item => new PositionRestriction
+                {
+                    PositionId = position.Id,
+                    AttributeId = item.AttributeId,
+                    TagId = item.TagId,
+                    Condition = item.Condition,
+                    TargetValue = item.TargetValue,
+                    CreatedAt = now,
+                    CreatedById = userId,
+                }));
             }
         }
 
-        return results;
+        await db.SaveChangesAsync(cancellationToken);
+
+        var newIds = created.Select(item => item.Position.Id).ToList();
+        var items = await LoadListItemsAsync(newIds, keyOnly: false, cancellationToken);
+        var itemById = items.ToDictionary(item => item.Id);
+
+        return newIds
+            .Select(id => ToDetailDto(itemById.GetValueOrDefault(id)))
+            .Where(item => item is not null)
+            .Cast<PositionDetailDto>()
+            .ToList();
     }
 
     public async Task<PositionDetailDto?> DuplicateAsync(
