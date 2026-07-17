@@ -48,6 +48,19 @@ public interface IPositionService
 
     Task<bool> DeleteTagAsync(int positionId, int tagId, CancellationToken cancellationToken = default);
 
+    Task<bool> SyncRelationsAsync(
+        int positionId,
+        IEnumerable<int> attributeIds,
+        IEnumerable<int> tagIds,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteBatchAsync(IEnumerable<DeletePositionItem> items, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<PositionDetailDto>> DuplicateBatchAsync(
+        IEnumerable<int> ids,
+        string userId,
+        CancellationToken cancellationToken = default);
+
     Task<PositionDetailDto?> DuplicateAsync(
         int id,
         string userId,
@@ -297,6 +310,148 @@ public class PositionService(
         db.PositionTags.Remove(relation);
         await db.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    public async Task<bool> SyncRelationsAsync(
+        int positionId,
+        IEnumerable<int> attributeIds,
+        IEnumerable<int> tagIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await db.Positions.AnyAsync(position => position.Id == positionId, cancellationToken))
+        {
+            return false;
+        }
+
+        var desiredAttributes = attributeIds.Where(id => id > 0).Distinct().ToHashSet();
+        var desiredTags = tagIds.Where(id => id > 0).Distinct().ToHashSet();
+
+        if (desiredAttributes.Count > 0)
+        {
+            var existingAttributeCount = await db.Attributes
+                .CountAsync(attribute => desiredAttributes.Contains(attribute.Id), cancellationToken);
+            if (existingAttributeCount != desiredAttributes.Count)
+            {
+                throw new InvalidOperationException("error.attributes.notFound");
+            }
+        }
+
+        if (desiredTags.Count > 0)
+        {
+            var existingTagCount = await db.Tags
+                .CountAsync(tag => desiredTags.Contains(tag.Id), cancellationToken);
+            if (existingTagCount != desiredTags.Count)
+            {
+                throw new InvalidOperationException("error.tags.notFound");
+            }
+        }
+
+        var currentAttributes = await db.PositionAttributes
+            .Where(item => item.PositionId == positionId)
+            .ToListAsync(cancellationToken);
+        var currentTags = await db.PositionTags
+            .Where(item => item.PositionId == positionId)
+            .ToListAsync(cancellationToken);
+
+        var attributesToRemove = currentAttributes
+            .Where(item => !desiredAttributes.Contains(item.AttributeId))
+            .ToList();
+        var tagsToRemove = currentTags
+            .Where(item => !desiredTags.Contains(item.TagId))
+            .ToList();
+
+        if (attributesToRemove.Count > 0)
+        {
+            db.PositionAttributes.RemoveRange(attributesToRemove);
+        }
+
+        if (tagsToRemove.Count > 0)
+        {
+            db.PositionTags.RemoveRange(tagsToRemove);
+        }
+
+        var existingAttributeIds = currentAttributes.Select(item => item.AttributeId).ToHashSet();
+        var existingTagIds = currentTags.Select(item => item.TagId).ToHashSet();
+
+        foreach (var attributeId in desiredAttributes.Where(id => !existingAttributeIds.Contains(id)))
+        {
+            db.PositionAttributes.Add(new PositionAttribute
+            {
+                PositionId = positionId,
+                AttributeId = attributeId,
+                IsKey = true,
+            });
+        }
+
+        foreach (var tagId in desiredTags.Where(id => !existingTagIds.Contains(id)))
+        {
+            db.PositionTags.Add(new PositionTag
+            {
+                PositionId = positionId,
+                TagId = tagId,
+                IsKey = true,
+            });
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task DeleteBatchAsync(
+        IEnumerable<DeletePositionItem> items,
+        CancellationToken cancellationToken = default)
+    {
+        var uniqueItems = items
+            .GroupBy(item => item.Id)
+            .Select(group => group.Last())
+            .ToList();
+
+        if (uniqueItems.Count == 0)
+        {
+            return;
+        }
+
+        var ids = uniqueItems.Select(item => item.Id).ToList();
+        var positions = await db.Positions
+            .Where(item => ids.Contains(item.Id))
+            .ToListAsync(cancellationToken);
+
+        if (positions.Count != ids.Count)
+        {
+            throw new InvalidOperationException("error.positions.notFound");
+        }
+
+        var versionById = uniqueItems.ToDictionary(item => item.Id, item => item.Version);
+        foreach (var position in positions)
+        {
+            if (position.Version != versionById[position.Id])
+            {
+                throw new InvalidOperationException("error.oldVersion");
+            }
+        }
+
+        db.Positions.RemoveRange(positions);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<PositionDetailDto>> DuplicateBatchAsync(
+        IEnumerable<int> ids,
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        var uniqueIds = ids.Where(id => id > 0).Distinct().ToList();
+        var results = new List<PositionDetailDto>();
+
+        foreach (var id in uniqueIds)
+        {
+            var duplicated = await DuplicateAsync(id, userId, cancellationToken);
+            if (duplicated is not null)
+            {
+                results.Add(duplicated);
+            }
+        }
+
+        return results;
     }
 
     public async Task<PositionDetailDto?> DuplicateAsync(

@@ -7,6 +7,7 @@ export type {
 export {
   createProject,
   deleteProject,
+  deleteProjectsBatch,
   deleteProjectTag,
   fetchProject,
   fetchProjects,

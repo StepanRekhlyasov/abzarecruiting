@@ -14,9 +14,16 @@ public interface ITagService
 
     Task<TagDto> CreateAsync(CreateTagRequest request, string userId, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<TagDto>> EnsureAsync(
+        IEnumerable<string> names,
+        string userId,
+        CancellationToken cancellationToken = default);
+
     Task<TagDto?> UpdateAsync(int id, UpdateTagRequest request, CancellationToken cancellationToken = default);
 
     Task<bool> DeleteAsync(int id, int version, CancellationToken cancellationToken = default);
+
+    Task DeleteBatchAsync(IEnumerable<DeleteTagItem> items, CancellationToken cancellationToken = default);
 }
 
 public class TagService(ApplicationDbContext db) : ITagService
@@ -87,6 +94,58 @@ public class TagService(ApplicationDbContext db) : ITagService
         return Map(tag);
     }
 
+    public async Task<IReadOnlyList<TagDto>> EnsureAsync(
+        IEnumerable<string> names,
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = names
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (normalized.Count == 0)
+        {
+            return [];
+        }
+
+        var existingPredicate = BuildExactNamePredicate(normalized);
+        var existing = await db.Tags
+            .Where(existingPredicate)
+            .ToListAsync(cancellationToken);
+
+        var existingByName = existing.ToDictionary(tag => tag.Name, StringComparer.OrdinalIgnoreCase);
+        var created = new List<TagEntity>();
+
+        foreach (var name in normalized)
+        {
+            if (existingByName.ContainsKey(name))
+            {
+                continue;
+            }
+
+            var tag = new TagEntity
+            {
+                Name = name,
+                CreatedAt = DateTime.UtcNow,
+                CreatedById = userId,
+            };
+            db.Tags.Add(tag);
+            created.Add(tag);
+            existingByName[name] = tag;
+        }
+
+        if (created.Count > 0)
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return normalized
+            .Select(name => Map(existingByName[name]))
+            .ToList();
+    }
+
     public async Task<TagDto?> UpdateAsync(
         int id,
         UpdateTagRequest request,
@@ -127,6 +186,42 @@ public class TagService(ApplicationDbContext db) : ITagService
         return true;
     }
 
+    public async Task DeleteBatchAsync(IEnumerable<DeleteTagItem> items, CancellationToken cancellationToken = default)
+    {
+        var uniqueItems = items
+            .GroupBy(item => item.Id)
+            .Select(group => group.Last())
+            .ToList();
+
+        if (uniqueItems.Count == 0)
+        {
+            return;
+        }
+
+        var ids = uniqueItems.Select(item => item.Id).ToList();
+        var tags = await db.Tags
+            .Where(item => ids.Contains(item.Id))
+            .ToListAsync(cancellationToken);
+
+        if (tags.Count != ids.Count)
+        {
+            throw new InvalidOperationException("error.tags.notFound");
+        }
+
+        var versionById = uniqueItems.ToDictionary(item => item.Id, item => item.Version);
+
+        foreach (var tag in tags)
+        {
+            if (tag.Version != versionById[tag.Id])
+            {
+                throw new InvalidOperationException(VersionChangedMessage);
+            }
+        }
+
+        db.Tags.RemoveRange(tags);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     private static TagDto Map(TagEntity tag) => new()
     {
         Id = tag.Id,
@@ -134,6 +229,21 @@ public class TagService(ApplicationDbContext db) : ITagService
         CreatedAt = tag.CreatedAt,
         Version = tag.Version,
     };
+
+    private static Expression<Func<TagEntity, bool>> BuildExactNamePredicate(IReadOnlyList<string> names)
+    {
+        var parameter = Expression.Parameter(typeof(TagEntity), "tag");
+        var nameProperty = Expression.Property(parameter, nameof(TagEntity.Name));
+        Expression? body = null;
+
+        foreach (var name in names)
+        {
+            var equals = Expression.Equal(nameProperty, Expression.Constant(name));
+            body = body is null ? equals : Expression.OrElse(body, equals);
+        }
+
+        return Expression.Lambda<Func<TagEntity, bool>>(body!, parameter);
+    }
 
     private static Expression<Func<TagEntity, bool>>? BuildIdOrSearchPredicate(
         IReadOnlyList<int> ids,

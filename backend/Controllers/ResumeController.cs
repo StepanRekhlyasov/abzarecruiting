@@ -41,6 +41,34 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
         }
     }
 
+    [Authorize(Roles = $"{Roles.Candidate},{Roles.Admin}")]
+    [HttpPost("batch")]
+    public async Task<ActionResult<IReadOnlyList<ResumeDto>>> CreateBatch(
+        [FromBody] CreateResumesBatchRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!User.IsAdmin() && !User.IsCandidate())
+        {
+            return Forbid();
+        }
+
+        var candidateId = User.IsAdmin() ? request.CandidateId : User.GetUserId();
+        if (string.IsNullOrWhiteSpace(candidateId))
+        {
+            return BadRequest(new { message = "error.profile.notCandidate" });
+        }
+
+        try
+        {
+            var resumes = await resumeService.CreateBatchAsync(request.PositionIds, candidateId, cancellationToken);
+            return Ok(resumes);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
     [Authorize(Roles = Roles.Candidate)]
     [HttpPost("position/{positionId:int}")]
     public async Task<ActionResult<ResumeDto>> CreateForPosition(int positionId, CancellationToken cancellationToken)
@@ -202,6 +230,38 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
         {
             var updated = await resumeService.UpdateAsync(id, request, cancellationToken);
             return updated is null ? NotFound() : Ok(updated);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    [Authorize]
+    [HttpDelete("delete")]
+    public async Task<IActionResult> DeleteBatch(
+        [FromBody] DeleteResumesRequest request,
+        CancellationToken cancellationToken)
+    {
+        var uniqueIds = request.Items.Select(item => item.Id).Distinct().ToList();
+        var resumes = await db.Resumes
+            .Where(item => uniqueIds.Contains(item.Id))
+            .ToListAsync(cancellationToken);
+
+        if (resumes.Count != uniqueIds.Count)
+        {
+            return NotFound();
+        }
+
+        if (resumes.Any(resume => !resumeService.CanModify(resume, User.GetUserId(), User.IsAdmin())))
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            await resumeService.DeleteBatchAsync(request.Items, cancellationToken);
+            return NoContent();
         }
         catch (InvalidOperationException exception)
         {

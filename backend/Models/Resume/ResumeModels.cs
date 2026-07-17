@@ -12,6 +12,29 @@ public class CreateResumeRequest
     public string? CandidateId { get; set; }
 }
 
+public class CreateResumesBatchRequest
+{
+    [Required]
+    [MinLength(1)]
+    public IList<int> PositionIds { get; set; } = [];
+
+    public string? CandidateId { get; set; }
+}
+
+public class DeleteResumeItem
+{
+    public int Id { get; set; }
+
+    public int Version { get; set; }
+}
+
+public class DeleteResumesRequest
+{
+    [Required]
+    [MinLength(1)]
+    public IList<DeleteResumeItem> Items { get; set; } = [];
+}
+
 public class UpdateResumeRequest
 {
     [Required]

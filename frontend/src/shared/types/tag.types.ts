@@ -12,3 +12,12 @@ export type CreateTagRequest = {
 export type UpdateTagRequest = CreateTagRequest & {
   version: number
 }
+
+export type EnsureTagsRequest = {
+  names: string[]
+}
+
+export type DeleteTagItem = {
+  id: number
+  version: number
+}

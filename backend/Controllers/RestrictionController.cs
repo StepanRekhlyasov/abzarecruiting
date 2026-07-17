@@ -37,6 +37,22 @@ public class RestrictionController(IRestrictionService restrictionService) : Con
         }
     }
 
+    [HttpPut("sync")]
+    public async Task<ActionResult<IReadOnlyList<RestrictionDto>>> Sync(
+        [FromBody] SyncRestrictionsRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var items = await restrictionService.SyncAsync(request, User.GetUserId()!, cancellationToken);
+            return Ok(items);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
     [HttpPost("{id:int}")]
     public async Task<ActionResult<RestrictionDto>> Update(
         int id,

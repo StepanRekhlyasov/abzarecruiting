@@ -26,9 +26,13 @@ public interface IProjectService
 
     Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
 
+    Task DeleteBatchAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default);
+
     Task<bool> UpsertTagAsync(int projectId, int tagId, CancellationToken cancellationToken = default);
 
     Task<bool> DeleteTagAsync(int projectId, int tagId, CancellationToken cancellationToken = default);
+
+    Task<bool> SyncTagsAsync(int projectId, IEnumerable<int> tagIds, CancellationToken cancellationToken = default);
 
     bool CanAccess(ProfileProject project, string? userId, bool isAdmin, bool isRecruiter = false);
 
@@ -175,6 +179,27 @@ public class ProjectService(ApplicationDbContext db) : IProjectService
         return true;
     }
 
+    public async Task DeleteBatchAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default)
+    {
+        var uniqueIds = ids.Where(id => id > 0).Distinct().ToList();
+        if (uniqueIds.Count == 0)
+        {
+            return;
+        }
+
+        var projects = await db.ProfileProjects
+            .Where(item => uniqueIds.Contains(item.Id))
+            .ToListAsync(cancellationToken);
+
+        if (projects.Count != uniqueIds.Count)
+        {
+            throw new InvalidOperationException("error.projects.notFound");
+        }
+
+        db.ProfileProjects.RemoveRange(projects);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<bool> UpsertTagAsync(int projectId, int tagId, CancellationToken cancellationToken = default)
     {
         if (!await db.ProfileProjects.AnyAsync(project => project.Id == projectId, cancellationToken)
@@ -210,6 +235,51 @@ public class ProjectService(ApplicationDbContext db) : IProjectService
         }
 
         db.ProfileProjectTags.Remove(relation);
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> SyncTagsAsync(
+        int projectId,
+        IEnumerable<int> tagIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await db.ProfileProjects.AnyAsync(project => project.Id == projectId, cancellationToken))
+        {
+            return false;
+        }
+
+        var desiredTags = tagIds.Where(id => id > 0).Distinct().ToHashSet();
+        if (desiredTags.Count > 0)
+        {
+            var existingTagCount = await db.Tags
+                .CountAsync(tag => desiredTags.Contains(tag.Id), cancellationToken);
+            if (existingTagCount != desiredTags.Count)
+            {
+                throw new InvalidOperationException("error.tags.notFound");
+            }
+        }
+
+        var currentTags = await db.ProfileProjectTags
+            .Where(item => item.ProfileProjectId == projectId)
+            .ToListAsync(cancellationToken);
+
+        var toRemove = currentTags.Where(item => !desiredTags.Contains(item.TagId)).ToList();
+        if (toRemove.Count > 0)
+        {
+            db.ProfileProjectTags.RemoveRange(toRemove);
+        }
+
+        var existingTagIds = currentTags.Select(item => item.TagId).ToHashSet();
+        foreach (var tagId in desiredTags.Where(id => !existingTagIds.Contains(id)))
+        {
+            db.ProfileProjectTags.Add(new ProfileProjectTag
+            {
+                ProfileProjectId = projectId,
+                TagId = tagId,
+            });
+        }
+
         await db.SaveChangesAsync(cancellationToken);
         return true;
     }

@@ -15,7 +15,7 @@ import type { AbzaFormValues } from '@features/abza-form'
 import type { AbzaTableRowId } from '@features/abza-table'
 import type { TagDto } from '@entities/tag'
 import type { AbzaSelectOption, SortDirection } from '@shared/types'
-import { createTag, deleteTag, fetchTags, isNewTagOption, updateTag } from '@entities/tag'
+import { createTag, deleteTagsBatch, fetchTags, isNewTagOption, updateTag } from '@entities/tag'
 import { $session, isRecruiterOrAdmin } from '@entities/user'
 import { getErrorKey } from '@shared/lib/errors'
 import { toSubmitValues } from '@shared/lib/helpers'
@@ -231,7 +231,7 @@ export function TagsTableProvider({ children }: PropsWithChildren) {
         return { id: Number(id), version: row?.version ?? 0 }
       })
 
-      await Promise.all(items.map((item) => deleteTag(item.id, item.version)))
+      await deleteTagsBatch(items)
       const deletedIds = new Set(items.map((item) => item.id))
       setRows((currentRows) => currentRows.filter((row) => !deletedIds.has(row.id)))
       setTotalCount((currentTotal) => Math.max(0, currentTotal - count))

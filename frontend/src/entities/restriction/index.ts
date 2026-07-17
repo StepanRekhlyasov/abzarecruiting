@@ -11,5 +11,6 @@ export {
   createRestriction,
   deleteRestriction,
   fetchRestrictionsByPosition,
+  syncRestrictions,
   updateRestriction,
 } from './api/restrictionApi'

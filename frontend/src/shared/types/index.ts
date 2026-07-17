@@ -25,7 +25,13 @@ export {
 
 export type { ProfileAttributeDto } from './profile.types'
 
-export type { CreateTagRequest, TagDto, UpdateTagRequest } from './tag.types'
+export type {
+  CreateTagRequest,
+  DeleteTagItem,
+  EnsureTagsRequest,
+  TagDto,
+  UpdateTagRequest,
+} from './tag.types'
 
 export type {
   CreatePositionRequest,

@@ -23,6 +23,28 @@ public class PositionController(IPositionService positionService) : ControllerBa
     }
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
+    [HttpPut("{id:int}/relations")]
+    public async Task<IActionResult> SyncRelations(
+        int id,
+        [FromBody] SyncPositionRelationsRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var updated = await positionService.SyncRelationsAsync(
+                id,
+                request.AttributeIds,
+                request.TagIds,
+                cancellationToken);
+            return updated ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
     [HttpPost("{id:int}/attributes/{attributeId:int}")]
     public async Task<IActionResult> UpsertAttribute(
         int id,
@@ -105,6 +127,33 @@ public class PositionController(IPositionService positionService) : ControllerBa
     {
         var position = await positionService.DuplicateAsync(id, User.GetUserId()!, cancellationToken);
         return position is null ? NotFound() : CreatedAtAction(nameof(GetById), new { id = position.Id }, position);
+    }
+
+    [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
+    [HttpPost("duplicate")]
+    public async Task<ActionResult<IReadOnlyList<PositionDetailDto>>> DuplicateBatch(
+        [FromBody] DuplicatePositionsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var positions = await positionService.DuplicateBatchAsync(request.Ids, User.GetUserId()!, cancellationToken);
+        return Ok(positions);
+    }
+
+    [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
+    [HttpDelete("delete")]
+    public async Task<IActionResult> DeleteBatch(
+        [FromBody] DeletePositionsRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await positionService.DeleteBatchAsync(request.Items, cancellationToken);
+            return NoContent();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]

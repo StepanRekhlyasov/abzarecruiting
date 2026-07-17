@@ -8,7 +8,9 @@ export type {
 } from '@shared/types'
 export {
   createResume,
+  createResumesBatch,
   deleteResume,
+  deleteResumesBatch,
   downloadResumePdf,
   fetchResume,
   fetchResumePositionIds,

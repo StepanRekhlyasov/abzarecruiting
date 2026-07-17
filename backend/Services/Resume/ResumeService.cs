@@ -21,6 +21,11 @@ public interface IResumeService
 {
     Task<ResumeDto?> CreateAsync(int positionId, string candidateId, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<ResumeDto>> CreateBatchAsync(
+        IEnumerable<int> positionIds,
+        string candidateId,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<int>> GetPositionIdsForCandidateAsync(
         string candidateId,
         CancellationToken cancellationToken = default);
@@ -54,6 +59,8 @@ public interface IResumeService
     Task<ResumeDto?> UpdateAsync(int id, UpdateResumeRequest request, CancellationToken cancellationToken = default);
 
     Task<bool> DeleteAsync(int id, int version, CancellationToken cancellationToken = default);
+
+    Task DeleteBatchAsync(IEnumerable<DeleteResumeItem> items, CancellationToken cancellationToken = default);
 
     Task<ResumeLikeStateDto?> ToggleLikeAsync(
         int resumeId,
@@ -135,6 +142,26 @@ public class ResumeService(
         }
 
         return await GetByIdAsync(resume.Id, cancellationToken: cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ResumeDto>> CreateBatchAsync(
+        IEnumerable<int> positionIds,
+        string candidateId,
+        CancellationToken cancellationToken = default)
+    {
+        var uniqueIds = positionIds.Where(id => id > 0).Distinct().ToList();
+        var results = new List<ResumeDto>();
+
+        foreach (var positionId in uniqueIds)
+        {
+            var created = await CreateAsync(positionId, candidateId, cancellationToken);
+            if (created is not null)
+            {
+                results.Add(created);
+            }
+        }
+
+        return results;
     }
 
     public async Task<IReadOnlyList<int>> GetPositionIdsForCandidateAsync(
@@ -407,6 +434,43 @@ public class ResumeService(
         db.Resumes.Remove(resume);
         await db.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    public async Task DeleteBatchAsync(
+        IEnumerable<DeleteResumeItem> items,
+        CancellationToken cancellationToken = default)
+    {
+        var uniqueItems = items
+            .GroupBy(item => item.Id)
+            .Select(group => group.Last())
+            .ToList();
+
+        if (uniqueItems.Count == 0)
+        {
+            return;
+        }
+
+        var ids = uniqueItems.Select(item => item.Id).ToList();
+        var resumes = await db.Resumes
+            .Where(item => ids.Contains(item.Id))
+            .ToListAsync(cancellationToken);
+
+        if (resumes.Count != ids.Count)
+        {
+            throw new InvalidOperationException("error.resumes.notFound");
+        }
+
+        var versionById = uniqueItems.ToDictionary(item => item.Id, item => item.Version);
+        foreach (var resume in resumes)
+        {
+            if (resume.Version != versionById[resume.Id])
+            {
+                throw new InvalidOperationException(VersionChangedMessage);
+            }
+        }
+
+        db.Resumes.RemoveRange(resumes);
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<ResumeLikeStateDto?> ToggleLikeAsync(

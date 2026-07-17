@@ -34,7 +34,7 @@ function ProfileContent() {
     setActionError,
     isAutosaveActive,
     setAutosaveActive,
-    saveAttributeValue,
+    saveAttributeValues,
     loadAttributeOptions,
     addAttributesToProfile,
     removeAttributesFromProfile,
@@ -56,7 +56,7 @@ function ProfileContent() {
     attributes: meAttributes,
     canEdit: canEditProfile,
     isLoading,
-    saveAttributeValue,
+    saveAttributeValues,
     setActionError,
     setAutosaveActive,
   })

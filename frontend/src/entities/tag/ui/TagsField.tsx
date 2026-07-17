@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { SxProps, Theme } from '@mui/material/styles'
 import type { AbzaSelectOption } from '@shared/types'
 import { AsyncEntityTags } from '@shared/ui/inputs'
-import { ensureTagByName, isNewTagOption, loadTagOptions } from '../lib/tagOptions'
+import { isNewTagOption, loadTagOptions, resolveTagOptions } from '../lib/tagOptions'
 
 export type TagsFieldProps = {
   label: string
@@ -47,23 +47,7 @@ export function TagsField({
 
     setIsCreating(true)
     try {
-      const resolved: AbzaSelectOption[] = []
-
-      for (const option of nextOptions) {
-        if (!isNewTagOption(option)) {
-          resolved.push(option)
-          continue
-        }
-
-        resolved.push(await ensureTagByName(option.label))
-      }
-
-      const unique = new Map<string, AbzaSelectOption>()
-      for (const option of resolved) {
-        unique.set(option.value, option)
-      }
-
-      onChange([...unique.values()])
+      onChange(await resolveTagOptions(nextOptions))
     } catch (createError) {
       onCreateError?.(createError)
     } finally {

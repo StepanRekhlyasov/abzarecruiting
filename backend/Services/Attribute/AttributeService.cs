@@ -30,6 +30,11 @@ public interface IAttributeService
         SetProfileAttributeRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<SetProfileAttributeBatchResultItem>> SetCandidateValuesBatchAsync(
+        string candidateId,
+        IEnumerable<SetProfileAttributeBatchItem> items,
+        CancellationToken cancellationToken = default);
+
     Task<bool> DeleteCandidateValueAsync(int attributeId, string candidateId, CancellationToken cancellationToken = default);
 }
 
@@ -309,6 +314,91 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         profileAttribute.Version++;
         await db.SaveChangesAsync(cancellationToken);
         return profileAttribute.Version;
+    }
+
+    public async Task<IReadOnlyList<SetProfileAttributeBatchResultItem>> SetCandidateValuesBatchAsync(
+        string candidateId,
+        IEnumerable<SetProfileAttributeBatchItem> items,
+        CancellationToken cancellationToken = default)
+    {
+        var uniqueItems = items
+            .GroupBy(item => item.AttributeId)
+            .Select(group => group.Last())
+            .ToList();
+
+        if (uniqueItems.Count == 0)
+        {
+            return [];
+        }
+
+        if (!await db.Users.AnyAsync(user => user.Id == candidateId, cancellationToken))
+        {
+            throw new InvalidOperationException("error.profile.notCandidate");
+        }
+
+        var attributeIds = uniqueItems.Select(item => item.AttributeId).ToList();
+        var attributes = await db.Attributes
+            .Where(item => attributeIds.Contains(item.Id))
+            .ToListAsync(cancellationToken);
+
+        if (attributes.Count != attributeIds.Count)
+        {
+            throw new InvalidOperationException("error.attributes.notFound");
+        }
+
+        var attributesById = attributes.ToDictionary(item => item.Id);
+        var profileAttributes = await db.ProfileAttributes
+            .Where(item => item.CandidateId == candidateId && attributeIds.Contains(item.AttributeId))
+            .ToListAsync(cancellationToken);
+        var profileByAttributeId = profileAttributes.ToDictionary(item => item.AttributeId);
+
+        var results = new List<SetProfileAttributeBatchResultItem>();
+
+        foreach (var item in uniqueItems)
+        {
+            var attribute = attributesById[item.AttributeId];
+            if (!profileByAttributeId.TryGetValue(item.AttributeId, out var profileAttribute))
+            {
+                if (item.Version != 0)
+                {
+                    throw new InvalidOperationException(VersionChangedMessage);
+                }
+
+                profileAttribute = new ProfileAttribute
+                {
+                    AttributeId = item.AttributeId,
+                    CandidateId = candidateId,
+                    Version = 0,
+                };
+                db.ProfileAttributes.Add(profileAttribute);
+                profileByAttributeId[item.AttributeId] = profileAttribute;
+            }
+            else if (profileAttribute.Version != item.Version)
+            {
+                throw new InvalidOperationException(VersionChangedMessage);
+            }
+
+            if (FileAttributeValueResolver.IsFileValueType(attribute.ValueType)
+                && !string.IsNullOrWhiteSpace(item.Value))
+            {
+                if (!Guid.TryParse(item.Value, out var fileUid)
+                    || !await db.Files.AnyAsync(file => file.Uid == fileUid, cancellationToken))
+                {
+                    throw new InvalidOperationException("error.files.notFound");
+                }
+            }
+
+            valueMapper.SetValue(profileAttribute, attribute, item.Value);
+            profileAttribute.Version++;
+            results.Add(new SetProfileAttributeBatchResultItem
+            {
+                AttributeId = item.AttributeId,
+                Version = profileAttribute.Version,
+            });
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return results;
     }
 
     public async Task<bool> DeleteCandidateValueAsync(

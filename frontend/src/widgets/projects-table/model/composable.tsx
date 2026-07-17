@@ -17,7 +17,7 @@ import type { ProjectDto } from '@entities/project'
 import type { AbzaSelectOption, SortDirection } from '@shared/types'
 import {
   createProject,
-  deleteProject,
+  deleteProjectsBatch,
   fetchProject,
   fetchProjects,
   projectTagsToOptions,
@@ -314,7 +314,7 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
     setActionError(null)
 
     try {
-      await Promise.all(selectedIds.map((id) => deleteProject(Number(id))))
+      await deleteProjectsBatch(selectedIds.map((id) => Number(id)))
       const deletedIds = new Set(selectedIds.map((id) => Number(id)))
       setRows((currentRows) => currentRows.filter((row) => !deletedIds.has(row.id)))
       setTotalCount((currentTotal) => Math.max(0, currentTotal - count))

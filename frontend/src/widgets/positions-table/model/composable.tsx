@@ -20,14 +20,14 @@ import type {
 import { fetchAttributes } from '@entities/attribute'
 import {
   createPosition,
-  deletePosition,
-  duplicatePosition,
+  deletePositionsBatch,
+  duplicatePositionsBatch,
   fetchPosition,
   fetchPositions,
   updatePosition,
 } from '@entities/position'
 import { fetchRestrictionsByPosition } from '@entities/restriction'
-import { createResume, fetchResumePositionIds } from '@entities/resume'
+import { createResume, createResumesBatch, fetchResumePositionIds } from '@entities/resume'
 import { $session, isCandidate, isRecruiterOrAdmin } from '@entities/user'
 import { ASYNC_ENTITY_TAGS_PAGE_SIZE } from '@shared/ui/inputs'
 import { getErrorKey } from '@shared/lib/errors'
@@ -379,7 +379,7 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
     setActionError(null)
 
     try {
-      await Promise.all(positionIds.map((id) => createResume({ positionId: id })))
+      await createResumesBatch(positionIds)
       setResumePositionIds((current) => [...new Set([...current, ...positionIds])])
       setSelectedIds([])
     } catch (error) {
@@ -405,7 +405,7 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
         return { id: Number(id), version: row?.version ?? 0 }
       })
 
-      await Promise.all(items.map((item) => deletePosition(item.id, item.version)))
+      await deletePositionsBatch(items)
       const deletedIds = new Set(items.map((item) => item.id))
       setRows((currentRows) => currentRows.filter((row) => !deletedIds.has(row.id)))
       setTotalCount((currentTotal) => Math.max(0, currentTotal - count))
@@ -432,7 +432,7 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
     setActionError(null)
 
     try {
-      await Promise.all(positionIds.map((id) => duplicatePosition(id)))
+      await duplicatePositionsBatch(positionIds)
       setSelectedIds([])
       await loadPositions()
     } catch (error) {

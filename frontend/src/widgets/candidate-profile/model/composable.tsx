@@ -15,7 +15,7 @@ import {
 } from '@entities/attribute'
 import {
   fetchMeInfo,
-  setCandidateAttributeValue,
+  setCandidateAttributeValuesBatch,
   type ProfileAttributeDto,
 } from '@entities/profile'
 import { getErrorKey } from '@shared/lib/errors'
@@ -37,11 +37,9 @@ type CandidateProfileContextValue = {
   isAutosaveActive: boolean
   setActionError: (error: string | null) => void
   setAutosaveActive: (active: boolean) => void
-  saveAttributeValue: (
-    attributeId: number,
-    value: AttributeDraftValue,
-    version: number,
-  ) => Promise<number>
+  saveAttributeValues: (
+    items: Array<{ attributeId: number; value: AttributeDraftValue; version: number }>,
+  ) => Promise<Record<number, number>>
   loadAttributeOptions: AsyncEntityLoadOptions
   addAttributesToProfile: (attributeIds: number[]) => Promise<void>
   removeAttributesFromProfile: (attributeIds: number[]) => Promise<void>
@@ -101,19 +99,24 @@ export function CandidateProfileProvider({ candidateId, children }: CandidatePro
     return () => controller.abort()
   }, [loadProfile])
 
-  const saveAttributeValue = useCallback(
-    async (attributeId: number, value: AttributeDraftValue, version: number) => {
-      const attribute = meAttributes.find((item) => item.id === attributeId)
-
-      return setCandidateAttributeValue(
-        attributeId,
+  const saveAttributeValues = useCallback(
+    async (items: Array<{ attributeId: number; value: AttributeDraftValue; version: number }>) => {
+      const results = await setCandidateAttributeValuesBatch(
         candidateId,
-        toPersistedAttributeValue(value, {
-          valueType: attribute?.valueType,
-          inputType: attribute?.inputType,
+        items.map((item) => {
+          const attribute = meAttributes.find((attr) => attr.id === item.attributeId)
+          return {
+            attributeId: item.attributeId,
+            value: toPersistedAttributeValue(item.value, {
+              valueType: attribute?.valueType,
+              inputType: attribute?.inputType,
+            }),
+            version: item.version,
+          }
         }),
-        version,
       )
+
+      return Object.fromEntries(results.map((item) => [item.attributeId, item.version]))
     },
     [candidateId, meAttributes],
   )
@@ -202,7 +205,7 @@ export function CandidateProfileProvider({ candidateId, children }: CandidatePro
       isAutosaveActive,
       setActionError,
       setAutosaveActive,
-      saveAttributeValue,
+      saveAttributeValues,
       loadAttributeOptions,
       addAttributesToProfile,
       removeAttributesFromProfile,
@@ -216,7 +219,7 @@ export function CandidateProfileProvider({ candidateId, children }: CandidatePro
       error,
       actionError,
       isAutosaveActive,
-      saveAttributeValue,
+      saveAttributeValues,
       loadAttributeOptions,
       addAttributesToProfile,
       removeAttributesFromProfile,

@@ -15,7 +15,7 @@ import type { AbzaFormValues } from '@features/abza-form'
 import type { AbzaTableRowId } from '@features/abza-table'
 import type { ResumeLikeStateDto, ResumeListItemDto } from '@entities/resume'
 import type { AbzaSelectOption, SortDirection } from '@shared/types'
-import { createResume, deleteResume, fetchResumes } from '@entities/resume'
+import { createResume, deleteResumesBatch, fetchResumes } from '@entities/resume'
 import { fetchPositions } from '@entities/position'
 import { $session, fetchUsers, isAdmin, isCandidate, isRecruiter, isRecruiterOrAdmin } from '@entities/user'
 import { getErrorKey } from '@shared/lib/errors'
@@ -257,7 +257,7 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
         return { id: Number(id), version: row?.version ?? 0 }
       })
 
-      await Promise.all(items.map((item) => deleteResume(item.id, item.version)))
+      await deleteResumesBatch(items)
       const deletedIds = new Set(items.map((item) => item.id))
       setRows((currentRows) => currentRows.filter((row) => !deletedIds.has(row.id)))
       setTotalCount((currentTotal) => Math.max(0, currentTotal - count))

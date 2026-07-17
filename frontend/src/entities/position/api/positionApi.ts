@@ -76,10 +76,41 @@ export async function deletePosition(id: number, version: number): Promise<void>
   }
 }
 
+export async function deletePositionsBatch(
+  items: Array<{ id: number; version: number }>,
+): Promise<void> {
+  try {
+    await apiClient.delete('/position/delete', { data: { items } })
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}
+
 export async function duplicatePosition(id: number): Promise<PositionDto> {
   try {
     const { data } = await apiClient.post<PositionDto>(`/position/${id}/duplicate`)
     return data
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}
+
+export async function duplicatePositionsBatch(ids: number[]): Promise<PositionDto[]> {
+  try {
+    const { data } = await apiClient.post<PositionDto[]>('/position/duplicate', { ids })
+    return data
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}
+
+export async function syncPositionRelations(
+  positionId: number,
+  attributeIds: number[],
+  tagIds: number[],
+): Promise<void> {
+  try {
+    await apiClient.put(`/position/${positionId}/relations`, { attributeIds, tagIds })
   } catch (error) {
     throw new Error(parseApiError(error))
   }

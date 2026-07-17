@@ -16,7 +16,7 @@ import {
   type ResumeDto,
 } from '@entities/resume'
 import {
-  setCandidateAttributeValue,
+  setCandidateAttributeValuesBatch,
 } from '@entities/profile'
 import { $session, isAdmin, isRecruiter } from '@entities/user'
 import { i18n } from '@shared/config/i18n'
@@ -43,11 +43,9 @@ type ResumeDetailContextValue = {
   isDownloading: boolean
   setActionError: (error: string | null) => void
   setAutosaveActive: (active: boolean) => void
-  saveAttributeValue: (
-    attributeId: number,
-    value: AttributeDraftValue,
-    version: number,
-  ) => Promise<number>
+  saveAttributeValues: (
+    items: Array<{ attributeId: number; value: AttributeDraftValue; version: number }>,
+  ) => Promise<Record<number, number>>
   togglePublished: () => Promise<void>
   applyLikeState: (state: ResumeLikeStateDto) => void
   downloadPdf: () => Promise<void>
@@ -111,23 +109,28 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
     return () => controller.abort()
   }, [loadResume])
 
-  const saveAttributeValue = useCallback(
-    async (attributeId: number, value: AttributeDraftValue, version: number) => {
+  const saveAttributeValues = useCallback(
+    async (items: Array<{ attributeId: number; value: AttributeDraftValue; version: number }>) => {
       if (!resume) {
         throw new Error('error.resumes.load')
       }
 
-      const attribute = resume.attributes.find((item) => item.id === attributeId)
-
-      return setCandidateAttributeValue(
-        attributeId,
+      const results = await setCandidateAttributeValuesBatch(
         resume.candidateId,
-        toPersistedAttributeValue(value, {
-          valueType: attribute?.valueType,
-          inputType: attribute?.inputType,
+        items.map((item) => {
+          const attribute = resume.attributes.find((attr) => attr.id === item.attributeId)
+          return {
+            attributeId: item.attributeId,
+            value: toPersistedAttributeValue(item.value, {
+              valueType: attribute?.valueType,
+              inputType: attribute?.inputType,
+            }),
+            version: item.version,
+          }
         }),
-        version,
       )
+
+      return Object.fromEntries(results.map((item) => [item.attributeId, item.version]))
     },
     [resume],
   )
@@ -199,7 +202,7 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
       isDownloading,
       setActionError,
       setAutosaveActive,
-      saveAttributeValue,
+      saveAttributeValues,
       togglePublished,
       applyLikeState,
       downloadPdf,
@@ -215,7 +218,7 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
       canLike,
       isAutosaveActive,
       isDownloading,
-      saveAttributeValue,
+      saveAttributeValues,
       togglePublished,
       applyLikeState,
       downloadPdf,

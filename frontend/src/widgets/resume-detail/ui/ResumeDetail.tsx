@@ -76,7 +76,7 @@ function ResumeDetailContent() {
     isDownloading,
     setActionError,
     setAutosaveActive,
-    saveAttributeValue,
+    saveAttributeValues,
     togglePublished,
     applyLikeState,
     downloadPdf,
@@ -96,7 +96,7 @@ function ResumeDetailContent() {
     attributes,
     canEdit,
     isLoading,
-    saveAttributeValue,
+    saveAttributeValues,
     setActionError,
     setAutosaveActive,
   })

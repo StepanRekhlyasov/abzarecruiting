@@ -59,3 +59,15 @@ public class ProjectDto
 
     public IReadOnlyList<ProjectTagDto> Tags { get; set; } = [];
 }
+
+public class SyncProjectTagsRequest
+{
+    public IList<int> TagIds { get; set; } = [];
+}
+
+public class DeleteProjectsRequest
+{
+    [Required]
+    [MinLength(1)]
+    public IList<int> Ids { get; set; } = [];
+}

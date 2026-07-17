@@ -71,6 +71,22 @@ export async function deleteProject(id: number): Promise<void> {
   }
 }
 
+export async function deleteProjectsBatch(ids: number[]): Promise<void> {
+  try {
+    await apiClient.delete('/project/delete', { data: { ids } })
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}
+
+export async function syncProjectTags(projectId: number, tagIds: number[]): Promise<void> {
+  try {
+    await apiClient.put(`/project/${projectId}/tags`, { tagIds })
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}
+
 export async function upsertProjectTag(projectId: number, tagId: number): Promise<void> {
   try {
     await apiClient.post(`/project/${projectId}/tags/${tagId}`)

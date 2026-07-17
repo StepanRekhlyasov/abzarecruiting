@@ -36,6 +36,34 @@ public class PositionRelationRequest
     public bool IsKey { get; set; }
 }
 
+public class SyncPositionRelationsRequest
+{
+    public IList<int> AttributeIds { get; set; } = [];
+
+    public IList<int> TagIds { get; set; } = [];
+}
+
+public class DeletePositionItem
+{
+    public int Id { get; set; }
+
+    public int Version { get; set; }
+}
+
+public class DeletePositionsRequest
+{
+    [Required]
+    [MinLength(1)]
+    public IList<DeletePositionItem> Items { get; set; } = [];
+}
+
+public class DuplicatePositionsRequest
+{
+    [Required]
+    [MinLength(1)]
+    public IList<int> Ids { get; set; } = [];
+}
+
 public class PositionAttributeDto
 {
     public int AttributeId { get; set; }

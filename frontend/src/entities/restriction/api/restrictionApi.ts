@@ -54,3 +54,28 @@ export async function deleteRestriction(id: number, version: number): Promise<vo
     throw new Error(parseApiError(error))
   }
 }
+
+export type SyncRestrictionItem = {
+  id?: number
+  version?: number
+  attributeId?: number | null
+  tagId?: number | null
+  targetValue?: string | null
+  condition: CreateRestrictionRequest['condition']
+}
+
+export type SyncRestrictionsRequest = {
+  positionId: number
+  items: SyncRestrictionItem[]
+}
+
+export async function syncRestrictions(
+  request: SyncRestrictionsRequest,
+): Promise<RestrictionDto[]> {
+  try {
+    const { data } = await apiClient.put<RestrictionDto[]>('/restrictions/sync', request)
+    return data
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}

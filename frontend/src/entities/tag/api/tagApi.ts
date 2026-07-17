@@ -1,6 +1,7 @@
 import { isAxiosError } from 'axios'
 import type {
   CreateTagRequest,
+  DeleteTagItem,
   PagedResult,
   TagDto,
   TagListParams,
@@ -42,6 +43,20 @@ export async function createTag(request: CreateTagRequest): Promise<TagDto> {
   }
 }
 
+export async function ensureTags(names: string[]): Promise<TagDto[]> {
+  const normalized = [...new Set(names.map((name) => name.trim()).filter(Boolean))]
+  if (normalized.length === 0) {
+    return []
+  }
+
+  try {
+    const { data } = await apiClient.post<TagDto[]>('/tag/ensure', { names: normalized })
+    return data
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}
+
 export async function updateTag(id: number, request: UpdateTagRequest): Promise<TagDto> {
   try {
     const { data } = await apiClient.post<TagDto>(`/tag/${id}`, request)
@@ -54,6 +69,14 @@ export async function updateTag(id: number, request: UpdateTagRequest): Promise<
 export async function deleteTag(id: number, version: number): Promise<void> {
   try {
     await apiClient.delete(`/tag/${id}`, { params: { version } })
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}
+
+export async function deleteTagsBatch(items: DeleteTagItem[]): Promise<void> {
+  try {
+    await apiClient.delete('/tag/delete', { data: { items } })
   } catch (error) {
     throw new Error(parseApiError(error))
   }

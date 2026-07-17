@@ -1,5 +1,5 @@
 import type { AbzaFormValues, ProjectDto } from '@shared/types'
-import { deleteProjectTag, upsertProjectTag } from '../api/projectApi'
+import { syncProjectTags as syncProjectTagsApi } from '../api/projectApi'
 import { toSubmitValues } from '@shared/lib/helpers'
 
 export function toDateInputValue(value: string | null | undefined) {
@@ -50,17 +50,7 @@ export function toProjectPayload(values: AbzaFormValues) {
 export async function syncProjectTags(
   projectId: number,
   nextTagIds: number[],
-  currentTagIds: number[] = [],
+  _currentTagIds: number[] = [],
 ) {
-  const desired = new Set(nextTagIds)
-  const existing = new Set(currentTagIds)
-
-  await Promise.all([
-    ...[...desired]
-      .filter((id) => !existing.has(id))
-      .map((tagId) => upsertProjectTag(projectId, tagId)),
-    ...[...existing]
-      .filter((id) => !desired.has(id))
-      .map((tagId) => deleteProjectTag(projectId, tagId)),
-  ])
+  await syncProjectTagsApi(projectId, nextTagIds)
 }

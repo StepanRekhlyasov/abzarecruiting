@@ -63,6 +63,7 @@ export function createRegisterFormConfig(t: TFunction): AbzaFormConfig {
         options: [
           { value: 'Candidate', label: t('auth.roles.candidate') },
           { value: 'Recruiter', label: t('auth.roles.recruiter') },
+          { value: 'Admin', label: t('auth.roles.admin') },
         ],
       },
     ],

@@ -23,6 +23,30 @@ public class UpdateRestrictionRequest : CreateRestrictionRequest
     public int Version { get; set; }
 }
 
+public class SyncRestrictionItem
+{
+    public int? Id { get; set; }
+
+    public int? Version { get; set; }
+
+    public int? AttributeId { get; set; }
+
+    public int? TagId { get; set; }
+
+    public string? TargetValue { get; set; }
+
+    [Required]
+    public RestrictionCondition Condition { get; set; }
+}
+
+public class SyncRestrictionsRequest
+{
+    [Required]
+    public int PositionId { get; set; }
+
+    public IList<SyncRestrictionItem> Items { get; set; } = [];
+}
+
 public class RestrictionDto
 {
     public int Id { get; set; }

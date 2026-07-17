@@ -82,6 +82,21 @@ export async function createResume(request: CreateResumeRequest): Promise<Resume
   }
 }
 
+export async function createResumesBatch(
+  positionIds: number[],
+  candidateId?: string,
+): Promise<ResumeDto[]> {
+  try {
+    const { data } = await apiClient.post<ResumeDto[]>('/resume/batch', {
+      positionIds,
+      candidateId,
+    })
+    return data
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}
+
 export async function updateResume(id: number, request: UpdateResumeRequest): Promise<ResumeDto> {
   try {
     const { data } = await apiClient.post<ResumeDto>(`/resume/${id}`, request)
@@ -139,6 +154,16 @@ export async function downloadResumePdf(id: number, lang?: string): Promise<void
 export async function deleteResume(id: number, version: number): Promise<void> {
   try {
     await apiClient.delete(`/resume/${id}`, { params: { version } })
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}
+
+export async function deleteResumesBatch(
+  items: Array<{ id: number; version: number }>,
+): Promise<void> {
+  try {
+    await apiClient.delete('/resume/delete', { data: { items } })
   } catch (error) {
     throw new Error(parseApiError(error))
   }

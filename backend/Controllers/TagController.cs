@@ -32,6 +32,16 @@ public class TagController(ITagService tagService) : ControllerBase
         return Ok(tag);
     }
 
+    [Authorize]
+    [HttpPost("ensure")]
+    public async Task<ActionResult<IReadOnlyList<TagDto>>> Ensure(
+        [FromBody] EnsureTagsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var tags = await tagService.EnsureAsync(request.Names, User.GetUserId()!, cancellationToken);
+        return Ok(tags);
+    }
+
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
     [HttpPost("{id:int}")]
     public async Task<ActionResult<TagDto>> Update(
@@ -43,6 +53,23 @@ public class TagController(ITagService tagService) : ControllerBase
         {
             var tag = await tagService.UpdateAsync(id, request, cancellationToken);
             return tag is null ? NotFound() : Ok(tag);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
+    [HttpDelete("delete")]
+    public async Task<IActionResult> DeleteBatch(
+        [FromBody] DeleteTagsRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await tagService.DeleteBatchAsync(request.Items, cancellationToken);
+            return NoContent();
         }
         catch (InvalidOperationException exception)
         {

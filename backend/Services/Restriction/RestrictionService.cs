@@ -17,6 +17,11 @@ public interface IRestrictionService
     Task<RestrictionDto?> UpdateAsync(int id, UpdateRestrictionRequest request, CancellationToken cancellationToken = default);
 
     Task<bool> DeleteAsync(int id, int version, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<RestrictionDto>> SyncAsync(
+        SyncRestrictionsRequest request,
+        string userId,
+        CancellationToken cancellationToken = default);
 }
 
 public class RestrictionService(ApplicationDbContext db) : IRestrictionService
@@ -120,6 +125,90 @@ public class RestrictionService(ApplicationDbContext db) : IRestrictionService
         db.PositionRestrictions.Remove(restriction);
         await db.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    public async Task<IReadOnlyList<RestrictionDto>> SyncAsync(
+        SyncRestrictionsRequest request,
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await db.Positions.AnyAsync(position => position.Id == request.PositionId, cancellationToken))
+        {
+            throw new InvalidOperationException("error.positions.notFound");
+        }
+
+        foreach (var item in request.Items)
+        {
+            var validationError = await ValidateRequestAsync(
+                new CreateRestrictionRequest
+                {
+                    PositionId = request.PositionId,
+                    AttributeId = item.AttributeId,
+                    TagId = item.TagId,
+                    TargetValue = item.TargetValue,
+                    Condition = item.Condition,
+                },
+                cancellationToken);
+
+            if (validationError is not null)
+            {
+                throw new InvalidOperationException(validationError);
+            }
+        }
+
+        var current = await db.PositionRestrictions
+            .Where(item => item.PositionId == request.PositionId)
+            .ToListAsync(cancellationToken);
+
+        var keptIds = request.Items
+            .Where(item => item.Id.HasValue && item.Id.Value > 0)
+            .Select(item => item.Id!.Value)
+            .ToHashSet();
+
+        var toRemove = current.Where(item => !keptIds.Contains(item.Id)).ToList();
+        if (toRemove.Count > 0)
+        {
+            db.PositionRestrictions.RemoveRange(toRemove);
+        }
+
+        var currentById = current.ToDictionary(item => item.Id);
+
+        foreach (var item in request.Items)
+        {
+            if (item.Id.HasValue && item.Id.Value > 0)
+            {
+                if (!currentById.TryGetValue(item.Id.Value, out var existing))
+                {
+                    throw new InvalidOperationException("error.restrictions.notFound");
+                }
+
+                if (existing.Version != (item.Version ?? 0))
+                {
+                    throw new InvalidOperationException(VersionChangedMessage);
+                }
+
+                existing.AttributeId = item.AttributeId;
+                existing.TagId = item.TagId;
+                existing.TargetValue = item.TargetValue;
+                existing.Condition = item.Condition;
+                existing.Version++;
+                continue;
+            }
+
+            db.PositionRestrictions.Add(new PositionRestriction
+            {
+                PositionId = request.PositionId,
+                AttributeId = item.AttributeId,
+                TagId = item.TagId,
+                TargetValue = item.TargetValue,
+                Condition = item.Condition,
+                CreatedAt = DateTime.UtcNow,
+                CreatedById = userId,
+            });
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return await GetByPositionIdAsync(request.PositionId, cancellationToken);
     }
 
     private async Task<RestrictionDto?> GetMappedAsync(int id, CancellationToken cancellationToken)

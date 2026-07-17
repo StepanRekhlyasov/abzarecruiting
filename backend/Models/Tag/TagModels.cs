@@ -22,6 +22,27 @@ public class UpdateTagRequest : CreateTagRequest
     public int Version { get; set; }
 }
 
+public class EnsureTagsRequest
+{
+    [Required]
+    [MinLength(1)]
+    public IList<string> Names { get; set; } = [];
+}
+
+public class DeleteTagItem
+{
+    public int Id { get; set; }
+
+    public int Version { get; set; }
+}
+
+public class DeleteTagsRequest
+{
+    [Required]
+    [MinLength(1)]
+    public IList<DeleteTagItem> Items { get; set; } = [];
+}
+
 public class TagDto
 {
     public int Id { get; set; }

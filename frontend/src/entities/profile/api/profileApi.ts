@@ -46,6 +46,36 @@ export async function setCandidateAttributeValue(
   }
 }
 
+export type SetCandidateAttributeBatchItem = {
+  attributeId: number
+  value: string | null
+  version: number
+}
+
+export type SetCandidateAttributeBatchResult = {
+  attributeId: number
+  version: number
+}
+
+export async function setCandidateAttributeValuesBatch(
+  candidateId: string,
+  items: SetCandidateAttributeBatchItem[],
+): Promise<SetCandidateAttributeBatchResult[]> {
+  if (items.length === 0) {
+    return []
+  }
+
+  try {
+    const { data } = await apiClient.post<SetCandidateAttributeBatchResult[]>(
+      `/attribute/candidate/${candidateId}/values`,
+      { items },
+    )
+    return data
+  } catch (error) {
+    throw new Error(parseApiError(error))
+  }
+}
+
 export async function deleteCandidateAttributeValue(
   attributeId: number,
   candidateId: string,

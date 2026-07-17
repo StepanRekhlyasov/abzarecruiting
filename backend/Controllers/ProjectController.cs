@@ -130,6 +130,70 @@ public class ProjectController(IProjectService projectService, ApplicationDbCont
         return updated ? NoContent() : NotFound();
     }
 
+    [HttpPut("{id:int}/tags")]
+    public async Task<IActionResult> SyncTags(
+        int id,
+        [FromBody] SyncProjectTagsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var project = await db.ProfileProjects.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+        if (project is null)
+        {
+            return NotFound();
+        }
+
+        if (!projectService.CanModify(project, User.GetUserId(), User.IsAdmin()))
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            var updated = await projectService.SyncTagsAsync(id, request.TagIds, cancellationToken);
+            return updated ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    [HttpDelete("delete")]
+    public async Task<IActionResult> DeleteBatch(
+        [FromBody] DeleteProjectsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var uniqueIds = request.Ids.Where(id => id > 0).Distinct().ToList();
+        if (uniqueIds.Count == 0)
+        {
+            return NoContent();
+        }
+
+        var projects = await db.ProfileProjects
+            .Where(item => uniqueIds.Contains(item.Id))
+            .ToListAsync(cancellationToken);
+
+        if (projects.Count != uniqueIds.Count)
+        {
+            return NotFound();
+        }
+
+        if (projects.Any(project => !projectService.CanModify(project, User.GetUserId(), User.IsAdmin())))
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            await projectService.DeleteBatchAsync(uniqueIds, cancellationToken);
+            return NoContent();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
     [HttpDelete("{id:int}/tags/{tagId:int}")]
     public async Task<IActionResult> DeleteTag(int id, int tagId, CancellationToken cancellationToken)
     {

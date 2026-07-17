@@ -11,15 +11,17 @@ import {
 } from './attributeDraft'
 import { useAutosave } from './useAutosave'
 
+export type AttributeAutosaveItem = {
+  attributeId: number
+  value: AttributeDraftValue
+  version: number
+}
+
 type UseAttributeAutosaveOptions = {
   attributes: ProfileAttributeDto[]
   canEdit: boolean
   isLoading: boolean
-  saveAttributeValue: (
-    attributeId: number,
-    value: AttributeDraftValue,
-    version: number,
-  ) => Promise<number>
+  saveAttributeValues: (items: AttributeAutosaveItem[]) => Promise<Record<number, number>>
   setActionError: (error: string | null) => void
   setAutosaveActive: (active: boolean) => void
   errorKey?: string
@@ -30,7 +32,7 @@ export function useAttributeAutosave({
   attributes,
   canEdit,
   isLoading,
-  saveAttributeValue,
+  saveAttributeValues,
   setActionError,
   setAutosaveActive,
   errorKey = 'error.profile.save',
@@ -53,6 +55,7 @@ export function useAttributeAutosave({
       return
     }
 
+    const items: AttributeAutosaveItem[] = []
     for (const attributeId of ids) {
       const value = draftRef.current[attributeId] ?? ''
       const saved = savedRef.current[attributeId] ?? ''
@@ -61,15 +64,30 @@ export function useAttributeAutosave({
         continue
       }
 
-      const version = versionsRef.current[attributeId] ?? 0
-      const nextVersion = await saveAttributeValue(attributeId, value, version)
-      savedRef.current[attributeId] = value
-      versionsRef.current[attributeId] = nextVersion
+      items.push({
+        attributeId,
+        value,
+        version: versionsRef.current[attributeId] ?? 0,
+      })
+    }
+
+    if (items.length === 0) {
+      setAutosaveActive(false)
+      return
+    }
+
+    const nextVersions = await saveAttributeValues(items)
+    for (const item of items) {
+      savedRef.current[item.attributeId] = item.value
+      const nextVersion = nextVersions[item.attributeId]
+      if (typeof nextVersion === 'number') {
+        versionsRef.current[item.attributeId] = nextVersion
+      }
     }
 
     const stillDirty = getDirtyAttributeIds(draftRef.current, savedRef.current).length > 0
     setAutosaveActive(stillDirty)
-  }, [saveAttributeValue, setAutosaveActive])
+  }, [saveAttributeValues, setAutosaveActive])
 
   const {
     isSaving,
@@ -115,13 +133,17 @@ export function useAttributeAutosave({
       }
 
       const ids = getDirtyAttributeIds(draftRef.current, savedRef.current)
-      for (const attributeId of ids) {
-        const value = draftRef.current[attributeId] ?? ''
-        const version = versionsRef.current[attributeId] ?? 0
-        void saveAttributeValue(attributeId, value, version)
+      const items: AttributeAutosaveItem[] = ids.map((attributeId) => ({
+        attributeId,
+        value: draftRef.current[attributeId] ?? '',
+        version: versionsRef.current[attributeId] ?? 0,
+      }))
+
+      if (items.length > 0) {
+        void saveAttributeValues(items)
       }
     }
-  }, [autosaveEnabledRef, saveAttributeValue, savingRef, shouldFlushOnUnmount])
+  }, [autosaveEnabledRef, saveAttributeValues, savingRef, shouldFlushOnUnmount])
 
   const handleChange = useCallback(
     (attributeId: number, value: AttributeDraftValue) => {

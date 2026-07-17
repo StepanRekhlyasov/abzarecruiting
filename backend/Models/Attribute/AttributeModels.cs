@@ -74,6 +74,29 @@ public class SetProfileAttributeRequest
     public int Version { get; set; }
 }
 
+public class SetProfileAttributeBatchItem
+{
+    public int AttributeId { get; set; }
+
+    public string? Value { get; set; }
+
+    public int Version { get; set; }
+}
+
+public class SetProfileAttributesBatchRequest
+{
+    [Required]
+    [MinLength(1)]
+    public IList<SetProfileAttributeBatchItem> Items { get; set; } = [];
+}
+
+public class SetProfileAttributeBatchResultItem
+{
+    public int AttributeId { get; set; }
+
+    public int Version { get; set; }
+}
+
 public class DeleteAttributesRequest
 {
     [Required]

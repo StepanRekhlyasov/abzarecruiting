@@ -26,7 +26,7 @@ public class AuthController(
     [HttpPost("register")]
     public async Task<ActionResult<RegisterResultResponse>> Register([FromBody] RegisterRequest request)
     {
-        if (request.Role is not (Roles.Candidate or Roles.Recruiter))
+        if (request.Role is not (Roles.Candidate or Roles.Recruiter or Roles.Admin))
         {
             return BadRequest(new { message = "error.auth.invalidRole" });
         }
