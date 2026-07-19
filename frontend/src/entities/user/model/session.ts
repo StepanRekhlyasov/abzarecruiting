@@ -4,6 +4,7 @@ import { getCurrentUser, isUnauthorizedError } from '../api/authApi'
 import { getAccessToken, removeAccessToken, saveAccessToken } from '@shared/lib/auth/accessToken'
 import { getUserIdFromToken, getRolesFromToken, isTokenExpired } from '@shared/lib/auth/jwt'
 import { clearSession, getSession, saveSession } from '@shared/lib/auth/session'
+import { notificationsSocket } from '@shared/lib/websocket'
 
 export const sessionEstablished = createEvent<SessionUser>()
 export const authSucceeded = createEvent<AuthResponse>()
@@ -71,6 +72,15 @@ export const restoreSessionFx = createEffect(async (): Promise<SessionUser> => {
 export const $session = createStore<SessionUser | null>(getInitialSession())
   .on(sessionEstablished, (_, user) => user)
   .on(logout, () => null)
+
+$session.watch((session) => {
+  if (session) {
+    notificationsSocket.connect()
+    return
+  }
+
+  notificationsSocket.disconnect()
+})
 
 authSucceeded.watch((response) => {
   saveAccessToken(response.accessToken)

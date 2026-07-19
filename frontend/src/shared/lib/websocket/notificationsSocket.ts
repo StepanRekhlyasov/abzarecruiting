@@ -17,6 +17,7 @@ class NotificationsSocket {
 
   connect() {
     this.shouldReconnect = true
+    this.clearReconnectTimer()
 
     if (
       this.socket?.readyState === WebSocket.OPEN ||
@@ -46,12 +47,17 @@ class NotificationsSocket {
     }
 
     socket.onclose = () => {
-      this.socket = null
+      if (this.socket === socket) {
+        this.socket = null
+      }
+
       if (!this.shouldReconnect) {
         return
       }
 
+      this.clearReconnectTimer()
       this.reconnectTimer = window.setTimeout(() => {
+        this.reconnectTimer = null
         this.connect()
       }, RECONNECT_DELAY_MS)
     }
@@ -59,25 +65,27 @@ class NotificationsSocket {
 
   disconnect() {
     this.shouldReconnect = false
+    this.clearReconnectTimer()
 
-    if (this.reconnectTimer != null) {
-      window.clearTimeout(this.reconnectTimer)
-      this.reconnectTimer = null
-    }
-
-    this.socket?.close()
+    const socket = this.socket
     this.socket = null
+    if (socket && socket.readyState !== WebSocket.CLOSED) {
+      socket.close()
+    }
   }
 
   subscribe(handler: MessageHandler) {
     this.handlers.add(handler)
-    this.connect()
 
     return () => {
       this.handlers.delete(handler)
-      if (this.handlers.size === 0) {
-        this.disconnect()
-      }
+    }
+  }
+
+  private clearReconnectTimer() {
+    if (this.reconnectTimer != null) {
+      window.clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
     }
   }
 }
