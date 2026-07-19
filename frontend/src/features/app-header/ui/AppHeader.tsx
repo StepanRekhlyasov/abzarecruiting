@@ -11,7 +11,7 @@ import Typography from '@mui/material/Typography'
 import { $session, logout } from '@entities/user'
 import { getSessionDisplayName } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
-import { LanguageSwitcher } from '@shared/ui'
+import { LanguageSwitcher, ThemeSwitcher } from '@shared/ui'
 import { AppSidebar, MenuIcon } from '@features/app-sidebar'
 
 export function AppHeader() {
@@ -57,6 +57,7 @@ export function AppHeader() {
               </>
             )}
             <LanguageSwitcher />
+            <ThemeSwitcher />
           </Box>
         </Toolbar>
       </AppBar>

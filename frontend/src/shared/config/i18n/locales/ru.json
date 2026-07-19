@@ -2,6 +2,7 @@
   "common": {
     "appName": "Abzarecruiting",
     "language": "Язык",
+    "theme": "Тема",
     "login": "Войти",
     "register": "Регистрация",
     "logout": "Выйти",

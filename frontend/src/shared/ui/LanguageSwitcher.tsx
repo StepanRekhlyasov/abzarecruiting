@@ -10,6 +10,31 @@ const LANGUAGES = [
   { code: 'en', label: 'English' },
 ] as const
 
+const languageSwitcherSx = {
+  minWidth: 140,
+  color: '#fff',
+  '& .MuiInputLabel-root': {
+    color: '#fff',
+    opacity: 0.85,
+    '&.Mui-focused': { color: '#fff' },
+    '&.MuiInputLabel-shrink': { color: '#fff' },
+  },
+  '& .MuiOutlinedInput-root': {
+    color: '#fff',
+  },
+  '& .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
+  '&:hover .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'rgba(255,255,255,0.8)',
+  },
+  '& .Mui-focused .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'rgba(255,255,255,0.9)',
+  },
+  '& .MuiSelect-select': { color: '#fff' },
+  '& .MuiSvgIcon-root': { color: '#fff' },
+} as const
+
 type LanguageSwitcherProps = {
   sx?: SxProps<Theme>
 }
@@ -18,7 +43,7 @@ export function LanguageSwitcher({ sx }: LanguageSwitcherProps) {
   const { i18n, t } = useTranslation()
 
   return (
-    <FormControl size="small" sx={{ minWidth: 140, ...sx }}>
+    <FormControl size="small" sx={{ ...languageSwitcherSx, ...sx }}>
       <InputLabel id="language-select-label">{t('common.language')}</InputLabel>
       <Select
         labelId="language-select-label"

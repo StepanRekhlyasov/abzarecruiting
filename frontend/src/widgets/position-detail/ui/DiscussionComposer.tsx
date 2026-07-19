@@ -3,6 +3,7 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import MDEditor from '@uiw/react-md-editor'
 import { useTranslation } from 'react-i18next'
+import { useThemeMode } from '@shared/config/theme'
 import '@uiw/react-md-editor/markdown-editor.css'
 
 type DiscussionComposerProps = {
@@ -17,6 +18,7 @@ export function DiscussionComposer({
   onSubmit,
 }: DiscussionComposerProps) {
   const { t } = useTranslation()
+  const { mode } = useThemeMode()
   const [content, setContent] = useState('')
 
   const isBusy = disabled || isSubmitting
@@ -32,7 +34,7 @@ export function DiscussionComposer({
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }} data-color-mode="light">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }} data-color-mode={mode}>
       <MDEditor
         value={content}
         onChange={(next) => setContent(next ?? '')}
