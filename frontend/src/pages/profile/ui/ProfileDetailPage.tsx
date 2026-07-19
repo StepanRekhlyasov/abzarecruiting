@@ -3,7 +3,7 @@ import { useUnit } from 'effector-react'
 import Box from '@mui/material/Box'
 import Container from '@mui/material/Container'
 import { AppHeader } from '@features/app-header'
-import { $session, isRecruiterOrAdmin } from '@entities/user'
+import { $session, isAdmin } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
 import { Profile } from '@widgets/candidate-profile'
 
@@ -15,7 +15,7 @@ export function ProfileDetailPage() {
     return <Navigate to={ROUTES.login} replace />
   }
 
-  if (!isRecruiterOrAdmin(session)) {
+  if (!isAdmin(session)) {
     return <Navigate to={ROUTES.home} replace />
   }
 

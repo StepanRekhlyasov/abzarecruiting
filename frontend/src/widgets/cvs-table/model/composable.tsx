@@ -48,6 +48,7 @@ type CvsTableContextValue = {
   showPositionColumn: boolean
   showPublishedColumn: boolean
   showCandidateSelect: boolean
+  canLinkCandidateProfile: boolean
   createFormRef: RefObject<HTMLFormElement | null>
   loadPositionOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
   loadCandidateOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
@@ -98,6 +99,7 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
   const showPositionColumn = !isPositionScoped
   const showPublishedColumn = !isRecruiter(session)
   const showCandidateSelect = isAdmin(session) && !candidateId && !isPositionScoped
+  const canLinkCandidateProfile = isAdmin(session)
   const isAdminUser = isAdmin(session)
 
   const loadPositionOptions = useCallback(async (search: string, signal?: AbortSignal) => {
@@ -304,6 +306,7 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
       showPositionColumn,
       showPublishedColumn,
       showCandidateSelect,
+      canLinkCandidateProfile,
       createFormRef,
       loadPositionOptions,
       loadCandidateOptions,
@@ -340,6 +343,7 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
       showPositionColumn,
       showPublishedColumn,
       showCandidateSelect,
+      canLinkCandidateProfile,
       loadPositionOptions,
       loadCandidateOptions,
       handleSortChange,

@@ -6,9 +6,18 @@ import { profileDetailPath } from '@shared/config/routes'
 type CandidateProfileLinkProps = {
   candidateId: string
   children: ReactNode
+  enabled?: boolean
 }
 
-export function CandidateProfileLink({ candidateId, children }: CandidateProfileLinkProps) {
+export function CandidateProfileLink({
+  candidateId,
+  children,
+  enabled = true,
+}: CandidateProfileLinkProps) {
+  if (!enabled) {
+    return children
+  }
+
   const handleClick = (event: MouseEvent) => {
     event.stopPropagation()
   }

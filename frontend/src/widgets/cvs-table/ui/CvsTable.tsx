@@ -37,6 +37,7 @@ function CvsTableContent() {
     showPositionColumn,
     showPublishedColumn,
     showCandidateSelect,
+    canLinkCandidateProfile,
     sortBy,
     sortDir,
     createFormRef,
@@ -88,7 +89,7 @@ function CvsTableContent() {
         label: t('cvs.columns.candidateId'),
         sortable: true,
         render: (row) => (
-          <CandidateProfileLink candidateId={row.candidateId}>
+          <CandidateProfileLink candidateId={row.candidateId} enabled={canLinkCandidateProfile}>
             {row.candidateName || row.candidateId}
           </CandidateProfileLink>
         ),
@@ -138,6 +139,7 @@ function CvsTableContent() {
     return next
   }, [
     canLikeResumes,
+    canLinkCandidateProfile,
     handleLikeChange,
     i18n.language,
     setActionError,

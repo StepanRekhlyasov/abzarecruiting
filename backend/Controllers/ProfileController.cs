@@ -27,7 +27,7 @@ public class ProfileController(IProfileService profileService, IAttributeService
         string candidateId,
         CancellationToken cancellationToken)
     {
-        if (!User.IsAdmin() && !User.IsRecruiter() && User.GetUserId() != candidateId)
+        if (!User.IsAdmin() && User.GetUserId() != candidateId)
         {
             return Forbid();
         }
@@ -49,7 +49,7 @@ public class ProfileController(IProfileService profileService, IAttributeService
         string candidateId,
         CancellationToken cancellationToken)
     {
-        if (!User.IsAdmin() && !User.IsRecruiter() && User.GetUserId() != candidateId)
+        if (!User.IsAdmin() && User.GetUserId() != candidateId)
         {
             return Forbid();
         }

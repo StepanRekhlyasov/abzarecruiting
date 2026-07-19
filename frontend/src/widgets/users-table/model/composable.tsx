@@ -290,21 +290,16 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
 
   const handleRowClick = useCallback(
     (row: UserListItem) => {
-      if (canManageUsers) {
-        setManagedUserId(row.id)
-        setManageSuccess(null)
-        setActionError(null)
-        setIsManageModalOpen(true)
+      if (!canManageUsers) {
         return
       }
 
-      if (row.role !== 'Candidate' && row.role !== 'Recruiter' && row.role !== 'Admin') {
-        return
-      }
-
-      navigate(profileDetailPath(row.id))
+      setManagedUserId(row.id)
+      setManageSuccess(null)
+      setActionError(null)
+      setIsManageModalOpen(true)
     },
-    [canManageUsers, navigate],
+    [canManageUsers],
   )
 
   const handleOpenCandidateProfile = useCallback(() => {

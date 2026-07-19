@@ -135,7 +135,7 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
   const canCreateResume = isCandidate(session)
   const canPostMessage = Boolean(session)
   const canDeleteMessages = isAdmin(session)
-  const canLinkCandidateProfile = isRecruiterOrAdmin(session)
+  const canLinkCandidateProfile = isAdmin(session)
 
   const isRestrictionsDirty = useMemo(() => {
     if (restrictionsDraft.requiredTags.length !== savedRestrictionsDraft.requiredTags.length) {
