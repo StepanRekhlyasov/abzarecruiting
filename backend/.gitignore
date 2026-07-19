@@ -61,6 +61,9 @@ App_Data/*.mdf
 App_Data/*.ldf
 uploads/
 
+## Lucene search index
+lucene-index/
+
 ## Secrets and local config
 .env
 .env.*

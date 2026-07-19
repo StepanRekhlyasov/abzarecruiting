@@ -5,6 +5,7 @@ using Backend.Api.Data.Relations;
 using Backend.Api.Extensions;
 using Backend.Api.Models.Common;
 using Backend.Api.Models.Project;
+using Backend.Api.Services.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Api.Services.Project;
@@ -42,7 +43,10 @@ public interface IProjectService
     bool CanModify(ProfileProject project, string? userId, bool isAdmin);
 }
 
-public class ProjectService(ApplicationDbContext db) : IProjectService
+public class ProjectService(
+    ApplicationDbContext db,
+    ISearchIndexService searchIndex,
+    ILuceneIndex lucene) : IProjectService
 {
     public async Task<PagedResult<ProjectDto>> GetListForViewerAsync(
         PaginationParams pagination,
@@ -126,10 +130,11 @@ public class ProjectService(ApplicationDbContext db) : IProjectService
 
         if (!string.IsNullOrWhiteSpace(pagination.Search))
         {
-            var search = pagination.Search.Trim();
-            query = query.Where(project =>
-                project.Name.Contains(search)
-                || project.Description.Contains(search));
+            query = query.WhereMatches(
+                lucene,
+                SearchEntityTypes.Project,
+                pagination.Search,
+                project => project.Id);
         }
 
         query = query.ApplySort(pagination, project => project.CreatedAt);
@@ -210,6 +215,8 @@ public class ProjectService(ApplicationDbContext db) : IProjectService
 
         db.ProfileProjects.Add(project);
         await db.SaveChangesAsync(cancellationToken);
+        await searchIndex.RebuildProjectAsync(project.Id, cancellationToken);
+        await searchIndex.RebuildResumesForCandidateAsync(candidateId, cancellationToken);
         return await GetByIdAsync(project.Id, cancellationToken);
     }
 
@@ -230,6 +237,8 @@ public class ProjectService(ApplicationDbContext db) : IProjectService
         project.EndAt = request.EndAt;
 
         await db.SaveChangesAsync(cancellationToken);
+        await searchIndex.RebuildProjectAsync(id, cancellationToken);
+        await searchIndex.RebuildResumesForCandidateAsync(project.CandidateId, cancellationToken);
         return await GetByIdAsync(id, cancellationToken);
     }
 
@@ -241,8 +250,11 @@ public class ProjectService(ApplicationDbContext db) : IProjectService
             return false;
         }
 
+        var candidateId = project.CandidateId;
         db.ProfileProjects.Remove(project);
         await db.SaveChangesAsync(cancellationToken);
+        searchIndex.DeleteProjects([id]);
+        await searchIndex.RebuildResumesForCandidateAsync(candidateId, cancellationToken);
         return true;
     }
 
@@ -263,8 +275,11 @@ public class ProjectService(ApplicationDbContext db) : IProjectService
             throw new InvalidOperationException("error.projects.notFound");
         }
 
+        var candidateIds = projects.Select(item => item.CandidateId).Distinct().ToList();
         db.ProfileProjects.RemoveRange(projects);
         await db.SaveChangesAsync(cancellationToken);
+        searchIndex.DeleteProjects(uniqueIds);
+        await searchIndex.RebuildResumesForCandidatesAsync(candidateIds, cancellationToken);
     }
 
     public async Task<bool> UpsertTagAsync(int projectId, int tagId, CancellationToken cancellationToken = default)
@@ -286,6 +301,12 @@ public class ProjectService(ApplicationDbContext db) : IProjectService
                 TagId = tagId,
             });
             await db.SaveChangesAsync(cancellationToken);
+            await searchIndex.RebuildProjectAsync(projectId, cancellationToken);
+            var candidateId = await db.ProfileProjects.AsNoTracking()
+                .Where(project => project.Id == projectId)
+                .Select(project => project.CandidateId)
+                .FirstAsync(cancellationToken);
+            await searchIndex.RebuildResumesForCandidateAsync(candidateId, cancellationToken);
         }
 
         return true;
@@ -303,6 +324,12 @@ public class ProjectService(ApplicationDbContext db) : IProjectService
 
         db.ProfileProjectTags.Remove(relation);
         await db.SaveChangesAsync(cancellationToken);
+        await searchIndex.RebuildProjectAsync(projectId, cancellationToken);
+        var candidateId = await db.ProfileProjects.AsNoTracking()
+            .Where(project => project.Id == projectId)
+            .Select(project => project.CandidateId)
+            .FirstAsync(cancellationToken);
+        await searchIndex.RebuildResumesForCandidateAsync(candidateId, cancellationToken);
         return true;
     }
 
@@ -348,6 +375,12 @@ public class ProjectService(ApplicationDbContext db) : IProjectService
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        await searchIndex.RebuildProjectAsync(projectId, cancellationToken);
+        var candidateId = await db.ProfileProjects.AsNoTracking()
+            .Where(project => project.Id == projectId)
+            .Select(project => project.CandidateId)
+            .FirstAsync(cancellationToken);
+        await searchIndex.RebuildResumesForCandidateAsync(candidateId, cancellationToken);
         return true;
     }
 

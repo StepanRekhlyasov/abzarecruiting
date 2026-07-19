@@ -6,8 +6,8 @@ using Backend.Api.Models.Attribute;
 using Backend.Api.Models.Common;
 using Backend.Api.Services.Attributes;
 using Backend.Api.Services.Files;
+using Backend.Api.Services.Search;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 
 namespace Backend.Api.Services.Attribute;
@@ -38,7 +38,11 @@ public interface IAttributeService
     Task<bool> DeleteCandidateValueAsync(int attributeId, string candidateId, CancellationToken cancellationToken = default);
 }
 
-public class AttributeService(ApplicationDbContext db, IAttributeValueMapper valueMapper) : IAttributeService
+public class AttributeService(
+    ApplicationDbContext db,
+    IAttributeValueMapper valueMapper,
+    ISearchIndexService searchIndex,
+    ILuceneIndex lucene) : IAttributeService
 {
     private const string VersionChangedMessage = "error.oldVersion";
 
@@ -80,10 +84,16 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
             searchTerms.Add(pagination.Search.Trim());
         }
 
-        var searchPredicate = BuildIdOrSearchPredicate(ids, searchTerms);
-        if (searchPredicate is not null)
+        IReadOnlyList<int> fullTextIds = [];
+        if (searchTerms.Count > 0)
         {
-            query = query.Where(searchPredicate);
+            fullTextIds = lucene.Search(SearchEntityTypes.Attribute, string.Join(' ', searchTerms));
+        }
+
+        if (ids.Count > 0 || searchTerms.Count > 0)
+        {
+            var matchedIds = ids.Union(fullTextIds).Distinct().ToList();
+            query = query.Where(LuceneQueryExtensions.BuildIdEqualsAny<AttributeEntity>(matchedIds, attribute => attribute.Id));
         }
 
         query = query.ApplySort(pagination, attribute => attribute.Name);
@@ -139,6 +149,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
 
         db.Attributes.Add(attribute);
         await db.SaveChangesAsync(cancellationToken);
+        await searchIndex.RebuildAttributeAsync(attribute.Id, cancellationToken);
         return Map(attribute);
     }
 
@@ -198,6 +209,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
 
         attribute.Version++;
         await db.SaveChangesAsync(cancellationToken);
+        await searchIndex.RebuildAttributeAsync(id, cancellationToken);
         return Map(attribute);
     }
 
@@ -221,6 +233,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
 
         db.Attributes.Remove(attribute);
         await db.SaveChangesAsync(cancellationToken);
+        searchIndex.DeleteAttributes([id]);
         return true;
     }
 
@@ -263,6 +276,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
 
         db.Attributes.RemoveRange(attributes);
         await db.SaveChangesAsync(cancellationToken);
+        searchIndex.DeleteAttributes(ids);
     }
 
     public async Task<int?> SetCandidateValueAsync(
@@ -313,6 +327,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         valueMapper.SetValue(profileAttribute, attribute, request.Value);
         profileAttribute.Version++;
         await db.SaveChangesAsync(cancellationToken);
+        await searchIndex.RebuildResumesForCandidateAsync(candidateId, cancellationToken);
         return profileAttribute.Version;
     }
 
@@ -398,6 +413,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        await searchIndex.RebuildResumesForCandidateAsync(candidateId, cancellationToken);
         return results;
     }
 
@@ -416,6 +432,7 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
 
         db.ProfileAttributes.Remove(profileAttribute);
         await db.SaveChangesAsync(cancellationToken);
+        await searchIndex.RebuildResumesForCandidateAsync(candidateId, cancellationToken);
         return true;
     }
 
@@ -434,51 +451,6 @@ public class AttributeService(ApplicationDbContext db, IAttributeValueMapper val
         CreatedAt = attribute.CreatedAt,
         Version = attribute.Version,
     };
-
-    private static Expression<Func<AttributeEntity, bool>>? BuildIdOrSearchPredicate(
-        IReadOnlyList<int> ids,
-        IReadOnlyList<string> searchTerms)
-    {
-        if (ids.Count == 0 && searchTerms.Count == 0)
-        {
-            return null;
-        }
-
-        var parameter = Expression.Parameter(typeof(AttributeEntity), "attribute");
-        Expression? body = null;
-
-        if (ids.Count > 0)
-        {
-            var idProperty = Expression.Property(parameter, nameof(AttributeEntity.Id));
-            foreach (var id in ids)
-            {
-                var equals = Expression.Equal(idProperty, Expression.Constant(id));
-                body = body is null ? equals : Expression.OrElse(body, equals);
-            }
-        }
-
-        if (searchTerms.Count > 0)
-        {
-            var nameProperty = Expression.Property(parameter, nameof(AttributeEntity.Name));
-            var descriptionProperty = Expression.Property(parameter, nameof(AttributeEntity.Description));
-            var containsMethod = typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!;
-
-            foreach (var term in searchTerms)
-            {
-                var termConstant = Expression.Constant(term);
-                var nameContains = Expression.Call(nameProperty, containsMethod, termConstant);
-                var descriptionNotNull = Expression.NotEqual(
-                    descriptionProperty,
-                    Expression.Constant(null, typeof(string)));
-                var descriptionContains = Expression.Call(descriptionProperty, containsMethod, termConstant);
-                var descriptionMatch = Expression.AndAlso(descriptionNotNull, descriptionContains);
-                var termMatch = Expression.OrElse(nameContains, descriptionMatch);
-                body = body is null ? termMatch : Expression.OrElse(body, termMatch);
-            }
-        }
-
-        return Expression.Lambda<Func<AttributeEntity, bool>>(body!, parameter);
-    }
 
     private static string InferInputType(string valueType)
     {

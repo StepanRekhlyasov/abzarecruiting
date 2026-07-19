@@ -20,6 +20,17 @@ public static class AttributeCategories
     public static bool IsValid(string? category) =>
         !string.IsNullOrWhiteSpace(category) && All.Contains(category);
 
+    public static string ToSearchLabel(string? category) =>
+        category switch
+        {
+            PersonalInformation => "Personal Information",
+            HardSkills => "Hard Skills",
+            SoftSkills => "Soft Skills",
+            DomainKnowledge => "Domain Knowledge",
+            Certification => "Certification",
+            _ => category ?? string.Empty,
+        };
+
     public static int GetOrder(string? category)
     {
         if (string.IsNullOrWhiteSpace(category))

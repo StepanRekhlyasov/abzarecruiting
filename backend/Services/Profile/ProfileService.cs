@@ -3,6 +3,7 @@ using Backend.Api.Data.Relations;
 using Backend.Api.Models.Profile;
 using Backend.Api.Services.Attributes;
 using Backend.Api.Services.Files;
+using Backend.Api.Services.Search;
 using Microsoft.EntityFrameworkCore;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 using FileEntity = Backend.Api.Data.Entities.File;
@@ -32,7 +33,10 @@ public interface IProfileService
         CancellationToken cancellationToken = default);
 }
 
-public class ProfileService(ApplicationDbContext db, IAttributeValueMapper valueMapper) : IProfileService
+public class ProfileService(
+    ApplicationDbContext db,
+    IAttributeValueMapper valueMapper,
+    ISearchIndexService searchIndex) : IProfileService
 {
     public async Task<ProfileDto?> GetByCandidateIdAsync(
         string candidateId,
@@ -219,6 +223,7 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        await searchIndex.RebuildResumesForCandidateAsync(candidateId, cancellationToken);
         return true;
     }
 
@@ -264,6 +269,7 @@ public class ProfileService(ApplicationDbContext db, IAttributeValueMapper value
 
         db.ProfileAttributes.RemoveRange(profileAttributes);
         await db.SaveChangesAsync(cancellationToken);
+        await searchIndex.RebuildResumesForCandidateAsync(candidateId, cancellationToken);
         return true;
     }
 

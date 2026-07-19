@@ -4,6 +4,7 @@ using Backend.Api.Data.Relations;
 using Backend.Api.Extensions;
 using Backend.Api.Models.Common;
 using Backend.Api.Models.Position;
+using Backend.Api.Services.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Api.Services.Position;
@@ -69,7 +70,9 @@ public interface IPositionService
 
 public class PositionService(
     ApplicationDbContext db,
-    IPositionRestrictionEvaluator restrictionEvaluator) : IPositionService
+    IPositionRestrictionEvaluator restrictionEvaluator,
+    ISearchIndexService searchIndex,
+    ILuceneIndex lucene) : IPositionService
 {
     private const string VersionChangedMessage = "error.oldVersion";
 
@@ -82,12 +85,11 @@ public class PositionService(
 
         if (!string.IsNullOrWhiteSpace(pagination.Search))
         {
-            var search = pagination.Search.Trim();
-            query = query.Where(position =>
-                position.Name.Contains(search)
-                || position.Company.Contains(search)
-                || position.Country.Contains(search)
-                || position.Description.Contains(search));
+            query = query.WhereMatches(
+                lucene,
+                SearchEntityTypes.Position,
+                pagination.Search,
+                position => position.Id);
         }
 
         if (string.Equals(pagination.NormalizedSortBy, "messagescount", StringComparison.Ordinal))
@@ -161,6 +163,7 @@ public class PositionService(
 
         db.Positions.Add(position);
         await db.SaveChangesAsync(cancellationToken);
+        await searchIndex.RebuildPositionAsync(position.Id, cancellationToken);
 
         return (await LoadDetailAsync(position.Id, cancellationToken))!;
     }
@@ -191,6 +194,8 @@ public class PositionService(
         position.Version++;
 
         await db.SaveChangesAsync(cancellationToken);
+        await searchIndex.RebuildPositionAsync(id, cancellationToken);
+        await searchIndex.RebuildResumesForPositionAsync(id, cancellationToken);
 
         return await LoadDetailAsync(id, cancellationToken);
     }
@@ -210,6 +215,7 @@ public class PositionService(
 
         db.Positions.Remove(position);
         await db.SaveChangesAsync(cancellationToken);
+        searchIndex.DeletePositions([id]);
         return true;
     }
 
@@ -432,6 +438,7 @@ public class PositionService(
 
         db.Positions.RemoveRange(positions);
         await db.SaveChangesAsync(cancellationToken);
+        searchIndex.DeletePositions(ids);
     }
 
     public async Task<IReadOnlyList<PositionDetailDto>> DuplicateBatchAsync(
@@ -555,6 +562,8 @@ public class PositionService(
         await db.SaveChangesAsync(cancellationToken);
 
         var newIds = created.Select(item => item.Position.Id).ToList();
+        await searchIndex.RebuildPositionsAsync(newIds, cancellationToken);
+
         var items = await LoadListItemsAsync(newIds, keyOnly: false, cancellationToken);
         var itemById = items.ToDictionary(item => item.Id);
 
@@ -635,6 +644,7 @@ public class PositionService(
         }));
 
         await db.SaveChangesAsync(cancellationToken);
+        await searchIndex.RebuildPositionAsync(position.Id, cancellationToken);
 
         return await LoadDetailAsync(position.Id, cancellationToken);
     }

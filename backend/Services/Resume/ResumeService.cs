@@ -10,6 +10,7 @@ using Backend.Api.Services.Attributes;
 using Backend.Api.Services.Files;
 using Backend.Api.Services.Position;
 using Backend.Api.Services.Profile;
+using Backend.Api.Services.Search;
 using Microsoft.EntityFrameworkCore;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 using FileEntity = Backend.Api.Data.Entities.File;
@@ -86,6 +87,8 @@ public class ResumeService(
     IPositionRestrictionEvaluator restrictionEvaluator,
     IAttributeValueMapper valueMapper,
     IProfileService profileService,
+    ISearchIndexService searchIndex,
+    ILuceneIndex lucene,
     IHttpClientFactory httpClientFactory) : IResumeService
 {
     private const string VersionChangedMessage = "error.oldVersion";
@@ -141,6 +144,8 @@ public class ResumeService(
         {
             await profileService.AddAttributesAsync(candidateId, positionAttributeIds, cancellationToken);
         }
+
+        await searchIndex.RebuildResumeAsync(resume.Id, cancellationToken);
 
         return await GetByIdAsync(resume.Id, cancellationToken: cancellationToken);
     }
@@ -217,6 +222,8 @@ public class ResumeService(
             await profileService.AddAttributesAsync(candidateId, positionAttributeIds, cancellationToken);
         }
 
+        await searchIndex.RebuildResumesAsync(resumes.Select(item => item.Id), cancellationToken);
+
         var createdIds = resumes.Select(resume => resume.Id).ToList();
         var loaded = await db.Resumes
             .AsNoTracking()
@@ -272,25 +279,11 @@ public class ResumeService(
 
         if (!string.IsNullOrWhiteSpace(pagination.Search))
         {
-            var search = pagination.Search.Trim();
-            var firstNameAttributeId = await ResolveAttributeIdAsync(DefaultAttributes.FirstName, cancellationToken);
-            var lastNameAttributeId = await ResolveAttributeIdAsync(DefaultAttributes.LastName, cancellationToken);
-
-            query = query.Where(resume =>
-                resume.Position.Name.Contains(search)
-                || resume.CandidateId.Contains(search)
-                || (firstNameAttributeId.HasValue
-                    && db.ProfileAttributes.Any(profileAttribute =>
-                        profileAttribute.CandidateId == resume.CandidateId
-                        && profileAttribute.AttributeId == firstNameAttributeId.Value
-                        && profileAttribute.ValueString != null
-                        && profileAttribute.ValueString.Contains(search)))
-                || (lastNameAttributeId.HasValue
-                    && db.ProfileAttributes.Any(profileAttribute =>
-                        profileAttribute.CandidateId == resume.CandidateId
-                        && profileAttribute.AttributeId == lastNameAttributeId.Value
-                        && profileAttribute.ValueString != null
-                        && profileAttribute.ValueString.Contains(search))));
+            query = query.WhereMatches(
+                lucene,
+                SearchEntityTypes.Resume,
+                pagination.Search,
+                resume => resume.Id);
         }
 
         query = await ApplyViewerListSortAsync(query, pagination, cancellationToken);
@@ -339,6 +332,12 @@ public class ResumeService(
             .Include(resume => resume.Position)
             .Where(resume => resume.PositionId == positionId && resume.Published)
             .ToListAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(pagination.Search))
+        {
+            var matchIds = lucene.Search(SearchEntityTypes.Resume, pagination.Search).ToHashSet();
+            resumes = resumes.Where(resume => matchIds.Contains(resume.Id)).ToList();
+        }
 
         if (resumes.Count == 0)
         {
@@ -496,6 +495,7 @@ public class ResumeService(
 
         db.Resumes.Remove(resume);
         await db.SaveChangesAsync(cancellationToken);
+        searchIndex.DeleteResumes([id]);
         return true;
     }
 
@@ -534,6 +534,7 @@ public class ResumeService(
 
         db.Resumes.RemoveRange(resumes);
         await db.SaveChangesAsync(cancellationToken);
+        searchIndex.DeleteResumes(ids);
     }
 
     public async Task<ResumeLikeStateDto?> ToggleLikeAsync(

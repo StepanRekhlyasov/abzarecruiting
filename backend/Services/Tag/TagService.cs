@@ -2,9 +2,11 @@ using Backend.Api.Data;
 using Backend.Api.Extensions;
 using Backend.Api.Models.Common;
 using Backend.Api.Models.Tag;
+using Backend.Api.Services.Search;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using TagEntity = Backend.Api.Data.Entities.Tag;
+using ProfileProjectEntity = Backend.Api.Data.Entities.ProfileProject;
 
 namespace Backend.Api.Services.Tag;
 
@@ -26,7 +28,7 @@ public interface ITagService
     Task DeleteBatchAsync(IEnumerable<DeleteTagItem> items, CancellationToken cancellationToken = default);
 }
 
-public class TagService(ApplicationDbContext db) : ITagService
+public class TagService(ApplicationDbContext db, ISearchIndexService searchIndex, ILuceneIndex lucene) : ITagService
 {
     private const string VersionChangedMessage = "error.oldVersion";
 
@@ -53,10 +55,16 @@ public class TagService(ApplicationDbContext db) : ITagService
             searchTerms.Add(pagination.Search.Trim());
         }
 
-        var searchPredicate = BuildIdOrSearchPredicate(ids, searchTerms);
-        if (searchPredicate is not null)
+        IReadOnlyList<int> fullTextIds = [];
+        if (searchTerms.Count > 0)
         {
-            query = query.Where(searchPredicate);
+            fullTextIds = lucene.Search(SearchEntityTypes.Tag, string.Join(' ', searchTerms));
+        }
+
+        if (ids.Count > 0 || searchTerms.Count > 0)
+        {
+            var matchedIds = ids.Union(fullTextIds).Distinct().ToList();
+            query = query.Where(LuceneQueryExtensions.BuildIdEqualsAny<TagEntity>(matchedIds, tag => tag.Id));
         }
 
         query = query.ApplySort(pagination, tag => tag.Name);
@@ -91,6 +99,7 @@ public class TagService(ApplicationDbContext db) : ITagService
 
         db.Tags.Add(tag);
         await db.SaveChangesAsync(cancellationToken);
+        await searchIndex.RebuildTagAsync(tag.Id, cancellationToken);
         return Map(tag);
     }
 
@@ -139,6 +148,7 @@ public class TagService(ApplicationDbContext db) : ITagService
         if (created.Count > 0)
         {
             await db.SaveChangesAsync(cancellationToken);
+            await searchIndex.RebuildTagsAsync(created.Select(tag => tag.Id), cancellationToken);
         }
 
         return normalized
@@ -165,6 +175,26 @@ public class TagService(ApplicationDbContext db) : ITagService
         tag.Name = request.Name;
         tag.Version++;
         await db.SaveChangesAsync(cancellationToken);
+        await searchIndex.RebuildTagAsync(id, cancellationToken);
+
+        var projectIds = await db.ProfileProjectTags
+            .AsNoTracking()
+            .Where(item => item.TagId == id)
+            .Select(item => item.ProfileProjectId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        await searchIndex.RebuildProjectsAsync(projectIds, cancellationToken);
+
+        var candidateIds = await db.ProfileProjects
+            .AsNoTracking()
+            .Where(LuceneQueryExtensions.BuildIdEqualsAny<ProfileProjectEntity>(projectIds, project => project.Id))
+            .Select(project => project.CandidateId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        await searchIndex.RebuildResumesForCandidatesAsync(candidateIds, cancellationToken);
+
         return Map(tag);
     }
 
@@ -183,6 +213,7 @@ public class TagService(ApplicationDbContext db) : ITagService
 
         db.Tags.Remove(tag);
         await db.SaveChangesAsync(cancellationToken);
+        searchIndex.DeleteTags([id]);
         return true;
     }
 
@@ -220,6 +251,7 @@ public class TagService(ApplicationDbContext db) : ITagService
 
         db.Tags.RemoveRange(tags);
         await db.SaveChangesAsync(cancellationToken);
+        searchIndex.DeleteTags(ids);
     }
 
     private static TagDto Map(TagEntity tag) => new()
@@ -240,43 +272,6 @@ public class TagService(ApplicationDbContext db) : ITagService
         {
             var equals = Expression.Equal(nameProperty, Expression.Constant(name));
             body = body is null ? equals : Expression.OrElse(body, equals);
-        }
-
-        return Expression.Lambda<Func<TagEntity, bool>>(body!, parameter);
-    }
-
-    private static Expression<Func<TagEntity, bool>>? BuildIdOrSearchPredicate(
-        IReadOnlyList<int> ids,
-        IReadOnlyList<string> searchTerms)
-    {
-        if (ids.Count == 0 && searchTerms.Count == 0)
-        {
-            return null;
-        }
-
-        var parameter = Expression.Parameter(typeof(TagEntity), "tag");
-        Expression? body = null;
-
-        if (ids.Count > 0)
-        {
-            var idProperty = Expression.Property(parameter, nameof(TagEntity.Id));
-            foreach (var id in ids)
-            {
-                var equals = Expression.Equal(idProperty, Expression.Constant(id));
-                body = body is null ? equals : Expression.OrElse(body, equals);
-            }
-        }
-
-        if (searchTerms.Count > 0)
-        {
-            var nameProperty = Expression.Property(parameter, nameof(TagEntity.Name));
-            var containsMethod = typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!;
-
-            foreach (var term in searchTerms)
-            {
-                var nameContains = Expression.Call(nameProperty, containsMethod, Expression.Constant(term));
-                body = body is null ? nameContains : Expression.OrElse(body, nameContains);
-            }
         }
 
         return Expression.Lambda<Func<TagEntity, bool>>(body!, parameter);

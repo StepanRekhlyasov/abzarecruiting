@@ -13,6 +13,7 @@ using Backend.Api.Services.Profile;
 using Backend.Api.Services.Project;
 using Backend.Api.Services.Restriction;
 using Backend.Api.Services.Resume;
+using Backend.Api.Services.Search;
 using Backend.Api.Services.Tag;
 using Backend.Api.Services.Message;
 using Backend.Api.Services.Files;
@@ -45,6 +46,8 @@ builder.Services.Configure<AuthenticationSettings>(
     builder.Configuration.GetSection(AuthenticationSettings.SectionName));
 builder.Services.Configure<DefaultAttributesSettings>(
     builder.Configuration.GetSection(DefaultAttributesSettings.SectionName));
+builder.Services.Configure<LuceneSettings>(
+    builder.Configuration.GetSection(LuceneSettings.SectionName));
 builder.Services.Configure<CloudinarySettings>(
     builder.Configuration.GetSection(CloudinarySettings.SectionName));
 builder.Services.Configure<FormOptions>(options =>
@@ -207,6 +210,8 @@ builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<IResumeService, ResumeService>();
+builder.Services.AddSingleton<ILuceneIndex, LuceneIndex>();
+builder.Services.AddScoped<ISearchIndexService, SearchIndexService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddSingleton(sp =>
 {
@@ -298,6 +303,10 @@ using (var scope = app.Services.CreateScope())
         app.Environment,
         logger);
     await MockDataSeeder.SeedAsync(db, userManager, logger);
+
+    logger.LogInformation("Rebuilding Lucene search index...");
+    var searchIndex = scope.ServiceProvider.GetRequiredService<ISearchIndexService>();
+    await searchIndex.RebuildAllAsync();
 }
 
 if (app.Environment.IsDevelopment())
