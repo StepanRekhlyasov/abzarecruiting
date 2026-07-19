@@ -44,6 +44,7 @@ public interface IResumeService
         int positionId,
         PaginationParams pagination,
         string? viewerUserId = null,
+        bool isAdmin = false,
         CancellationToken cancellationToken = default);
 
     Task<ResumeDto?> GetByIdAsync(
@@ -286,13 +287,49 @@ public class ResumeService(
                 resume => resume.Id);
         }
 
-        query = await ApplyViewerListSortAsync(query, pagination, cancellationToken);
+        var defaultAttributes = await LoadDefaultAttributesAsync(cancellationToken);
+        List<ResumeEntity> pageItems;
+        int totalCount;
+        IReadOnlyList<ProfileAttribute> profileAttributes;
 
-        var totalCount = await query.CountAsync(cancellationToken);
-        var pageItems = await query
-            .Skip(pagination.Skip)
-            .Take(pagination.NormalizedSize)
-            .ToListAsync(cancellationToken);
+        if (!isAdmin)
+        {
+            var allItems = await query.ToListAsync(cancellationToken);
+            var filtered = await FilterResumesMeetingPositionRestrictionsAsync(allItems, cancellationToken);
+            var filteredCandidateIds = filtered.Select(resume => resume.CandidateId).Distinct().ToList();
+            profileAttributes = await LoadProfileAttributesAsync(filteredCandidateIds, cancellationToken);
+            var ordered = await OrderViewerListInMemoryAsync(
+                filtered,
+                defaultAttributes,
+                profileAttributes,
+                pagination,
+                cancellationToken);
+            totalCount = ordered.Count;
+            pageItems = ordered.Skip(pagination.Skip).Take(pagination.NormalizedSize).ToList();
+        }
+        else
+        {
+            query = await ApplyViewerListSortAsync(query, pagination, cancellationToken);
+            totalCount = await query.CountAsync(cancellationToken);
+            pageItems = await query
+                .Skip(pagination.Skip)
+                .Take(pagination.NormalizedSize)
+                .ToListAsync(cancellationToken);
+
+            if (pageItems.Count == 0)
+            {
+                return new PagedResult<ResumeListItemDto>
+                {
+                    Items = [],
+                    TotalCount = totalCount,
+                    Page = pagination.NormalizedPage,
+                    Size = pagination.NormalizedSize,
+                };
+            }
+
+            var candidateIds = pageItems.Select(resume => resume.CandidateId).Distinct().ToList();
+            profileAttributes = await LoadProfileAttributesAsync(candidateIds, cancellationToken);
+        }
 
         if (pageItems.Count == 0)
         {
@@ -305,9 +342,6 @@ public class ResumeService(
             };
         }
 
-        var defaultAttributes = await LoadDefaultAttributesAsync(cancellationToken);
-        var candidateIds = pageItems.Select(resume => resume.CandidateId).Distinct().ToList();
-        var profileAttributes = await LoadProfileAttributesAsync(candidateIds, cancellationToken);
         var files = await LoadFilesForAttributesAsync(defaultAttributes, profileAttributes, cancellationToken);
         var items = MapList(pageItems, defaultAttributes, profileAttributes, files);
         await EnrichWithLikesAsync(items, userId, cancellationToken);
@@ -325,6 +359,7 @@ public class ResumeService(
         int positionId,
         PaginationParams pagination,
         string? viewerUserId = null,
+        bool isAdmin = false,
         CancellationToken cancellationToken = default)
     {
         var resumes = await db.Resumes
@@ -350,29 +385,38 @@ public class ResumeService(
             };
         }
 
-        var restrictions = await restrictionEvaluator.GetRestrictionsForPositionAsync(positionId, cancellationToken);
-        var candidateIds = resumes.Select(resume => resume.CandidateId).Distinct().ToList();
         var defaultAttributes = await LoadDefaultAttributesAsync(cancellationToken);
-
         IReadOnlyList<ProfileAttribute> profileAttributes;
         IReadOnlyList<ResumeEntity> filtered;
 
-        if (restrictions.Count == 0)
+        if (isAdmin)
         {
+            var candidateIds = resumes.Select(resume => resume.CandidateId).Distinct().ToList();
             profileAttributes = await LoadProfileAttributesAsync(candidateIds, cancellationToken);
             filtered = resumes;
         }
         else
         {
-            var contexts = await restrictionEvaluator.LoadCandidateContextsAsync(candidateIds, cancellationToken);
-            filtered = restrictionEvaluator.FilterByRestrictions(
-                restrictions,
-                resumes,
-                resume => resume.CandidateId,
-                contexts);
-            profileAttributes = candidateIds
-                .SelectMany(candidateId => contexts[candidateId].ProfileAttributes)
-                .ToList();
+            var restrictions = await restrictionEvaluator.GetRestrictionsForPositionAsync(positionId, cancellationToken);
+            var candidateIds = resumes.Select(resume => resume.CandidateId).Distinct().ToList();
+
+            if (restrictions.Count == 0)
+            {
+                profileAttributes = await LoadProfileAttributesAsync(candidateIds, cancellationToken);
+                filtered = resumes;
+            }
+            else
+            {
+                var contexts = await restrictionEvaluator.LoadCandidateContextsAsync(candidateIds, cancellationToken);
+                filtered = restrictionEvaluator.FilterByRestrictions(
+                    restrictions,
+                    resumes,
+                    resume => resume.CandidateId,
+                    contexts);
+                profileAttributes = candidateIds
+                    .SelectMany(candidateId => contexts[candidateId].ProfileAttributes)
+                    .ToList();
+            }
         }
 
         var ordered = pagination.NormalizedSortBy switch
@@ -447,6 +491,15 @@ public class ResumeService(
         if (!CanView(resume, userId, isAdmin, isRecruiter))
         {
             return ResumeGetResult.ForbiddenResult();
+        }
+
+        if (!isAdmin
+            && !await restrictionEvaluator.CandidateMeetsAllRestrictionsAsync(
+                resume.CandidateId,
+                resume.PositionId,
+                cancellationToken))
+        {
+            return ResumeGetResult.NotFoundResult();
         }
 
         var dto = await MapSingleAsync(resume, userId, cancellationToken);
@@ -555,6 +608,14 @@ public class ResumeService(
             throw new InvalidOperationException("error.resumes.notPublished");
         }
 
+        if (!await restrictionEvaluator.CandidateMeetsAllRestrictionsAsync(
+                resume.CandidateId,
+                resume.PositionId,
+                cancellationToken))
+        {
+            return null;
+        }
+
         var existing = await db.LikesResumes
             .FirstOrDefaultAsync(like => like.ResumeId == resumeId && like.UserId == userId, cancellationToken);
 
@@ -657,6 +718,80 @@ public class ResumeService(
 
     public bool CanModify(ResumeEntity resume, string? userId, bool isAdmin) =>
         isAdmin || resume.CandidateId == userId;
+
+    private async Task<List<ResumeEntity>> FilterResumesMeetingPositionRestrictionsAsync(
+        IReadOnlyList<ResumeEntity> resumes,
+        CancellationToken cancellationToken)
+    {
+        if (resumes.Count == 0)
+        {
+            return [];
+        }
+
+        var positionIds = resumes.Select(resume => resume.PositionId).Distinct().ToList();
+        var restrictedPositionIds = await restrictionEvaluator.GetPositionIdsWithRestrictionsAsync(
+            positionIds,
+            cancellationToken);
+
+        if (restrictedPositionIds.Count == 0)
+        {
+            return resumes.ToList();
+        }
+
+        var result = resumes.Where(resume => !restrictedPositionIds.Contains(resume.PositionId)).ToList();
+        var toCheck = resumes.Where(resume => restrictedPositionIds.Contains(resume.PositionId)).ToList();
+        if (toCheck.Count == 0)
+        {
+            return result;
+        }
+
+        var candidateIds = toCheck.Select(resume => resume.CandidateId).Distinct().ToList();
+        var contexts = await restrictionEvaluator.LoadCandidateContextsAsync(candidateIds, cancellationToken);
+
+        foreach (var group in toCheck.GroupBy(resume => resume.PositionId))
+        {
+            var restrictions = await restrictionEvaluator.GetRestrictionsForPositionAsync(
+                group.Key,
+                cancellationToken);
+            result.AddRange(
+                restrictionEvaluator.FilterByRestrictions(
+                    restrictions,
+                    group.ToList(),
+                    resume => resume.CandidateId,
+                    contexts));
+        }
+
+        return result;
+    }
+
+    private async Task<List<ResumeEntity>> OrderViewerListInMemoryAsync(
+        IReadOnlyList<ResumeEntity> resumes,
+        IReadOnlyList<AttributeEntity> defaultAttributes,
+        IReadOnlyList<ProfileAttribute> profileAttributes,
+        PaginationParams pagination,
+        CancellationToken cancellationToken) =>
+        pagination.NormalizedSortBy switch
+        {
+            "id" => pagination.IsDescending
+                ? resumes.OrderByDescending(resume => resume.Id).ToList()
+                : resumes.OrderBy(resume => resume.Id).ToList(),
+            "positionname" or "position" => pagination.IsDescending
+                ? resumes.OrderByDescending(resume => resume.Position.Name).ToList()
+                : resumes.OrderBy(resume => resume.Position.Name).ToList(),
+            "published" => pagination.IsDescending
+                ? resumes.OrderByDescending(resume => resume.Published).ToList()
+                : resumes.OrderBy(resume => resume.Published).ToList(),
+            "likes" or "likescount" => await OrderByLikesAsync(resumes, pagination.IsDescending, cancellationToken),
+            "candidate" or "candidatename" or "candidateid" => OrderByCandidateName(
+                resumes,
+                defaultAttributes,
+                profileAttributes,
+                lastNameFirst: false,
+                descending: pagination.IsDescending),
+            _ => pagination.IsDescending
+                ? resumes.OrderByDescending(resume => resume.CreatedAt).ToList()
+                : resumes.OrderBy(resume => resume.CreatedAt).ToList(),
+        };
 
     private async Task EnsureCanPublishAsync(ResumeEntity resume, CancellationToken cancellationToken)
     {

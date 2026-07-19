@@ -113,6 +113,7 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
                 positionId.Value,
                 pagination,
                 User.GetUserId(),
+                User.IsAdmin(),
                 cancellationToken);
             return Ok(byPosition);
         }

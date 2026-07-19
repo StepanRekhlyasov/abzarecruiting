@@ -5,11 +5,13 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import IconButton from '@mui/material/IconButton'
+import Link from '@mui/material/Link'
 import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { useTranslation } from 'react-i18next'
+import { Link as RouterLink } from 'react-router-dom'
 import { AbzaError } from '@features/abza-error'
 import { ResumeLike } from '@features/resume-like'
 import {
@@ -19,6 +21,7 @@ import {
 } from '@shared/types'
 import { useAttributeAutosave } from '@shared/lib/autosave'
 import { getErrorKey } from '@shared/lib/errors'
+import { positionDetailPath } from '@shared/config/routes'
 import { AutosaveButton } from '@shared/ui'
 import { AttributeSection } from '@widgets/candidate-profile'
 import { ResumeDetailProvider, useResumeDetail } from '../model'
@@ -162,7 +165,14 @@ function ResumeDetailContent() {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
             <Typography variant="h5" component="h1" sx={{ minWidth: 0 }}>
-              {t('cvs.detail.forPosition', { name: resume.positionName })}
+              <Link
+                component={RouterLink}
+                to={positionDetailPath(resume.positionId)}
+                underline="hover"
+                color="inherit"
+              >
+                {t('cvs.detail.forPosition', { name: resume.positionName })}
+              </Link>
             </Typography>
             {showSaveButton ? (
               <AutosaveButton
