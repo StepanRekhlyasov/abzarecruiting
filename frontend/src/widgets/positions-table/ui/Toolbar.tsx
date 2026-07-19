@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import AddIcon from '@mui/icons-material/Add'
 import BackspaceIcon from '@mui/icons-material/Backspace'
@@ -11,9 +12,8 @@ import { usePositionsTable } from '../model'
 
 export function PositionsTableToolbar() {
   const { t } = useTranslation()
+  const [searchInput, setSearchInput] = useState('')
   const {
-    searchInput,
-    setSearchInput,
     handleFilter,
     isLoading,
     canManagePositions,
@@ -24,6 +24,10 @@ export function PositionsTableToolbar() {
     handleDuplicateSelected,
     handleCreateResumesSelected,
   } = usePositionsTable()
+
+  const applyFilter = () => {
+    handleFilter(searchInput)
+  }
 
   return (
     <Grid container spacing={2}>
@@ -36,14 +40,14 @@ export function PositionsTableToolbar() {
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
               event.preventDefault()
-              handleFilter()
+              applyFilter()
             }
           }}
           sx={{ minWidth: 260, width: '100%' }}
         />
       </Grid>
       <Grid>
-        <Button variant="outlined" onClick={handleFilter} disabled={isLoading}>
+        <Button variant="outlined" onClick={applyFilter} disabled={isLoading}>
           <SearchIcon />
         </Button>
       </Grid>

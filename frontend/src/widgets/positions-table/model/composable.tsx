@@ -53,7 +53,6 @@ type PositionsTableContextValue = {
   totalCount: number
   page: number
   pageSize: number
-  searchInput: string
   sortBy: string
   sortDir: SortDirection
   selectedIds: AbzaTableRowId[]
@@ -68,7 +67,6 @@ type PositionsTableContextValue = {
   canCreateResumes: boolean
   resumePositionIdSet: Set<number>
   loadAttributeOptions: AsyncEntityLoadOptions
-  setSearchInput: (value: string) => void
   setPage: (page: number) => void
   setPageSize: (size: number) => void
   setSelectedIds: (ids: AbzaTableRowId[]) => void
@@ -77,7 +75,7 @@ type PositionsTableContextValue = {
   setIsViewModalOpen: (open: boolean) => void
   setActionError: (error: string | null) => void
   handleSortChange: (nextSortBy: string, nextSortDir: SortDirection) => void
-  handleFilter: () => void
+  handleFilter: (query: string) => void
   handleCreateClick: () => void
   handleCreateSubmit: (payload: PositionFormSubmitPayload) => Promise<void>
   handleEditSubmit: (payload: PositionFormSubmitPayload) => Promise<void>
@@ -104,7 +102,6 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
   const [totalCount, setTotalCount] = useState(0)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(20)
-  const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
@@ -230,10 +227,10 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
     }
   }, [isEditModalOpen, isViewModalOpen])
 
-  const handleFilter = useCallback(() => {
-    setSearchQuery(searchInput.trim())
+  const handleFilter = useCallback((query: string) => {
+    setSearchQuery(query.trim())
     setPage(0)
-  }, [searchInput])
+  }, [])
 
   const handleSortChange = useCallback((nextSortBy: string, nextSortDir: SortDirection) => {
     setSortBy(nextSortBy)
@@ -449,7 +446,6 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
       totalCount,
       page,
       pageSize,
-      searchInput,
       sortBy,
       sortDir,
       selectedIds,
@@ -464,7 +460,6 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
       canCreateResumes,
       resumePositionIdSet,
       loadAttributeOptions,
-      setSearchInput,
       setPage,
       setPageSize,
       setSelectedIds,
@@ -488,7 +483,6 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
       totalCount,
       page,
       pageSize,
-      searchInput,
       sortBy,
       sortDir,
       selectedIds,

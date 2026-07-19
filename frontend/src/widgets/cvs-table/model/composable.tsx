@@ -34,7 +34,6 @@ type CvsTableContextValue = {
   totalCount: number
   page: number
   pageSize: number
-  searchInput: string
   sortBy: string
   sortDir: SortDirection
   selectedIds: AbzaTableRowId[]
@@ -52,14 +51,13 @@ type CvsTableContextValue = {
   createFormRef: RefObject<HTMLFormElement | null>
   loadPositionOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
   loadCandidateOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
-  setSearchInput: (value: string) => void
   setPage: (page: number) => void
   setPageSize: (size: number) => void
   setSelectedIds: (ids: AbzaTableRowId[]) => void
   setActionError: (error: string | null) => void
   setIsCreateModalOpen: (open: boolean) => void
   handleSortChange: (nextSortBy: string, nextSortDir: SortDirection) => void
-  handleFilter: () => void
+  handleFilter: (query: string) => void
   handleCreateClick: () => void
   handleCreateSubmit: (values: AbzaFormValues) => Promise<void>
   handleCreateModalSubmit: () => void
@@ -82,7 +80,6 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
   const [totalCount, setTotalCount] = useState(0)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(20)
-  const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
@@ -188,10 +185,10 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
     return () => controller.abort()
   }, [loadResumes])
 
-  const handleFilter = useCallback(() => {
-    setSearchQuery(searchInput.trim())
+  const handleFilter = useCallback((query: string) => {
+    setSearchQuery(query.trim())
     setPage(0)
-  }, [searchInput])
+  }, [])
 
   const handleSortChange = useCallback((nextSortBy: string, nextSortDir: SortDirection) => {
     setSortBy(nextSortBy)
@@ -292,7 +289,6 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
       totalCount,
       page,
       pageSize,
-      searchInput,
       sortBy,
       sortDir,
       selectedIds,
@@ -310,7 +306,6 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
       createFormRef,
       loadPositionOptions,
       loadCandidateOptions,
-      setSearchInput,
       setPage,
       setPageSize,
       setSelectedIds,
@@ -329,7 +324,6 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
       totalCount,
       page,
       pageSize,
-      searchInput,
       sortBy,
       sortDir,
       selectedIds,

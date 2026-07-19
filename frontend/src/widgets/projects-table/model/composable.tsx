@@ -63,7 +63,6 @@ type ProjectsTableContextValue = {
   totalCount: number
   page: number
   pageSize: number
-  searchInput: string
   sortBy: string
   sortDir: SortDirection
   selectedIds: AbzaTableRowId[]
@@ -85,7 +84,6 @@ type ProjectsTableContextValue = {
   createFormRef: RefObject<HTMLFormElement | null>
   editFormRef: RefObject<HTMLFormElement | null>
   loadCandidateOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
-  setSearchInput: (value: string) => void
   setPage: (page: number) => void
   setPageSize: (size: number) => void
   setSelectedIds: (ids: AbzaTableRowId[]) => void
@@ -96,7 +94,7 @@ type ProjectsTableContextValue = {
   setEditTags: (tags: AbzaSelectOption[]) => void
   setActionError: (error: string | null) => void
   handleSortChange: (nextSortBy: string, nextSortDir: SortDirection) => void
-  handleFilter: () => void
+  handleFilter: (query: string) => void
   handleApplyFilters: (filters: ProjectTableFilters) => void
   handleResetFilters: () => void
   handleCreateClick: () => void
@@ -123,7 +121,6 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
   const [totalCount, setTotalCount] = useState(0)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(20)
-  const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [appliedFilters, setAppliedFilters] = useState<ProjectTableFilters>(EMPTY_FILTERS)
   const [sortBy, setSortBy] = useState('createdAt')
@@ -254,10 +251,10 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
     }
   }, [isEditModalOpen])
 
-  const handleFilter = useCallback(() => {
-    setSearchQuery(searchInput.trim())
+  const handleFilter = useCallback((query: string) => {
+    setSearchQuery(query.trim())
     setPage(0)
-  }, [searchInput])
+  }, [])
 
   const handleApplyFilters = useCallback((filters: ProjectTableFilters) => {
     setAppliedFilters({
@@ -392,7 +389,6 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
       totalCount,
       page,
       pageSize,
-      searchInput,
       sortBy,
       sortDir,
       selectedIds,
@@ -414,7 +410,6 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
       createFormRef,
       editFormRef,
       loadCandidateOptions,
-      setSearchInput,
       setPage,
       setPageSize,
       setSelectedIds,
@@ -441,7 +436,6 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
       totalCount,
       page,
       pageSize,
-      searchInput,
       sortBy,
       sortDir,
       selectedIds,

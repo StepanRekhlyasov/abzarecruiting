@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import AddIcon from '@mui/icons-material/Add'
 import BackspaceIcon from '@mui/icons-material/Backspace'
@@ -9,9 +10,8 @@ import { useCvsTable } from '../model'
 
 export function CvsTableToolbar() {
   const { t } = useTranslation()
+  const [searchInput, setSearchInput] = useState('')
   const {
-    searchInput,
-    setSearchInput,
     handleFilter,
     isLoading,
     canCreateResumes,
@@ -20,6 +20,10 @@ export function CvsTableToolbar() {
     handleCreateClick,
     handleDeleteSelected,
   } = useCvsTable()
+
+  const applyFilter = () => {
+    handleFilter(searchInput)
+  }
 
   return (
     <Grid container spacing={2}>
@@ -32,14 +36,14 @@ export function CvsTableToolbar() {
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
               event.preventDefault()
-              handleFilter()
+              applyFilter()
             }
           }}
           sx={{ minWidth: 260, width: '100%' }}
         />
       </Grid>
       <Grid>
-        <Button variant="outlined" onClick={handleFilter} disabled={isLoading}>
+        <Button variant="outlined" onClick={applyFilter} disabled={isLoading}>
           <SearchIcon />
         </Button>
       </Grid>

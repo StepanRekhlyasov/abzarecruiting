@@ -80,7 +80,6 @@ type UsersTableContextValue = {
   totalCount: number
   page: number
   pageSize: number
-  searchInput: string
   sortBy: string
   sortDir: SortDirection
   selectedIds: AbzaTableRowId[]
@@ -97,7 +96,6 @@ type UsersTableContextValue = {
   canManageUsers: boolean
   createFormRef: RefObject<HTMLFormElement | null>
   changeRoleFormRef: RefObject<HTMLFormElement | null>
-  setSearchInput: (value: string) => void
   setPage: (page: number) => void
   setPageSize: (size: number) => void
   setSelectedIds: (ids: AbzaTableRowId[]) => void
@@ -108,7 +106,7 @@ type UsersTableContextValue = {
   setActionError: (error: string | null) => void
   setManageSuccess: (message: string | null) => void
   handleSortChange: (nextSortBy: string, nextSortDir: SortDirection) => void
-  handleFilter: () => void
+  handleFilter: (query: string) => void
   handleApplyFilters: (filters: UserTableFilters) => void
   handleResetFilters: () => void
   handleCreateClick: () => void
@@ -137,7 +135,6 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
   const [totalCount, setTotalCount] = useState(0)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(20)
-  const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
@@ -206,10 +203,10 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
     return () => controller.abort()
   }, [loadUsers])
 
-  const handleFilter = useCallback(() => {
-    setSearchQuery(searchInput.trim())
+  const handleFilter = useCallback((query: string) => {
+    setSearchQuery(query.trim())
     setPage(0)
-  }, [searchInput])
+  }, [])
 
   const handleApplyFilters = useCallback((filters: UserTableFilters) => {
     setAppliedFilters(filters)
@@ -399,7 +396,6 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       totalCount,
       page,
       pageSize,
-      searchInput,
       sortBy,
       sortDir,
       selectedIds,
@@ -416,7 +412,6 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       canManageUsers,
       createFormRef,
       changeRoleFormRef,
-      setSearchInput,
       setPage,
       setPageSize,
       setSelectedIds,
@@ -448,7 +443,6 @@ export function UsersTableProvider({ children }: PropsWithChildren) {
       totalCount,
       page,
       pageSize,
-      searchInput,
       sortBy,
       sortDir,
       selectedIds,

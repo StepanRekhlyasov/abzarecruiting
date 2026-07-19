@@ -15,6 +15,7 @@ import { projectToFormValues, type ProjectDto } from '@entities/project'
 import { TagsField } from '@entities/tag'
 import { CandidateProfileLink } from '@shared/ui'
 import { ProjectsTableProvider, useProjectsTable } from '../model'
+import { ProjectsFilterModal } from './FilterModal'
 import { ProjectsTableToolbar } from './Toolbar'
 
 function ProjectsTableContent() {
@@ -164,6 +165,8 @@ function ProjectsTableContent() {
         emptyMessage={t('projects.empty')}
         loadingMessage={t('projects.loading')}
       />
+
+      <ProjectsFilterModal />
 
       <AbzaModal
         open={isCreateModalOpen}

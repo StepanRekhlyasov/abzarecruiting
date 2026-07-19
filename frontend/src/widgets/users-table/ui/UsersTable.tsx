@@ -15,6 +15,7 @@ import { AbzaModal } from '@features/abza-modal'
 import { AbzaTable } from '@features/abza-table'
 import type { AbzaTableColumn } from '@features/abza-table'
 import { UsersTableProvider, useUsersTable } from '../model'
+import { UsersFilterModal } from './FilterModal'
 import { UsersTableToolbar } from './Toolbar'
 
 function UsersTableContent() {
@@ -146,6 +147,7 @@ function UsersTableContent() {
 
       {canManageUsers ? (
         <>
+          <UsersFilterModal />
           <AbzaModal
             open={isCreateModalOpen}
             config={{
