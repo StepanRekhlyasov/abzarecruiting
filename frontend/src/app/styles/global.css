@@ -16,3 +16,9 @@ body {
 .MuiButtonBase-root {
   height: 100%;
 }
+body {
+  overflow: hidden;
+}
+div#root {
+  overflow: hidden;
+}
