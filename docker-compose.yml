@@ -39,7 +39,6 @@ services:
       - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=camp_project;User=app;Password=app;
       - Lucene__IndexPath=/app/lucene-index
     volumes:
-      - dataprotection_data:/app/dataprotection-keys
       - lucene_data:/app/lucene-index
     depends_on:
       mysql:
@@ -90,6 +89,5 @@ services:
 
 volumes:
   mysql_data:
-  dataprotection_data:
   lucene_data:
   frontend_node_modules:
