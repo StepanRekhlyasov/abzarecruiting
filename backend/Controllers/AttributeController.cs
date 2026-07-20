@@ -125,7 +125,14 @@ public class AttributeController(IAttributeService attributeService) : Controlle
             return Forbid();
         }
 
-        var deleted = await attributeService.DeleteCandidateValueAsync(id, candidateId, cancellationToken);
-        return deleted ? NoContent() : NotFound();
+        try
+        {
+            var deleted = await attributeService.DeleteCandidateValueAsync(id, candidateId, cancellationToken);
+            return deleted ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
     }
 }

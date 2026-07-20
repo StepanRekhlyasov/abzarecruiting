@@ -430,6 +430,20 @@ public class AttributeService(
             return false;
         }
 
+        var usedInResume = await (
+            from resume in db.Resumes.AsNoTracking()
+            where resume.CandidateId == candidateId
+            join positionAttribute in db.PositionAttributes.AsNoTracking()
+                on resume.PositionId equals positionAttribute.PositionId
+            where positionAttribute.AttributeId == attributeId
+            select positionAttribute.AttributeId
+        ).AnyAsync(cancellationToken);
+
+        if (usedInResume)
+        {
+            throw new InvalidOperationException("error.attributes.usedInResume");
+        }
+
         db.ProfileAttributes.Remove(profileAttribute);
         await db.SaveChangesAsync(cancellationToken);
         await searchIndex.RebuildResumesForCandidateAsync(candidateId, cancellationToken);

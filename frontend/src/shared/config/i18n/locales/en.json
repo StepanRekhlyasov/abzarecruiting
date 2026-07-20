@@ -568,6 +568,7 @@
       "link": "Failed to add attributes to profile",
       "unlink": "Failed to remove attributes from profile",
       "editDefault": "Default attributes cannot be edited",
+      "usedInResume": "Attribute is used in a resume",
       "notFound": "One or more attributes were not found",
       "nameExists": "An attribute with this name already exists",
       "unsupportedValueType": "Unsupported attribute value type",

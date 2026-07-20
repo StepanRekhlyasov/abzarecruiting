@@ -218,7 +218,10 @@ public class ProfileService(
                 AttributeId = attribute.Id,
             };
 
-            valueMapper.SetValue(profileAttribute, attribute, string.Empty);
+            var defaultValue = string.Equals(attribute.ValueType, "boolean", StringComparison.OrdinalIgnoreCase)
+                ? "false"
+                : string.Empty;
+            valueMapper.SetValue(profileAttribute, attribute, defaultValue);
             db.ProfileAttributes.Add(profileAttribute);
         }
 
@@ -256,6 +259,20 @@ public class ProfileService(
         if (attributes.Any(attribute => DefaultAttributes.IsDefaultName(attribute.Name)))
         {
             throw new InvalidOperationException("error.attributes.editDefault");
+        }
+
+        var usedInResume = await (
+            from resume in db.Resumes.AsNoTracking()
+            where resume.CandidateId == candidateId
+            join positionAttribute in db.PositionAttributes.AsNoTracking()
+                on resume.PositionId equals positionAttribute.PositionId
+            where uniqueIds.Contains(positionAttribute.AttributeId)
+            select positionAttribute.AttributeId
+        ).AnyAsync(cancellationToken);
+
+        if (usedInResume)
+        {
+            throw new InvalidOperationException("error.attributes.usedInResume");
         }
 
         var profileAttributes = await db.ProfileAttributes
