@@ -1,25 +1,13 @@
 import { useTranslation } from 'react-i18next'
-import Box from '@mui/material/Box'
-import Container from '@mui/material/Container'
-import Typography from '@mui/material/Typography'
-import { AppHeader } from '@features/app-header'
 import { AttributesTable } from '@widgets/attributes-table'
+import { PageTemplate } from '@/shared/ui'
 
 export function AttributesPage() {
   const { t } = useTranslation()
 
   return (
-    <>
-      <AppHeader />
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            {t('attributes.title')}
-          </Typography>
-
-          <AttributesTable />
-        </Box>
-      </Container>
-    </>
+    <PageTemplate title={t('attributes.title')}>
+      <AttributesTable />
+    </PageTemplate>
   )
 }

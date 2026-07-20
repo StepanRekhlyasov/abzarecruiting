@@ -13,8 +13,9 @@ import { getSessionDisplayName } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
 import { LanguageSwitcher, ThemeSwitcher } from '@shared/ui'
 import { AppSidebar, MenuIcon } from '@features/app-sidebar'
+import type { SxProps, Theme } from '@mui/material/styles'
 
-export function AppHeader() {
+export function AppHeader({ sx }: { sx?: SxProps<Theme> }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [session, onLogout] = useUnit([$session, logout])
@@ -26,7 +27,7 @@ export function AppHeader() {
   }
 
   return (
-    <>
+    <Box sx={sx}>
       <AppBar position="static">
         <Toolbar sx={{ justifyContent: 'space-between', gap: 2 }}>
             <IconButton
@@ -63,6 +64,6 @@ export function AppHeader() {
       </AppBar>
 
       <AppSidebar open={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-    </>
+    </Box>
   )
 }
