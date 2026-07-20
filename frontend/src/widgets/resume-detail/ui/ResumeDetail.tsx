@@ -250,6 +250,7 @@ function ResumeDetailContent() {
             onChange={handleChange}
             emptyMessage={t('cvs.detail.personalEmpty')}
             editable={canEdit}
+            highlightEmptyFields={true}
           />
         ) : null}
 
@@ -261,6 +262,7 @@ function ResumeDetailContent() {
             onChange={handleChange}
             emptyMessage={t('cvs.detail.attributesEmpty')}
             editable={canEdit}
+            highlightEmptyFields={true}
           />
         ) : null}
 

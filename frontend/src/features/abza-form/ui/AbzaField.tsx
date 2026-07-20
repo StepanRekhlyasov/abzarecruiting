@@ -47,7 +47,7 @@ function asString(value: AbzaFormValue): string {
 export type AbzaFieldProps = {
   field: AbzaFieldConfig
   value: AbzaFormValue
-  error?: string
+  error?: string | boolean
   disabled?: boolean
   onChange: (value: AbzaFormValue) => void
   onBlur?: () => void
@@ -64,6 +64,7 @@ export function AbzaField({
   onDelete,
 }: AbzaFieldProps) {
   const hasError = Boolean(error)
+  const helperText = typeof error === 'string' ? error : undefined
   const isDisabled = disabled || Boolean(field.disabled)
   const size = field.size ?? 'medium'
   const endAdornment = tooltipAdornment(field.tooltip)
@@ -100,7 +101,7 @@ export function AbzaField({
           allowCreate={field.allowCreateOptions === true}
           disabled={isDisabled}
           error={hasError}
-          helperText={error}
+          helperText={helperText}
           size={size}
           onBlur={onBlur}
         />
@@ -120,7 +121,7 @@ export function AbzaField({
           loadOptions={field.loadOptions ?? (async () => [])}
           disabled={isDisabled}
           error={hasError}
-          helperText={error}
+          helperText={helperText}
         />
       )
       break
@@ -149,7 +150,7 @@ export function AbzaField({
                 label={field.label}
                 name={field.name}
                 error={hasError}
-                helperText={error}
+                helperText={helperText}
               />
             )}
           />
@@ -170,7 +171,7 @@ export function AbzaField({
           label={field.label}
           value={stringValue}
           error={hasError}
-          helperText={error}
+          helperText={helperText}
           disabled={isDisabled}
           size={size}
           onChange={(event) => onChange(event.target.value)}
@@ -303,7 +304,7 @@ export function AbzaField({
           type={inputType}
           value={field.type === 'date' ? stringValue.slice(0, 10) : stringValue}
           error={hasError}
-          helperText={error}
+          helperText={helperText}
           autoComplete={field.autoComplete}
           disabled={isDisabled}
           size={size}

@@ -20,6 +20,7 @@ type AbzaFormProps = {
   onFieldChange?: (name: string, value: AbzaFormValue) => void
   onFieldBlur?: (name: string) => void
   onFieldDelete?: (name: string) => void
+  highlightEmptyFields?: boolean
 }
 
 function createInitialValues(fields: AbzaFieldConfig[], initialValues?: AbzaFormValues): AbzaFormValues {
@@ -52,6 +53,7 @@ export function AbzaForm({
   onFieldChange,
   onFieldBlur,
   onFieldDelete,
+  highlightEmptyFields = false,
 }: AbzaFormProps) {
   const { t } = useTranslation()
   const isControlled = controlledValues !== undefined
@@ -150,7 +152,7 @@ export function AbzaForm({
           return null
         }
 
-        const error = touched[field.name] ? errors[field.name] : undefined
+        const error = (highlightEmptyFields && values[field.name] === '') || (touched[field.name] ? errors[field.name] : undefined)
 
         return (
           <AbzaField

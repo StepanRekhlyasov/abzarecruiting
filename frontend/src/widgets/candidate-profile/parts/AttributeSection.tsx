@@ -30,6 +30,7 @@ export type AttributeSectionProps = {
   onRemoveAttribute?: (attributeId: number) => Promise<void>
   isAdding?: boolean
   editable?: boolean
+  highlightEmptyFields?: boolean
 }
 
 export function AttributeSection({
@@ -43,6 +44,7 @@ export function AttributeSection({
   onRemoveAttribute,
   isAdding = false,
   editable = true,
+  highlightEmptyFields = false,
 }: AttributeSectionProps) {
   const { t } = useTranslation()
   const [selectedAttributes, setSelectedAttributes] = useState<AbzaSelectOption[]>([])
@@ -122,6 +124,7 @@ export function AttributeSection({
                       }
                     : undefined
                 }
+                highlightEmptyFields={highlightEmptyFields}
               />
             </Box>
           )
