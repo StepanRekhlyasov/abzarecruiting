@@ -38,6 +38,7 @@ type ResumeDetailContextValue = {
   error: string | null
   actionError: string | null
   canEdit: boolean
+  canPublish: boolean
   canLike: boolean
   isAutosaveActive: boolean
   isDownloading: boolean
@@ -68,9 +69,13 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
   const [isAutosaveActive, setAutosaveActive] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
 
-  const canEdit = Boolean(
+  const canPublish = Boolean(
     resume && session && (isAdmin(session) || session.id === resume.candidateId),
   )
+  const canEdit = Boolean(
+    canPublish && !resume?.published,
+  )
+  
   const canLike = Boolean(resume?.published && isRecruiter(session))
 
   const loadResume = useCallback(
@@ -197,6 +202,7 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
       error,
       actionError,
       canEdit,
+      canPublish,
       canLike,
       isAutosaveActive,
       isDownloading,
@@ -215,6 +221,7 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
       error,
       actionError,
       canEdit,
+      canPublish,
       canLike,
       isAutosaveActive,
       isDownloading,

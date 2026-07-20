@@ -75,6 +75,7 @@ function ResumeDetailContent() {
     actionError,
     canEdit,
     canLike,
+    canPublish,
     isAutosaveActive,
     isDownloading,
     setActionError,
@@ -126,7 +127,7 @@ function ResumeDetailContent() {
   }
 
   const publishDisabled = useMemo(() => {
-    if (!canEdit || isMutating || isSaving) {
+    if (!canPublish || isMutating || isSaving) {
       return true
     }
 
@@ -135,7 +136,7 @@ function ResumeDetailContent() {
     }
 
     return !allFilled
-  }, [allFilled, canEdit, isMutating, isSaving, resume?.published])
+  }, [allFilled, canPublish, isMutating, isSaving, resume?.published])
 
   if (isLoading) {
     return (
@@ -157,7 +158,7 @@ function ResumeDetailContent() {
         sx={{
           display: 'flex',
           flexWrap: 'wrap',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           justifyContent: 'space-between',
           gap: 2,
         }}
@@ -194,7 +195,7 @@ function ResumeDetailContent() {
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          {canEdit ? (
+          {canPublish ? (
             <>
               {!resume.published ? (
                 <Tooltip title={t('cvs.detail.publishHint')}>
