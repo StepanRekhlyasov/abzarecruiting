@@ -9,13 +9,14 @@ import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
 import { AbzaTable } from '@features/abza-table'
 import type { AbzaTableColumn } from '@features/abza-table'
+import { AbzaTableToolbar } from '@features/abza-table-toolbar'
 import type { AttributeDto } from '@entities/attribute'
 import {
   AttributesTableProvider,
   attributeToFormValues,
   useAttributesTable,
 } from '../model'
-import { AttributesTableToolbar } from './Toolbar'
+import { AttributesFilterModal } from './FilterModal'
 import { LinkToProfileModal } from './LinkToProfileModal'
 
 function AttributesTableContent() {
@@ -49,9 +50,24 @@ function AttributesTableContent() {
     handleCreateModalSubmit,
     handleEditModalSubmit,
     handleRowClick,
+    searchTags,
+    setSearchTags,
+    canLinkToCandidateProfile,
+    unlinkableSelectedCount,
+    isFilterActive,
+    setIsFilterModalOpen,
+    handleCreateClick,
+    handleDeleteSelected,
+    handleLinkSelected,
+    handleUnlinkSelected,
+    handleOpenLinkToProfileModal,
+    handleOpenUnlinkFromProfileModal,
+    loadAttributeOptions,
     createFormRef,
     editFormRef,
   } = useAttributesTable()
+
+  const canUseProfileActions = canLinkToProfile || canLinkToCandidateProfile
 
   const formConfig = useMemo(() => createAttributeFormConfig(t), [i18n.language])
 
@@ -121,7 +137,59 @@ function AttributesTableContent() {
         columns={columns}
         rows={rows}
         getRowId={(row) => row.id}
-        toolbar={<AttributesTableToolbar />}
+        toolbar={
+          <AbzaTableToolbar
+            disabled={isLoading}
+            asyncTagsSearch={{
+              label: t('attributes.search'),
+              value: searchTags,
+              onChange: setSearchTags,
+              loadOptions: loadAttributeOptions,
+              allowCreate: true,
+              createOptionLabel: (name) => t('attributes.searchAdd', { name }),
+            }}
+            filter={{
+              active: isFilterActive,
+              onClick: () => setIsFilterModalOpen(true),
+              'aria-label': t('attributes.actions.filter'),
+            }}
+            create={canManageAttributes ? { onClick: handleCreateClick } : undefined}
+            delete={
+              canManageAttributes
+                ? {
+                    onClick: handleDeleteSelected,
+                    disabled: selectedIds.length === 0,
+                  }
+                : undefined
+            }
+            link={
+              canUseProfileActions
+                ? {
+                    onClick: canLinkToCandidateProfile
+                      ? handleOpenLinkToProfileModal
+                      : () => void handleLinkSelected(),
+                    disabled: selectedIds.length === 0,
+                    title: t('attributes.actions.linkSelected'),
+                    'aria-label': t('attributes.actions.linkSelected'),
+                  }
+                : undefined
+            }
+            unlink={
+              canUseProfileActions
+                ? {
+                    onClick: canLinkToCandidateProfile
+                      ? handleOpenUnlinkFromProfileModal
+                      : () => void handleUnlinkSelected(),
+                    disabled: canLinkToCandidateProfile
+                      ? selectedIds.length === 0
+                      : unlinkableSelectedCount === 0,
+                    title: t('attributes.actions.unlinkSelected'),
+                    'aria-label': t('attributes.actions.unlinkSelected'),
+                  }
+                : undefined
+            }
+          />
+        }
         page={page}
         pageSize={pageSize}
         totalCount={totalCount}
@@ -192,6 +260,7 @@ function AttributesTableContent() {
       </AbzaModal>
 
       <LinkToProfileModal />
+      <AttributesFilterModal />
     </>
   )
 }

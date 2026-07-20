@@ -11,12 +11,12 @@ import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
 import { AbzaTable } from '@features/abza-table'
 import type { AbzaTableColumn } from '@features/abza-table'
+import { AbzaTableToolbar } from '@features/abza-table-toolbar'
 import { projectToFormValues, type ProjectDto } from '@entities/project'
 import { TagsField } from '@entities/tag'
 import { CandidateProfileLink } from '@shared/ui'
 import { ProjectsTableProvider, useProjectsTable } from '../model'
 import { ProjectsFilterModal } from './FilterModal'
-import { ProjectsTableToolbar } from './Toolbar'
 
 function ProjectsTableContent() {
   const { t } = useTranslation()
@@ -54,6 +54,11 @@ function ProjectsTableContent() {
     handleCreateModalSubmit,
     handleEditModalSubmit,
     handleRowClick,
+    handleFilter,
+    handleCreateClick,
+    handleDeleteSelected,
+    isFilterActive,
+    setIsFilterModalOpen,
     createFormRef,
     editFormRef,
   } = useProjectsTable()
@@ -145,7 +150,29 @@ function ProjectsTableContent() {
         columns={columns}
         rows={rows}
         getRowId={(row) => row.id}
-        toolbar={<ProjectsTableToolbar />}
+        toolbar={
+          <AbzaTableToolbar
+            disabled={isLoading}
+            textSearch={{
+              label: t('projects.search'),
+              onSearch: handleFilter,
+            }}
+            filter={{
+              active: isFilterActive,
+              onClick: () => setIsFilterModalOpen(true),
+              'aria-label': t('projects.actions.filter'),
+            }}
+            create={canCreateProjects ? { onClick: handleCreateClick } : undefined}
+            delete={
+              canCreateProjects
+                ? {
+                    onClick: handleDeleteSelected,
+                    disabled: selectedIds.length === 0,
+                  }
+                : undefined
+            }
+          />
+        }
         page={page}
         pageSize={pageSize}
         totalCount={totalCount}

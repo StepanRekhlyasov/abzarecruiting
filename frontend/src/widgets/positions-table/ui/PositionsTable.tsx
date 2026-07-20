@@ -8,10 +8,10 @@ import { formatDateTime } from '@shared/lib/date'
 import { AbzaError } from '@features/abza-error'
 import { AbzaTable } from '@features/abza-table'
 import type { AbzaTableColumn } from '@features/abza-table'
+import { AbzaTableToolbar } from '@features/abza-table-toolbar'
 import type { PositionDto } from '@entities/position'
 import { PositionsTableProvider, usePositionsTable } from '../model'
 import { PositionFormModal } from './PositionFormModal'
-import { PositionsTableToolbar } from './Toolbar'
 
 function PositionsTableContent() {
   const { t } = useTranslation()
@@ -38,6 +38,11 @@ function PositionsTableContent() {
     setActionError,
     handleSortChange,
     handleCreateSubmit,
+    handleFilter,
+    handleCreateClick,
+    handleDeleteSelected,
+    handleDuplicateSelected,
+    handleCreateResumesSelected,
   } = usePositionsTable()
 
   const columns = useMemo<AbzaTableColumn<PositionDto>[]>(() => {
@@ -124,7 +129,43 @@ function PositionsTableContent() {
         columns={columns}
         rows={rows}
         getRowId={(row) => row.id}
-        toolbar={<PositionsTableToolbar />}
+        toolbar={
+          <AbzaTableToolbar
+            disabled={isLoading}
+            textSearch={{
+              label: t('positions.search'),
+              onSearch: handleFilter,
+            }}
+            create={canManagePositions ? { onClick: handleCreateClick } : undefined}
+            duplicate={
+              canManagePositions
+                ? {
+                    onClick: handleDuplicateSelected,
+                    disabled: selectedIds.length === 0,
+                    'aria-label': t('positions.toolbar.duplicate'),
+                  }
+                : undefined
+            }
+            delete={
+              canManagePositions
+                ? {
+                    onClick: handleDeleteSelected,
+                    disabled: selectedIds.length === 0,
+                  }
+                : undefined
+            }
+            createResumes={
+              canCreateResumes
+                ? {
+                    onClick: handleCreateResumesSelected,
+                    disabled: selectedIds.length === 0,
+                    label: t('positions.toolbar.createResume'),
+                    'aria-label': t('positions.toolbar.createResume'),
+                  }
+                : undefined
+            }
+          />
+        }
         page={page}
         pageSize={pageSize}
         totalCount={totalCount}

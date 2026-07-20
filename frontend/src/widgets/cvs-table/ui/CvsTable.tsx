@@ -11,12 +11,12 @@ import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
 import { AbzaTable } from '@features/abza-table'
 import type { AbzaTableColumn } from '@features/abza-table'
+import { AbzaTableToolbar } from '@features/abza-table-toolbar'
 import { ResumeLike } from '@features/resume-like'
 import type { ResumeListItemDto } from '@entities/resume'
 import { getErrorKey } from '@shared/lib/errors'
 import { CandidateProfileLink } from '@shared/ui'
 import { CvsTableProvider, useCvsTable } from '../model'
-import { CvsTableToolbar } from './Toolbar'
 
 function CvsTableContent() {
   const { t } = useTranslation()
@@ -52,6 +52,9 @@ function CvsTableContent() {
     handleCreateSubmit,
     handleCreateModalSubmit,
     handleLikeChange,
+    handleFilter,
+    handleCreateClick,
+    handleDeleteSelected,
   } = useCvsTable()
 
   const createFormConfig = useMemo(
@@ -157,7 +160,24 @@ function CvsTableContent() {
         columns={columns}
         rows={rows}
         getRowId={(row) => row.id}
-        toolbar={<CvsTableToolbar />}
+        toolbar={
+          <AbzaTableToolbar
+            disabled={isLoading}
+            textSearch={{
+              label: t('cvs.search'),
+              onSearch: handleFilter,
+            }}
+            create={canCreateResumes ? { onClick: handleCreateClick } : undefined}
+            delete={
+              canDeleteResumes
+                ? {
+                    onClick: handleDeleteSelected,
+                    disabled: selectedIds.length === 0,
+                  }
+                : undefined
+            }
+          />
+        }
         page={page}
         pageSize={pageSize}
         totalCount={totalCount}

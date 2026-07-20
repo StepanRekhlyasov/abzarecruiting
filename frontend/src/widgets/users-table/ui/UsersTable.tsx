@@ -14,9 +14,9 @@ import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
 import { AbzaTable } from '@features/abza-table'
 import type { AbzaTableColumn } from '@features/abza-table'
+import { AbzaTableToolbar } from '@features/abza-table-toolbar'
 import { UsersTableProvider, useUsersTable } from '../model'
 import { UsersFilterModal } from './FilterModal'
-import { UsersTableToolbar } from './Toolbar'
 
 function UsersTableContent() {
   const { t } = useTranslation()
@@ -53,6 +53,12 @@ function UsersTableContent() {
     handleSetActivation,
     handleSendActivationEmail,
     handleOpenCandidateProfile,
+    handleFilter,
+    handleCreateClick,
+    handleDeleteSelected,
+    handleBulkChangeRoleClick,
+    isFilterActive,
+    setIsFilterModalOpen,
     createFormRef,
     changeRoleFormRef,
     canManageUsers,
@@ -124,7 +130,42 @@ function UsersTableContent() {
         columns={columns}
         rows={rows}
         getRowId={(row) => row.id}
-        toolbar={<UsersTableToolbar />}
+        toolbar={
+          <AbzaTableToolbar
+            disabled={isLoading}
+            textSearch={{
+              label: t('profile.users.search'),
+              onSearch: handleFilter,
+            }}
+            filter={
+              canManageUsers
+                ? {
+                    active: isFilterActive,
+                    onClick: () => setIsFilterModalOpen(true),
+                    'aria-label': t('profile.users.actions.filter'),
+                  }
+                : undefined
+            }
+            create={canManageUsers ? { onClick: handleCreateClick } : undefined}
+            changeRole={
+              canManageUsers
+                ? {
+                    onClick: handleBulkChangeRoleClick,
+                    disabled: selectedIds.length === 0,
+                    title: t('profile.users.actions.changeRoleSelected'),
+                  }
+                : undefined
+            }
+            delete={
+              canManageUsers
+                ? {
+                    onClick: handleDeleteSelected,
+                    disabled: selectedIds.length === 0,
+                  }
+                : undefined
+            }
+          />
+        }
         page={page}
         pageSize={pageSize}
         totalCount={totalCount}

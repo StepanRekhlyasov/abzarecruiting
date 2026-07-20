@@ -8,9 +8,9 @@ import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
 import { AbzaTable } from '@features/abza-table'
 import type { AbzaTableColumn } from '@features/abza-table'
+import { AbzaTableToolbar } from '@features/abza-table-toolbar'
 import type { TagDto } from '@entities/tag'
 import { TagsTableProvider, tagToFormValues, useTagsTable } from '../model'
-import { TagsTableToolbar } from './Toolbar'
 
 function TagsTableContent() {
   const { t } = useTranslation()
@@ -40,6 +40,11 @@ function TagsTableContent() {
     handleCreateModalSubmit,
     handleEditModalSubmit,
     handleRowClick,
+    searchTags,
+    setSearchTags,
+    canCreateTags,
+    handleCreateClick,
+    handleDeleteSelected,
     createFormRef,
     editFormRef,
   } = useTagsTable()
@@ -72,7 +77,28 @@ function TagsTableContent() {
         columns={columns}
         rows={rows}
         getRowId={(row) => row.id}
-        toolbar={<TagsTableToolbar />}
+        toolbar={
+          <AbzaTableToolbar
+            disabled={isLoading}
+            tagsSearch={{
+              label: t('tags.search'),
+              value: searchTags,
+              onChange: setSearchTags,
+              allowCreate: true,
+              createOnSelect: false,
+              createOptionLabel: (name) => t('tags.searchAdd', { name }),
+            }}
+            create={canCreateTags ? { onClick: handleCreateClick } : undefined}
+            delete={
+              canManageTags
+                ? {
+                    onClick: handleDeleteSelected,
+                    disabled: selectedIds.length === 0,
+                  }
+                : undefined
+            }
+          />
+        }
         page={page}
         pageSize={pageSize}
         totalCount={totalCount}
