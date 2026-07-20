@@ -27,23 +27,3 @@ export function cvDetailPath(id: number) {
 export function positionDetailPath(positionId: number) {
   return `/position/${positionId}`
 }
-
-export function homeRedirectPath(session: { roles: string[] } | null): string {
-  if (!session) {
-    return ROUTES.positions
-  }
-
-  if (session.roles.includes('Admin')) {
-    return ROUTES.users
-  }
-
-  if (session.roles.includes('Recruiter')) {
-    return ROUTES.cvs
-  }
-
-  if (session.roles.includes('Candidate')) {
-    return ROUTES.profile
-  }
-
-  return ROUTES.positions
-}

@@ -1,10 +1,8 @@
-import { Navigate } from 'react-router-dom'
-import { useUnit } from 'effector-react'
-import { $session } from '@entities/user'
-import { homeRedirectPath } from '@shared/config/routes'
+import { useTranslation } from 'react-i18next'
+import { PageTemplate } from '@/shared/ui'
 
 export function HomePage() {
-  const session = useUnit($session)
+  const { t } = useTranslation()
 
-  return <Navigate to={homeRedirectPath(session)} replace />
+  return <PageTemplate title={t('home.title')} />
 }

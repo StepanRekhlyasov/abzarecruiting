@@ -6,7 +6,7 @@ import Link from '@mui/material/Link'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import { authSucceeded, getCurrentUser } from '@entities/user'
-import { homeRedirectPath, ROUTES } from '@shared/config/routes'
+import { ROUTES } from '@shared/config/routes'
 import { parseApiError } from '@shared/lib/errors'
 import { saveAccessToken } from '@shared/lib/auth/accessToken'
 import { PageTemplate } from '@/shared/ui'
@@ -54,7 +54,7 @@ export function AuthCallbackPage() {
         })
 
         window.history.replaceState(null, '', window.location.pathname)
-        navigate(homeRedirectPath(user), { replace: true })
+        navigate(ROUTES.home, { replace: true })
       } catch (callbackError) {
         if (!cancelled) {
           setError(parseApiError(callbackError) || 'error.auth.externalLoginFailed')
