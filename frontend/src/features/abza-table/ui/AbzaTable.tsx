@@ -94,7 +94,7 @@ export function AbzaTable<T>({
   return (
     <Paper elevation={1}>
       {toolbar && (
-        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+        <Box sx={{ p: { xs: 1.5, sm: 2 }, borderBottom: 1, borderColor: 'divider' }}>
           {toolbar}
         </Box>
       )}

@@ -14,6 +14,9 @@ import { ROUTES } from '@shared/config/routes'
 import { LanguageSwitcher, ThemeSwitcher } from '@shared/ui'
 import { AppSidebar, MenuIcon } from '@features/app-sidebar'
 import type { SxProps, Theme } from '@mui/material/styles'
+import LogoutIcon from '@mui/icons-material/Logout'
+import LoginIcon from '@mui/icons-material/Login'
+import PersonAddIcon from '@mui/icons-material/PersonAdd'
 
 export function AppHeader({ sx }: { sx?: SxProps<Theme> }) {
   const { t } = useTranslation()
@@ -29,7 +32,7 @@ export function AppHeader({ sx }: { sx?: SxProps<Theme> }) {
   return (
     <Box sx={sx}>
       <AppBar position="static">
-        <Toolbar sx={{ justifyContent: 'space-between', gap: 2 }}>
+        <Toolbar sx={{ justifyContent: 'space-between', gap: { xs: 1, sm: 2 }, minHeight: { xs: 56 }, px: { xs: 1, sm: 2 } }}>
             <IconButton
               color="inherit"
               aria-label={t('common.menu')}
@@ -37,27 +40,31 @@ export function AppHeader({ sx }: { sx?: SxProps<Theme> }) {
             >
               <MenuIcon />
             </IconButton>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 }, minWidth: 0 }}>
             {session ? (
               <>
-                <Typography variant="body1" sx={{ mr: 1 }}>
+                <Typography
+                  variant="body1"
+                  noWrap
+                  sx={{ mr: 1, display: { xs: 'none', md: 'block' } }}
+                >
                   {t('common.greeting', { name: getSessionDisplayName(session) })}
                 </Typography>
                 <Button color="inherit" variant="outlined" onClick={handleLogout} sx={{height: '40px', borderColor: 'rgba(255,255,255,0.5)' }}>
-                  {t('common.logout')}
+                  <LogoutIcon />
                 </Button>
               </>
             ) : (
               <>
-                <Button sx={{height: '40px'}} color="inherit" component={RouterLink} to={ROUTES.login}>
-                  {t('common.login')}
+                <Button sx={{height: '40px'}} color="inherit" variant="outlined" component={RouterLink} to={ROUTES.login}>
+                  <LoginIcon />
                 </Button>
                 <Button color="inherit" variant="outlined" component={RouterLink} to={ROUTES.register} sx={{height: '40px', borderColor: 'rgba(255,255,255,0.5)' }}>
-                  {t('common.register')}
+                  <PersonAddIcon />
                 </Button>
               </>
             )}
-            <LanguageSwitcher />
+            <LanguageSwitcher sx={{ minWidth: { xs: 110, sm: 140 } }} />
             <ThemeSwitcher />
           </Box>
         </Toolbar>

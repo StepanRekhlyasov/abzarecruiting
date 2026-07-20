@@ -41,8 +41,8 @@ export function AttributesTableToolbar() {
 
   return (
     <>
-      <Grid container spacing={2}>
-        <Grid sx={{ flex: 1 }}>
+      <Grid container spacing={1.5} sx={{ alignItems: 'center' }}>
+        <Grid size={{ xs: 12, sm: 'grow' }} sx={{ minWidth: 0 }}>
           <AsyncEntityTags
             label={t('attributes.search')}
             value={searchTags}
@@ -50,40 +50,34 @@ export function AttributesTableToolbar() {
             loadOptions={loadAttributeOptions}
             allowCreate
             size="small"
-            sx={{ minWidth: 260, width: '100%' }}
+            sx={{ width: '100%', minWidth: 0 }}
             createOptionLabel={(name) => t('attributes.searchAdd', { name })}
           />
         </Grid>
-        <Grid>
+        <Grid size={{ xs: 12, sm: 'auto' }} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           <AbzaFilterButton
             active={isFilterActive}
             onClick={() => setIsFilterModalOpen(true)}
             disabled={isLoading}
             aria-label={t('attributes.actions.filter')}
           />
-        </Grid>
-        {canManageAttributes && (
-          <Grid>
-            <Button variant="contained" onClick={handleCreateClick} disabled={isLoading} sx={{ boxShadow: 'none' }}>
+          {canManageAttributes && (
+            <Button variant="contained" onClick={handleCreateClick} disabled={isLoading} sx={{ boxShadow: 'none', minWidth: 40 }}>
               <AddIcon />
             </Button>
-          </Grid>
-        )}
-        {canManageAttributes && (
-          <Grid>
+          )}
+          {canManageAttributes && (
             <Button
               variant="contained"
               color="error"
               onClick={handleDeleteSelected}
               disabled={selectedIds.length === 0 || isLoading}
-              sx={{ boxShadow: 'none' }}
+              sx={{ boxShadow: 'none', minWidth: 40 }}
             >
               <BackspaceIcon />
             </Button>
-          </Grid>
-        )}
-        {canUseProfileActions && (
-          <Grid>
+          )}
+          {canUseProfileActions && (
             <Tooltip title={t('attributes.actions.linkSelected')}>
               <span>
                 <Button
@@ -97,10 +91,8 @@ export function AttributesTableToolbar() {
                 </Button>
               </span>
             </Tooltip>
-          </Grid>
-        )}
-        {canUseProfileActions && (
-          <Grid>
+          )}
+          {canUseProfileActions && (
             <Tooltip title={t('attributes.actions.unlinkSelected')}>
               <span>
                 <Button
@@ -119,8 +111,8 @@ export function AttributesTableToolbar() {
                 </Button>
               </span>
             </Tooltip>
-          </Grid>
-        )}
+          )}
+        </Grid>
       </Grid>
       <AttributesFilterModal />
     </>

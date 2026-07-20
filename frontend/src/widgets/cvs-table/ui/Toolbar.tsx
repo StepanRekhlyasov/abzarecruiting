@@ -26,8 +26,8 @@ export function CvsTableToolbar() {
   }
 
   return (
-    <Grid container spacing={2}>
-      <Grid sx={{ flex: 1 }}>
+    <Grid container spacing={1.5} sx={{ alignItems: 'center' }}>
+      <Grid size={{ xs: 12, sm: 'grow' }} sx={{ minWidth: 0 }}>
         <TextField
           size="small"
           label={t('cvs.search')}
@@ -39,34 +39,30 @@ export function CvsTableToolbar() {
               applyFilter()
             }
           }}
-          sx={{ minWidth: 260, width: '100%' }}
+          sx={{ width: '100%', minWidth: 0 }}
         />
       </Grid>
-      <Grid>
-        <Button variant="outlined" onClick={applyFilter} disabled={isLoading}>
+      <Grid size={{ xs: 12, sm: 'auto' }} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        <Button variant="outlined" onClick={applyFilter} disabled={isLoading} sx={{ minWidth: 40 }}>
           <SearchIcon />
         </Button>
-      </Grid>
-      {canCreateResumes && (
-        <Grid>
-          <Button variant="contained" onClick={handleCreateClick} disabled={isLoading} sx={{ boxShadow: 'none' }}>
+        {canCreateResumes && (
+          <Button variant="contained" onClick={handleCreateClick} disabled={isLoading} sx={{ boxShadow: 'none', minWidth: 40 }}>
             <AddIcon />
           </Button>
-        </Grid>
-      )}
-      {canDeleteResumes && (
-        <Grid>
+        )}
+        {canDeleteResumes && (
           <Button
             variant="contained"
             color="error"
             onClick={handleDeleteSelected}
             disabled={selectedIds.length === 0 || isLoading}
-            sx={{ boxShadow: 'none' }}
+            sx={{ boxShadow: 'none', minWidth: 40 }}
           >
             <BackspaceIcon />
           </Button>
-        </Grid>
-      )}
+        )}
+      </Grid>
     </Grid>
   )
 }

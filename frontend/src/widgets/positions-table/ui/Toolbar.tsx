@@ -5,6 +5,7 @@ import BackspaceIcon from '@mui/icons-material/Backspace'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DescriptionIcon from '@mui/icons-material/Description'
 import SearchIcon from '@mui/icons-material/Search'
+import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Grid from '@mui/material/Grid'
 import TextField from '@mui/material/TextField'
@@ -30,8 +31,8 @@ export function PositionsTableToolbar() {
   }
 
   return (
-    <Grid container spacing={2}>
-      <Grid sx={{ flex: 1 }}>
+    <Grid container spacing={1.5} sx={{ alignItems: 'center' }}>
+      <Grid size={{ xs: 12, sm: 'grow' }} sx={{ minWidth: 0 }}>
         <TextField
           size="small"
           label={t('positions.search')}
@@ -43,60 +44,60 @@ export function PositionsTableToolbar() {
               applyFilter()
             }
           }}
-          sx={{ minWidth: 260, width: '100%' }}
+          sx={{ width: '100%', minWidth: 0 }}
         />
       </Grid>
-      <Grid>
-        <Button variant="outlined" onClick={applyFilter} disabled={isLoading}>
+      <Grid size={{ xs: 12, sm: 'auto' }} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        <Button variant="outlined" onClick={applyFilter} disabled={isLoading} sx={{ minWidth: 40 }}>
           <SearchIcon />
         </Button>
-      </Grid>
-      {canManagePositions && (
-        <Grid>
-          <Button variant="contained" onClick={handleCreateClick} disabled={isLoading} sx={{ boxShadow: 'none' }}>
+        {canManagePositions && (
+          <Button variant="contained" onClick={handleCreateClick} disabled={isLoading} sx={{ boxShadow: 'none', minWidth: 40 }}>
             <AddIcon />
           </Button>
-        </Grid>
-      )}
-      {canManagePositions && (
-        <Grid>
+        )}
+        {canManagePositions && (
           <Button
             variant="contained"
             onClick={handleDuplicateSelected}
             disabled={selectedIds.length === 0 || isLoading}
-            sx={{ boxShadow: 'none' }}
+            sx={{ boxShadow: 'none', minWidth: 40 }}
             aria-label={t('positions.toolbar.duplicate')}
           >
             <ContentCopyIcon />
           </Button>
-        </Grid>
-      )}
-      {canManagePositions && (
-        <Grid>
+        )}
+        {canManagePositions && (
           <Button
             variant="contained"
             color="error"
             onClick={handleDeleteSelected}
             disabled={selectedIds.length === 0 || isLoading}
-            sx={{ boxShadow: 'none' }}
+            sx={{ boxShadow: 'none', minWidth: 40 }}
           >
             <BackspaceIcon />
           </Button>
-        </Grid>
-      )}
-      {canCreateResumes && (
-        <Grid>
+        )}
+        {canCreateResumes && (
           <Button
             variant="contained"
             onClick={handleCreateResumesSelected}
             disabled={selectedIds.length === 0 || isLoading}
-            sx={{ boxShadow: 'none' }}
+            sx={{
+              boxShadow: 'none',
+              minWidth: 40,
+              px: { xs: 1, sm: 2 },
+              '& .MuiButton-startIcon': { mr: { xs: 0, sm: 1 } },
+            }}
             startIcon={<DescriptionIcon />}
+            aria-label={t('positions.toolbar.createResume')}
           >
-            {t('positions.toolbar.createResume')}
+            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+              {t('positions.toolbar.createResume')}
+            </Box>
           </Button>
-        </Grid>
-      )}
+        )}
+      </Grid>
     </Grid>
   )
 }
