@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import Alert from '@mui/material/Alert'
-import Box from '@mui/material/Box'
-import Container from '@mui/material/Container'
 import Link from '@mui/material/Link'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
@@ -11,7 +9,7 @@ import { authSucceeded, getCurrentUser } from '@entities/user'
 import { homeRedirectPath, ROUTES } from '@shared/config/routes'
 import { parseApiError } from '@shared/lib/errors'
 import { saveAccessToken } from '@shared/lib/auth/accessToken'
-import { AppHeader } from '@features/app-header'
+import { PageTemplate } from '@/shared/ui'
 
 function readHashParams(): URLSearchParams {
   const hash = window.location.hash.startsWith('#')
@@ -70,34 +68,29 @@ export function AuthCallbackPage() {
   }, [navigate])
 
   return (
-    <>
-      <AppHeader />
-      <Container maxWidth="sm">
-        <Box sx={{ py: 6 }}>
-          <Paper elevation={2} sx={{ p: 4 }}>
-            <Typography variant="h4" component="h1" gutterBottom>
-              {t('auth.callback.title')}
-            </Typography>
+    <PageTemplate maxWidth="sm">
+      <Paper elevation={2} sx={{ p: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          {t('auth.callback.title')}
+        </Typography>
 
-            {error ? (
-              <>
-                <Alert severity="error" sx={{ mb: 2 }}>
-                  {t(error)}
-                </Alert>
-                <Typography variant="body2">
-                  <Link component={RouterLink} to={ROUTES.login}>
-                    {t('auth.callback.loginLink')}
-                  </Link>
-                </Typography>
-              </>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                {t('auth.callback.loading')}
-              </Typography>
-            )}
-          </Paper>
-        </Box>
-      </Container>
-    </>
+        {error ? (
+          <>
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {t(error)}
+            </Alert>
+            <Typography variant="body2">
+              <Link component={RouterLink} to={ROUTES.login}>
+                {t('auth.callback.loginLink')}
+              </Link>
+            </Typography>
+          </>
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            {t('auth.callback.loading')}
+          </Typography>
+        )}
+      </Paper>
+    </PageTemplate>
   )
 }

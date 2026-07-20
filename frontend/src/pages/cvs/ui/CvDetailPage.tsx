@@ -1,10 +1,8 @@
 import { Navigate, useParams } from 'react-router-dom'
 import { useUnit } from 'effector-react'
-import Box from '@mui/material/Box'
-import Container from '@mui/material/Container'
-import { AppHeader } from '@features/app-header'
 import { $session } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
+import { PageTemplate } from '@/shared/ui'
 import { ResumeDetail } from '@widgets/resume-detail'
 
 export function CvDetailPage() {
@@ -21,13 +19,8 @@ export function CvDetailPage() {
   }
 
   return (
-    <>
-      <AppHeader />
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <ResumeDetail resumeId={resumeId} />
-        </Box>
-      </Container>
-    </>
+    <PageTemplate>
+      <ResumeDetail resumeId={resumeId} />
+    </PageTemplate>
   )
 }

@@ -2,15 +2,13 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link as RouterLink, useSearchParams } from 'react-router-dom'
 import Alert from '@mui/material/Alert'
-import Box from '@mui/material/Box'
-import Container from '@mui/material/Container'
 import Link from '@mui/material/Link'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import { confirmEmail } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
 import { parseApiError } from '@shared/lib/errors'
-import { AppHeader } from '@features/app-header'
+import { PageTemplate } from '@/shared/ui'
 
 export function ConfirmEmailPage() {
   const { t } = useTranslation()
@@ -54,43 +52,38 @@ export function ConfirmEmailPage() {
   }, [searchParams])
 
   return (
-    <>
-      <AppHeader />
-      <Container maxWidth="sm">
-        <Box sx={{ py: 6 }}>
-          <Paper elevation={2} sx={{ p: 4 }}>
-            <Typography variant="h4" component="h1" gutterBottom>
-              {t('auth.confirmEmail.title')}
-            </Typography>
+    <PageTemplate maxWidth="sm">
+      <Paper elevation={2} sx={{ p: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          {t('auth.confirmEmail.title')}
+        </Typography>
 
-            {isLoading ? (
-              <Typography variant="body2" color="text.secondary">
-                {t('auth.confirmEmail.loading')}
-              </Typography>
-            ) : null}
+        {isLoading ? (
+          <Typography variant="body2" color="text.secondary">
+            {t('auth.confirmEmail.loading')}
+          </Typography>
+        ) : null}
 
-            {message ? (
-              <Alert severity="success" sx={{ mb: 2 }}>
-                {t(message)}
-              </Alert>
-            ) : null}
+        {message ? (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            {t(message)}
+          </Alert>
+        ) : null}
 
-            {error ? (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {t(error)}
-              </Alert>
-            ) : null}
+        {error ? (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {t(error)}
+          </Alert>
+        ) : null}
 
-            {!isLoading ? (
-              <Typography variant="body2" sx={{ mt: 2 }}>
-                <Link component={RouterLink} to={ROUTES.login}>
-                  {t('auth.confirmEmail.loginLink')}
-                </Link>
-              </Typography>
-            ) : null}
-          </Paper>
-        </Box>
-      </Container>
-    </>
+        {!isLoading ? (
+          <Typography variant="body2" sx={{ mt: 2 }}>
+            <Link component={RouterLink} to={ROUTES.login}>
+              {t('auth.confirmEmail.loginLink')}
+            </Link>
+          </Typography>
+        ) : null}
+      </Paper>
+    </PageTemplate>
   )
 }

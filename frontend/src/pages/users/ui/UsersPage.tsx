@@ -1,12 +1,9 @@
 import { Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useUnit } from 'effector-react'
-import Box from '@mui/material/Box'
-import Container from '@mui/material/Container'
-import Typography from '@mui/material/Typography'
-import { AppHeader } from '@features/app-header'
 import { $session, isRecruiterOrAdmin } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
+import { PageTemplate } from '@/shared/ui'
 import { UsersTable } from '@widgets/users-table'
 
 export function UsersPage() {
@@ -22,17 +19,8 @@ export function UsersPage() {
   }
 
   return (
-    <>
-      <AppHeader />
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            {t('users.title')}
-          </Typography>
-
-          <UsersTable />
-        </Box>
-      </Container>
-    </>
+    <PageTemplate title={t('users.title')}>
+      <UsersTable />
+    </PageTemplate>
   )
 }

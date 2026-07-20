@@ -1,10 +1,8 @@
 import { Navigate } from 'react-router-dom'
 import { useUnit } from 'effector-react'
-import Box from '@mui/material/Box'
-import Container from '@mui/material/Container'
-import { AppHeader } from '@features/app-header'
 import { $session, isAdmin, isCandidate } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
+import { PageTemplate } from '@/shared/ui'
 import { Profile } from '@widgets/candidate-profile'
 
 export function ProfilePage() {
@@ -19,13 +17,8 @@ export function ProfilePage() {
   }
 
   return (
-    <>
-      <AppHeader />
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Profile candidateId={session.id} />
-        </Box>
-      </Container>
-    </>
+    <PageTemplate>
+      <Profile candidateId={session.id} />
+    </PageTemplate>
   )
 }
