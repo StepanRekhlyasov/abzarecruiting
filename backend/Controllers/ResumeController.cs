@@ -181,6 +181,7 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
     public async Task<IActionResult> DownloadPdf(
         int id,
         [FromQuery] string? lang,
+        [FromQuery] string? frontendBaseUrl,
         CancellationToken cancellationToken)
     {
         var result = await resumeService.GeneratePdfForViewerAsync(
@@ -189,6 +190,7 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
             User.IsAdmin(),
             User.IsRecruiter(),
             lang,
+            frontendBaseUrl,
             cancellationToken);
 
         if (result.NotFound)

@@ -11,7 +11,9 @@ using Backend.Api.Services.Files;
 using Backend.Api.Services.Position;
 using Backend.Api.Services.Profile;
 using Backend.Api.Services.Search;
+using Backend.Api.Configuration;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 using FileEntity = Backend.Api.Data.Entities.File;
 using ProfileProjectEntity = Backend.Api.Data.Entities.ProfileProject;
@@ -76,6 +78,7 @@ public interface IResumeService
         bool isAdmin,
         bool isRecruiter,
         string? locale = null,
+        string? frontendBaseUrl = null,
         CancellationToken cancellationToken = default);
 
     bool CanView(ResumeEntity resume, string? userId, bool isAdmin, bool isRecruiter);
@@ -90,7 +93,8 @@ public class ResumeService(
     IProfileService profileService,
     ISearchIndexService searchIndex,
     ILuceneIndex lucene,
-    IHttpClientFactory httpClientFactory) : IResumeService
+    IHttpClientFactory httpClientFactory,
+    IOptions<AppSettings> appSettings) : IResumeService
 {
     private const string VersionChangedMessage = "error.oldVersion";
     private const string AlreadyExistsMessage = "error.resumes.alreadyExists";
@@ -652,6 +656,7 @@ public class ResumeService(
         bool isAdmin,
         bool isRecruiter,
         string? locale = null,
+        string? frontendBaseUrl = null,
         CancellationToken cancellationToken = default)
     {
         var result = await GetByIdForViewerAsync(id, userId, isAdmin, isRecruiter, cancellationToken);
@@ -671,7 +676,9 @@ public class ResumeService(
         }
 
         var photoBytes = await TryLoadPhotoBytesAsync(result.Dto, cancellationToken);
-        var content = ResumePdfGenerator.Generate(result.Dto, photoBytes, locale);
+        var frontendBase = ResolveFrontendBaseUrl(frontendBaseUrl);
+        var resumeUrl = $"{frontendBase}/cvs/{result.Dto.Id}";
+        var content = ResumePdfGenerator.Generate(result.Dto, photoBytes, locale, resumeUrl);
         var fileName = ResumePdfGenerator.BuildFileName(result.Dto, locale);
         return ResumePdfResult.Ok(content, fileName);
     }
@@ -693,13 +700,15 @@ public class ResumeService(
         try
         {
             var httpClient = httpClientFactory.CreateClient("CloudinaryAssets");
-            using var response = await httpClient.GetAsync(photoUri, cancellationToken);
+            var requestUri = ResumeImageHelper.ToPdfCompatiblePhotoUrl(file.Url);
+            using var response = await httpClient.GetAsync(requestUri, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 return null;
             }
 
-            return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            return ResumeImageHelper.IsSupportedImage(bytes) ? bytes : null;
         }
         catch (HttpRequestException)
         {
@@ -709,6 +718,18 @@ public class ResumeService(
         {
             return null;
         }
+    }
+
+    private string ResolveFrontendBaseUrl(string? frontendBaseUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(frontendBaseUrl)
+            && Uri.TryCreate(frontendBaseUrl.Trim().TrimEnd('/'), UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+        {
+            return $"{uri.Scheme}://{uri.Authority}";
+        }
+
+        return appSettings.Value.FrontendBaseUrl?.TrimEnd('/') ?? "http://localhost:8000";
     }
 
     public bool CanView(ResumeEntity resume, string? userId, bool isAdmin, bool isRecruiter) =>

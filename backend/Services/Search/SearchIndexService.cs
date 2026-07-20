@@ -282,7 +282,7 @@ public class SearchIndexService(
 
     public async Task RebuildAllAsync(CancellationToken cancellationToken = default)
     {
-        lucene.Clear();
+        lucene.WipeStorage();
 
         var positionIds = await db.Positions.AsNoTracking().Select(item => item.Id).ToListAsync(cancellationToken);
         await RebuildPositionsAsync(positionIds, cancellationToken);

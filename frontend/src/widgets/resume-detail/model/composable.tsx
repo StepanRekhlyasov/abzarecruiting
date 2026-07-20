@@ -183,7 +183,7 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
     setActionError(null)
 
     try {
-      await downloadResumePdf(resume.id, i18n.language)
+      await downloadResumePdf(resume.id, i18n.language, window.location.origin)
     } catch (downloadError) {
       setActionError(getErrorKey(downloadError, 'error.resumes.download'))
       throw downloadError

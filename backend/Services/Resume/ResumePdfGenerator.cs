@@ -10,7 +10,11 @@ namespace Backend.Api.Services.Resume;
 
 public static class ResumePdfGenerator
 {
-    public static byte[] Generate(ResumeDto resume, byte[]? photoBytes = null, string? locale = null)
+    public static byte[] Generate(
+        ResumeDto resume,
+        byte[]? photoBytes = null,
+        string? locale = null,
+        string? resumeUrl = null)
     {
         var strings = ResumePdfStrings.ForLocale(locale);
         var fullName = BuildFullName(resume.Attributes, strings);
@@ -33,41 +37,54 @@ public static class ResumePdfGenerator
                     page.Margin(40);
                     page.DefaultTextStyle(style => style.FontSize(11).FontColor(Colors.Grey.Darken3));
 
-                    page.Header().Column(column =>
+                    page.Header().Row(headerRow =>
                     {
-                        column.Item().Text(string.Format(strings.ForPosition, resume.PositionName))
-                            .SemiBold()
-                            .FontSize(20)
-                            .FontColor(Colors.Blue.Darken2);
-
-                        column.Item().PaddingTop(8).Text(fullName)
-                            .SemiBold()
-                            .FontSize(14)
-                            .FontColor(Colors.Grey.Darken3);
-
-                        if (photoBytes is { Length: > 0 })
+                        headerRow.RelativeItem().Column(column =>
                         {
-                            column.Item().PaddingTop(4).Width(120).Height(120).Image(photoBytes).FitArea();
-                        }
+                            column.Item().Text(string.Format(strings.ForPosition, resume.PositionName))
+                                .SemiBold()
+                                .FontSize(20)
+                                .FontColor(Colors.Blue.Darken2);
 
-                        if (HasText(email, strings))
-                        {
-                            column.Item().PaddingTop(4).Text($"{strings.EmailLabel}: {email}").FontSize(10);
-                        }
+                            column.Item().PaddingTop(8).Text(fullName)
+                                .SemiBold()
+                                .FontSize(14)
+                                .FontColor(Colors.Grey.Darken3);
 
-                        if (HasText(phone, strings))
-                        {
-                            column.Item().PaddingTop(2).Text($"{strings.PhoneLabel}: {phone}").FontSize(10);
-                        }
+                            if (photoBytes is { Length: > 0 } && ResumeImageHelper.IsSupportedImage(photoBytes))
+                            {
+                                column.Item().PaddingTop(4).Width(120).Height(120).Image(photoBytes).FitArea();
+                            }
 
-                        if (HasText(location, strings))
-                        {
-                            column.Item().PaddingTop(2).Text($"{strings.LocationLabel}: {location}").FontSize(10);
-                        }
+                            if (HasText(email, strings))
+                            {
+                                column.Item().PaddingTop(4).Text($"{strings.EmailLabel}: {email}").FontSize(10);
+                            }
 
-                        if (HasText(bio, strings))
+                            if (HasText(phone, strings))
+                            {
+                                column.Item().PaddingTop(2).Text($"{strings.PhoneLabel}: {phone}").FontSize(10);
+                            }
+
+                            if (HasText(location, strings))
+                            {
+                                column.Item().PaddingTop(2).Text($"{strings.LocationLabel}: {location}").FontSize(10);
+                            }
+
+                            if (HasText(bio, strings))
+                            {
+                                column.Item().PaddingTop(2).Text($"{strings.Bio}: {bio}").FontSize(10);
+                            }
+                        });
+
+                        if (!string.IsNullOrWhiteSpace(resumeUrl))
                         {
-                            column.Item().PaddingTop(2).Text($"{strings.Bio}: {bio}").FontSize(10);
+                            headerRow.ConstantItem(72)
+                                .Height(72)
+                                .AspectRatio(1)
+                                .AlignTop()
+                                .Background(Colors.White)
+                                .Svg(size => ResumeQrCodeGenerator.GenerateSvg(resumeUrl, size));
                         }
                     });
 

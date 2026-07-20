@@ -43,16 +43,16 @@ export function AppHeader({ sx }: { sx?: SxProps<Theme> }) {
                 <Typography variant="body1" sx={{ mr: 1 }}>
                   {t('common.greeting', { name: getSessionDisplayName(session) })}
                 </Typography>
-                <Button color="inherit" variant="outlined" onClick={handleLogout} sx={{ borderColor: 'rgba(255,255,255,0.5)' }}>
+                <Button color="inherit" variant="outlined" onClick={handleLogout} sx={{height: '40px', borderColor: 'rgba(255,255,255,0.5)' }}>
                   {t('common.logout')}
                 </Button>
               </>
             ) : (
               <>
-                <Button color="inherit" component={RouterLink} to={ROUTES.login}>
+                <Button sx={{height: '40px'}} color="inherit" component={RouterLink} to={ROUTES.login}>
                   {t('common.login')}
                 </Button>
-                <Button color="inherit" variant="outlined" component={RouterLink} to={ROUTES.register} sx={{ borderColor: 'rgba(255,255,255,0.5)' }}>
+                <Button color="inherit" variant="outlined" component={RouterLink} to={ROUTES.register} sx={{height: '40px', borderColor: 'rgba(255,255,255,0.5)' }}>
                   {t('common.register')}
                 </Button>
               </>

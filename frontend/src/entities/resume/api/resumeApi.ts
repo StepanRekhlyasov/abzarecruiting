@@ -115,10 +115,17 @@ export async function toggleResumeLike(id: number): Promise<ResumeLikeStateDto> 
   }
 }
 
-export async function downloadResumePdf(id: number, lang?: string): Promise<void> {
+export async function downloadResumePdf(
+  id: number,
+  lang?: string,
+  frontendBaseUrl: string = window.location.origin,
+): Promise<void> {
   try {
     const { data, headers } = await apiClient.get<Blob>(`/resume/${id}/pdf`, {
-      params: { lang: lang || undefined },
+      params: {
+        lang: lang || undefined,
+        frontendBaseUrl,
+      },
       responseType: 'blob',
     })
 

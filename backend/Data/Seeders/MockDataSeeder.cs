@@ -33,7 +33,6 @@ public static class MockDataSeeder
         await SeedPositionsAsync(db, adminId, createdAt, attributesByName, tagsByName, logger);
         await SeedProjectsAsync(db, userManager, createdAt, tagsByName, logger);
         await SeedMessagesAsync(db, userManager, createdAt, logger);
-        await CleanupSeedResumesAsync(db, userManager, logger);
     }
 
     private static async Task<Dictionary<string, AttributeEntity>> SeedAttributesAsync(
@@ -662,49 +661,5 @@ public static class MockDataSeeder
             created,
             updated,
             removed);
-    }
-
-    private static async Task CleanupSeedResumesAsync(
-        ApplicationDbContext db,
-        UserManager<ApplicationUser> userManager,
-        ILogger logger)
-    {
-        var candidateEmails = new[]
-        {
-            "user-1@fexpost.com",
-            "user-2@fexpost.com",
-            "user-3@fexpost.com",
-            "user-4@fexpost.com",
-            "user-5@fexpost.com",
-        };
-
-        var candidateIds = new List<string>();
-        foreach (var email in candidateEmails)
-        {
-            var user = await userManager.FindByEmailAsync(email);
-            if (user is not null)
-            {
-                candidateIds.Add(user.Id);
-            }
-        }
-
-        if (candidateIds.Count == 0)
-        {
-            return;
-        }
-
-        var candidateIdSet = candidateIds.ToHashSet(StringComparer.Ordinal);
-        var resumes = (await db.Resumes.ToListAsync())
-            .Where(resume => candidateIdSet.Contains(resume.CandidateId))
-            .ToList();
-
-        if (resumes.Count == 0)
-        {
-            return;
-        }
-
-        db.Resumes.RemoveRange(resumes);
-        await db.SaveChangesAsync();
-        logger.LogInformation("Removed {Count} seeded resumes for mock candidates.", resumes.Count);
     }
 }

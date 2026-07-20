@@ -279,35 +279,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
-
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    await IdentitySeeder.SeedRolesAsync(roleManager);
-
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
-        .CreateLogger("Startup");
-    var defaultAttributesSettings = scope.ServiceProvider
-        .GetRequiredService<IOptions<DefaultAttributesSettings>>();
-    var fileStorageService = scope.ServiceProvider.GetRequiredService<IFileStorageService>();
-    var profileAttributeService = scope.ServiceProvider.GetRequiredService<IProfileAttributeService>();
-    await AttributeSeeder.SeedAsync(db, userManager, profileAttributeService, defaultAttributesSettings, logger);
-    await UserSeeder.SeedAsync(
-        db,
-        userManager,
-        profileAttributeService,
-        fileStorageService,
-        app.Environment,
-        logger);
-    await MockDataSeeder.SeedAsync(db, userManager, logger);
-
-    logger.LogInformation("Rebuilding Lucene search index...");
-    var searchIndex = scope.ServiceProvider.GetRequiredService<ISearchIndexService>();
-    await searchIndex.RebuildAllAsync();
-}
+await DatabaseStartup.MigrateAsync(app.Services);
+await DatabaseStartup.RebuildSearchIndexAsync(app.Services);
+await DatabaseSeeder.RunAsync(app);
 
 if (app.Environment.IsDevelopment())
 {

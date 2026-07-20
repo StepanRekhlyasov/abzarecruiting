@@ -26,7 +26,7 @@ public interface ILuceneIndex
 
     IReadOnlyList<int> Search(string entityType, string? query, int maxResults = 2000);
 
-    void Clear();
+    void WipeStorage();
 }
 
 public sealed partial class LuceneIndex : ILuceneIndex, IDisposable
@@ -37,9 +37,10 @@ public sealed partial class LuceneIndex : ILuceneIndex, IDisposable
     private const string FieldContent = "content";
 
     private readonly Analyzer _analyzer;
-    private readonly FSDirectory _directory;
-    private readonly IndexWriter _writer;
+    private readonly string _indexPath;
     private readonly object _sync = new();
+    private FSDirectory _directory;
+    private IndexWriter _writer;
 
     public LuceneIndex(IOptions<LuceneSettings> options)
     {
@@ -54,15 +55,11 @@ public sealed partial class LuceneIndex : ILuceneIndex, IDisposable
             indexPath = Path.Combine(AppContext.BaseDirectory, indexPath);
         }
 
-        Directory.CreateDirectory(indexPath);
+        _indexPath = indexPath;
+        Directory.CreateDirectory(_indexPath);
 
         _analyzer = new StandardAnalyzer(AppLuceneVersion);
-        _directory = FSDirectory.Open(indexPath);
-        var config = new IndexWriterConfig(AppLuceneVersion, _analyzer)
-        {
-            OpenMode = OpenMode.CREATE_OR_APPEND,
-        };
-        _writer = new IndexWriter(_directory, config);
+        (_directory, _writer) = OpenIndex(_indexPath, _analyzer);
     }
 
     public void Upsert(string entityType, int id, string content) =>
@@ -161,12 +158,26 @@ public sealed partial class LuceneIndex : ILuceneIndex, IDisposable
         }
     }
 
-    public void Clear()
+    public void WipeStorage()
     {
         lock (_sync)
         {
-            _writer.DeleteAll();
-            _writer.Commit();
+            _writer.Dispose();
+            _directory.Dispose();
+
+            if (Directory.Exists(_indexPath))
+            {
+                foreach (var file in Directory.EnumerateFiles(_indexPath))
+                {
+                    File.Delete(file);
+                }
+            }
+            else
+            {
+                Directory.CreateDirectory(_indexPath);
+            }
+
+            (_directory, _writer) = OpenIndex(_indexPath, _analyzer);
         }
     }
 
@@ -178,6 +189,16 @@ public sealed partial class LuceneIndex : ILuceneIndex, IDisposable
             _directory.Dispose();
             _analyzer.Dispose();
         }
+    }
+
+    private static (FSDirectory Directory, IndexWriter Writer) OpenIndex(string indexPath, Analyzer analyzer)
+    {
+        var directory = FSDirectory.Open(indexPath);
+        var config = new IndexWriterConfig(AppLuceneVersion, analyzer)
+        {
+            OpenMode = OpenMode.CREATE_OR_APPEND,
+        };
+        return (directory, new IndexWriter(directory, config));
     }
 
     private static Document CreateDocument(string entityType, int id, string content)
