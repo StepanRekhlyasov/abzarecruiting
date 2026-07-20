@@ -40,6 +40,7 @@ public interface IResumeService
         bool isAdmin,
         bool isRecruiter,
         string? candidateIdFilter = null,
+        IEnumerable<int>? tagIds = null,
         CancellationToken cancellationToken = default);
 
     Task<PagedResult<ResumeListItemDto>> GetListByPositionAsync(
@@ -255,6 +256,7 @@ public class ResumeService(
         bool isAdmin,
         bool isRecruiter,
         string? candidateIdFilter = null,
+        IEnumerable<int>? tagIds = null,
         CancellationToken cancellationToken = default)
     {
         var query = db.Resumes
@@ -280,6 +282,18 @@ public class ResumeService(
         else
         {
             query = query.Where(resume => resume.CandidateId == userId);
+        }
+
+        var filterTagIds = (tagIds ?? [])
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        foreach (var tagId in filterTagIds)
+        {
+            var currentTagId = tagId;
+            query = query.Where(resume =>
+                resume.Position.PositionTags.Any(item => item.TagId == currentTagId));
         }
 
         if (!string.IsNullOrWhiteSpace(pagination.Search))

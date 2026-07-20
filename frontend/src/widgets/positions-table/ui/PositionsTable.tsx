@@ -11,6 +11,7 @@ import type { AbzaTableColumn } from '@features/abza-table'
 import { AbzaTableToolbar } from '@features/abza-table-toolbar'
 import type { PositionDto } from '@entities/position'
 import { PositionsTableProvider, usePositionsTable } from '../model'
+import { PositionsFilterModal } from './FilterModal'
 import { PositionFormModal } from './PositionFormModal'
 
 function PositionsTableContent() {
@@ -43,6 +44,8 @@ function PositionsTableContent() {
     handleDeleteSelected,
     handleDuplicateSelected,
     handleCreateResumesSelected,
+    isFilterActive,
+    setIsFilterModalOpen,
   } = usePositionsTable()
 
   const columns = useMemo<AbzaTableColumn<PositionDto>[]>(() => {
@@ -136,6 +139,11 @@ function PositionsTableContent() {
               label: t('positions.search'),
               onSearch: handleFilter,
             }}
+            filter={{
+              active: isFilterActive,
+              onClick: () => setIsFilterModalOpen(true),
+              'aria-label': t('positions.actions.filter'),
+            }}
             create={canManagePositions ? { onClick: handleCreateClick } : undefined}
             duplicate={
               canManagePositions
@@ -205,6 +213,8 @@ function PositionsTableContent() {
         onOpenChange={setIsCreateModalOpen}
         onSubmit={handleCreateSubmit}
       />
+
+      <PositionsFilterModal />
     </>
   )
 }

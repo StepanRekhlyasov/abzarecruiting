@@ -45,6 +45,14 @@ export type {
 export { POSITION_LEVELS, WORK_FORMATS } from './position.types'
 
 export type {
+  DashboardDto,
+  DashboardPositionDto,
+  DashboardStatsDto,
+  DashboardTagDto,
+} from './dashboard.types'
+
+
+export type {
   CreatePositionMessageRequest,
   PositionMessageCreatedEvent,
   PositionMessageDeletedEvent,

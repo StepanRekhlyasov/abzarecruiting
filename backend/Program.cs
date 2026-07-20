@@ -7,6 +7,7 @@ using Backend.Api.Middleware;
 using Backend.Api.Services.Auth;
 using Backend.Api.Services.Attribute;
 using Backend.Api.Services.Attributes;
+using Backend.Api.Services.Dashboard;
 using Backend.Api.Services.Email;
 using Backend.Api.Services.Position;
 using Backend.Api.Services.Profile;
@@ -213,6 +214,7 @@ builder.Services.AddScoped<IResumeService, ResumeService>();
 builder.Services.AddSingleton<ILuceneIndex, LuceneIndex>();
 builder.Services.AddScoped<ISearchIndexService, SearchIndexService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddSingleton(sp =>
 {
     var settings = sp.GetRequiredService<IOptions<CloudinarySettings>>().Value;

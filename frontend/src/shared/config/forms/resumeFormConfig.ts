@@ -5,6 +5,7 @@ type CreateResumeFormConfigOptions = {
   loadPositionOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
   loadCandidateOptions?: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
   showCandidateSelect?: boolean
+  hidePositionSelect?: boolean
 }
 
 export function createResumeFormConfig(
@@ -23,13 +24,15 @@ export function createResumeFormConfig(
     })
   }
 
-  fields.push({
-    name: 'positionId',
-    label: t('cvs.fields.position'),
-    type: 'asyncEntitySelect',
-    validation: { required: true },
-    loadOptions: options.loadPositionOptions,
-  })
+  if (!options.hidePositionSelect) {
+    fields.push({
+      name: 'positionId',
+      label: t('cvs.fields.position'),
+      type: 'asyncEntitySelect',
+      validation: { required: true },
+      loadOptions: options.loadPositionOptions,
+    })
+  }
 
   return {
     submitLabel: t('cvs.create.submit'),

@@ -10,6 +10,7 @@ import {
   type RefObject,
 } from 'react'
 import { isAxiosError } from 'axios'
+import { useSearchParams } from 'react-router-dom'
 import { useUnit } from 'effector-react'
 import type { AbzaFormValues } from '@features/abza-form'
 import type { AbzaTableRowId } from '@features/abza-table'
@@ -17,7 +18,9 @@ import type { ResumeLikeStateDto, ResumeListItemDto } from '@entities/resume'
 import type { AbzaSelectOption, SortDirection } from '@shared/types'
 import { createResume, deleteResumesBatch, fetchResumes } from '@entities/resume'
 import { fetchPositions } from '@entities/position'
+import { fetchTags, tagsToSelectOptions } from '@entities/tag'
 import { $session, fetchUsers, isAdmin, isCandidate, isRecruiter, isRecruiterOrAdmin } from '@entities/user'
+import { parseTagIdsFromSearchParams } from '@shared/config/routes'
 import { getErrorKey } from '@shared/lib/errors'
 
 function getEntityOptionValue(values: AbzaFormValues, name: string): AbzaSelectOption | null {
@@ -27,6 +30,14 @@ function getEntityOptionValue(values: AbzaFormValues, name: string): AbzaSelectO
   }
 
   return null
+}
+
+export type CvsTableFilters = {
+  tags: AbzaSelectOption[]
+}
+
+const EMPTY_FILTERS: CvsTableFilters = {
+  tags: [],
 }
 
 type CvsTableContextValue = {
@@ -40,13 +51,18 @@ type CvsTableContextValue = {
   isLoading: boolean
   actionError: string | null
   isCreateModalOpen: boolean
+  isFilterModalOpen: boolean
+  appliedFilters: CvsTableFilters
+  isFilterActive: boolean
   canCreateResumes: boolean
   canDeleteResumes: boolean
   canLikeResumes: boolean
+  canFilterByTags: boolean
   showCandidateColumn: boolean
   showPositionColumn: boolean
   showPublishedColumn: boolean
   showCandidateSelect: boolean
+  hidePositionSelect: boolean
   canLinkCandidateProfile: boolean
   createFormRef: RefObject<HTMLFormElement | null>
   loadPositionOptions: (search: string, signal?: AbortSignal) => Promise<AbzaSelectOption[]>
@@ -56,8 +72,11 @@ type CvsTableContextValue = {
   setSelectedIds: (ids: AbzaTableRowId[]) => void
   setActionError: (error: string | null) => void
   setIsCreateModalOpen: (open: boolean) => void
+  setIsFilterModalOpen: (open: boolean) => void
   handleSortChange: (nextSortBy: string, nextSortDir: SortDirection) => void
   handleFilter: (query: string) => void
+  handleApplyFilters: (filters: CvsTableFilters) => void
+  handleResetFilters: () => void
   handleCreateClick: () => void
   handleCreateSubmit: (values: AbzaFormValues) => Promise<void>
   handleCreateModalSubmit: () => void
@@ -74,6 +93,7 @@ type CvsTableProviderProps = PropsWithChildren<{
 
 export function CvsTableProvider({ candidateId, positionId, children }: CvsTableProviderProps) {
   const session = useUnit($session)
+  const [searchParams, setSearchParams] = useSearchParams()
   const createFormRef = useRef<HTMLFormElement>(null)
 
   const [rows, setRows] = useState<ResumeListItemDto[]>([])
@@ -81,23 +101,89 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(20)
   const [searchQuery, setSearchQuery] = useState('')
+  const [appliedFilters, setAppliedFilters] = useState<CvsTableFilters>(EMPTY_FILTERS)
+  const [filtersReady, setFiltersReady] = useState(false)
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
   const [selectedIds, setSelectedIds] = useState<AbzaTableRowId[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
 
   const isPositionScoped = positionId != null
-  const canCreateResumes = !isPositionScoped && (isAdmin(session) || isCandidate(session))
+  const isScoped = isPositionScoped || Boolean(candidateId)
+  const canFilterByTags = !isScoped
+  const isAdminUser = isAdmin(session)
+  const canCreateResumes = isAdminUser || (!isPositionScoped && isCandidate(session))
   const canDeleteResumes = canCreateResumes
   const canLikeResumes = isRecruiter(session)
   const showCandidateColumn = isRecruiterOrAdmin(session) && !candidateId
   const showPositionColumn = !isPositionScoped
   const showPublishedColumn = !isRecruiter(session)
-  const showCandidateSelect = isAdmin(session) && !candidateId && !isPositionScoped
-  const canLinkCandidateProfile = isAdmin(session)
-  const isAdminUser = isAdmin(session)
+  const showCandidateSelect = isAdminUser && !candidateId
+  const hidePositionSelect = isPositionScoped
+  const canLinkCandidateProfile = isAdminUser
+  const isFilterActive = appliedFilters.tags.length > 0
+
+  const syncTagIdsToUrl = useCallback(
+    (tags: AbzaSelectOption[]) => {
+      if (!canFilterByTags) {
+        return
+      }
+
+      const next = new URLSearchParams(searchParams)
+      next.delete('tagIds')
+      for (const tag of tags) {
+        const id = Number(tag.value)
+        if (Number.isFinite(id) && id > 0) {
+          next.append('tagIds', String(id))
+        }
+      }
+      setSearchParams(next, { replace: true })
+    },
+    [canFilterByTags, searchParams, setSearchParams],
+  )
+
+  useEffect(() => {
+    if (!canFilterByTags) {
+      setFiltersReady(true)
+      return
+    }
+
+    const controller = new AbortController()
+    const tagIds = parseTagIdsFromSearchParams(searchParams)
+
+    void (async () => {
+      if (tagIds.length === 0) {
+        if (!controller.signal.aborted) {
+          setFiltersReady(true)
+        }
+        return
+      }
+
+      try {
+        const result = await fetchTags(
+          { page: 1, size: tagIds.length, ids: tagIds, sortBy: 'name', sortDir: 'asc' },
+          { signal: controller.signal },
+        )
+        if (!controller.signal.aborted) {
+          setAppliedFilters({ tags: tagsToSelectOptions(result.items) })
+          setFiltersReady(true)
+        }
+      } catch (error) {
+        if (isAxiosError(error) && error.code === 'ERR_CANCELED') {
+          return
+        }
+
+        if (!controller.signal.aborted) {
+          setFiltersReady(true)
+        }
+      }
+    })()
+
+    return () => controller.abort()
+  }, [canFilterByTags])
 
   const loadPositionOptions = useCallback(async (search: string, signal?: AbortSignal) => {
     const result = await fetchPositions(
@@ -143,8 +229,18 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
 
   const loadResumes = useCallback(
     async (signal?: AbortSignal) => {
+      if (!filtersReady) {
+        return
+      }
+
       setIsLoading(true)
       setActionError(null)
+
+      const tagIds = canFilterByTags
+        ? appliedFilters.tags
+            .map((tag) => Number(tag.value))
+            .filter((id) => Number.isFinite(id) && id > 0)
+        : []
 
       try {
         const result = await fetchResumes(
@@ -155,7 +251,12 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
             sortBy,
             sortDir,
           },
-          { signal, candidateId, positionId },
+          {
+            signal,
+            candidateId,
+            positionId,
+            tagIds: tagIds.length > 0 ? tagIds : undefined,
+          },
         )
 
         if (!signal?.aborted) {
@@ -176,7 +277,18 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
         }
       }
     },
-    [candidateId, page, pageSize, positionId, searchQuery, sortBy, sortDir],
+    [
+      appliedFilters,
+      canFilterByTags,
+      candidateId,
+      filtersReady,
+      page,
+      pageSize,
+      positionId,
+      searchQuery,
+      sortBy,
+      sortDir,
+    ],
   )
 
   useEffect(() => {
@@ -190,6 +302,23 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
     setPage(0)
   }, [])
 
+  const handleApplyFilters = useCallback(
+    (filters: CvsTableFilters) => {
+      setAppliedFilters({ tags: filters.tags })
+      syncTagIdsToUrl(filters.tags)
+      setIsFilterModalOpen(false)
+      setPage(0)
+    },
+    [syncTagIdsToUrl],
+  )
+
+  const handleResetFilters = useCallback(() => {
+    setAppliedFilters(EMPTY_FILTERS)
+    syncTagIdsToUrl([])
+    setIsFilterModalOpen(false)
+    setPage(0)
+  }, [syncTagIdsToUrl])
+
   const handleSortChange = useCallback((nextSortBy: string, nextSortDir: SortDirection) => {
     setSortBy(nextSortBy)
     setSortDir(nextSortDir)
@@ -202,9 +331,11 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
 
   const handleCreateSubmit = useCallback(
     async (values: AbzaFormValues) => {
-      const position = getEntityOptionValue(values, 'positionId')
-      const positionId = Number(position?.value)
-      if (!Number.isFinite(positionId)) {
+      const resolvedPositionId = isPositionScoped
+        ? positionId
+        : Number(getEntityOptionValue(values, 'positionId')?.value)
+
+      if (resolvedPositionId == null || !Number.isFinite(resolvedPositionId)) {
         setActionError('error.resumes.create')
         return
       }
@@ -223,7 +354,7 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
 
       try {
         await createResume({
-          positionId,
+          positionId: resolvedPositionId,
           candidateId: isAdminUser ? selectedCandidate : undefined,
         })
         setIsCreateModalOpen(false)
@@ -234,7 +365,14 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
         setIsLoading(false)
       }
     },
-    [candidateId, isAdminUser, loadResumes, showCandidateSelect],
+    [
+      candidateId,
+      isAdminUser,
+      isPositionScoped,
+      loadResumes,
+      positionId,
+      showCandidateSelect,
+    ],
   )
 
   const handleCreateModalSubmit = useCallback(() => {
@@ -295,13 +433,18 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
       isLoading,
       actionError,
       isCreateModalOpen,
+      isFilterModalOpen,
+      appliedFilters,
+      isFilterActive,
       canCreateResumes,
       canDeleteResumes,
       canLikeResumes,
+      canFilterByTags,
       showCandidateColumn,
       showPositionColumn,
       showPublishedColumn,
       showCandidateSelect,
+      hidePositionSelect,
       canLinkCandidateProfile,
       createFormRef,
       loadPositionOptions,
@@ -311,8 +454,11 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
       setSelectedIds,
       setActionError,
       setIsCreateModalOpen,
+      setIsFilterModalOpen,
       handleSortChange,
       handleFilter,
+      handleApplyFilters,
+      handleResetFilters,
       handleCreateClick,
       handleCreateSubmit,
       handleCreateModalSubmit,
@@ -330,18 +476,25 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
       isLoading,
       actionError,
       isCreateModalOpen,
+      isFilterModalOpen,
+      appliedFilters,
+      isFilterActive,
       canCreateResumes,
       canDeleteResumes,
       canLikeResumes,
+      canFilterByTags,
       showCandidateColumn,
       showPositionColumn,
       showPublishedColumn,
       showCandidateSelect,
+      hidePositionSelect,
       canLinkCandidateProfile,
       loadPositionOptions,
       loadCandidateOptions,
       handleSortChange,
       handleFilter,
+      handleApplyFilters,
+      handleResetFilters,
       handleCreateClick,
       handleCreateSubmit,
       handleCreateModalSubmit,

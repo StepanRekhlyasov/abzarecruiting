@@ -8,13 +8,14 @@ import type {
   ResumeListItemDto,
   UpdateResumeRequest,
 } from '@shared/types'
-import { apiClient } from '@shared/api'
+import { apiClient, serializeListQueryParams } from '@shared/api'
 import { parseApiError } from '@shared/lib/errors'
 
 type FetchResumesOptions = {
   signal?: AbortSignal
   candidateId?: string
   positionId?: number
+  tagIds?: number[]
 }
 
 export async function fetchResumes(
@@ -27,7 +28,9 @@ export async function fetchResumes(
         ...params,
         candidateId: options?.candidateId,
         positionId: options?.positionId,
+        tagIds: options?.tagIds,
       },
+      paramsSerializer: serializeListQueryParams,
       signal: options?.signal,
     })
     return data

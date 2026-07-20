@@ -16,9 +16,10 @@ public class PositionController(IPositionService positionService) : ControllerBa
     [HttpGet]
     public async Task<ActionResult<PagedResult<PositionListItemDto>>> GetList(
         [FromQuery] PaginationParams pagination,
+        [FromQuery] List<int>? tagIds,
         CancellationToken cancellationToken)
     {
-        var result = await positionService.GetListAsync(pagination, User, cancellationToken);
+        var result = await positionService.GetListAsync(pagination, User, tagIds, cancellationToken);
         return Ok(result);
     }
 

@@ -8,6 +8,7 @@ import {
   type PropsWithChildren,
 } from 'react'
 import { isAxiosError } from 'axios'
+import { useSearchParams } from 'react-router-dom'
 import { useUnit } from 'effector-react'
 import type { AbzaTableRowId } from '@features/abza-table'
 import type { PositionDto } from '@entities/position'
@@ -28,7 +29,9 @@ import {
 } from '@entities/position'
 import { fetchRestrictionsByPosition } from '@entities/restriction'
 import { createResume, createResumesBatch, fetchResumePositionIds } from '@entities/resume'
+import { fetchTags, tagsToSelectOptions } from '@entities/tag'
 import { $session, isCandidate, isRecruiterOrAdmin } from '@entities/user'
+import { parseTagIdsFromSearchParams } from '@shared/config/routes'
 import { ASYNC_ENTITY_TAGS_PAGE_SIZE } from '@shared/ui/inputs'
 import { getErrorKey } from '@shared/lib/errors'
 import { notificationsSocket } from '@shared/lib/websocket'
@@ -40,6 +43,14 @@ import {
   syncPositionRestrictions,
   toPositionSubmitValues,
 } from './sync'
+
+export type PositionTableFilters = {
+  tags: AbzaSelectOption[]
+}
+
+const EMPTY_FILTERS: PositionTableFilters = {
+  tags: [],
+}
 
 type EditDraftState = {
   requiredTags: AbzaSelectOption[]
@@ -61,8 +72,11 @@ type PositionsTableContextValue = {
   isCreateModalOpen: boolean
   isEditModalOpen: boolean
   isViewModalOpen: boolean
+  isFilterModalOpen: boolean
   editingPosition: PositionDto | null
   editDraft: EditDraftState | null
+  appliedFilters: PositionTableFilters
+  isFilterActive: boolean
   canManagePositions: boolean
   canCreateResumes: boolean
   resumePositionIdSet: Set<number>
@@ -73,9 +87,12 @@ type PositionsTableContextValue = {
   setIsCreateModalOpen: (open: boolean) => void
   setIsEditModalOpen: (open: boolean) => void
   setIsViewModalOpen: (open: boolean) => void
+  setIsFilterModalOpen: (open: boolean) => void
   setActionError: (error: string | null) => void
   handleSortChange: (nextSortBy: string, nextSortDir: SortDirection) => void
   handleFilter: (query: string) => void
+  handleApplyFilters: (filters: PositionTableFilters) => void
+  handleResetFilters: () => void
   handleCreateClick: () => void
   handleCreateSubmit: (payload: PositionFormSubmitPayload) => Promise<void>
   handleEditSubmit: (payload: PositionFormSubmitPayload) => Promise<void>
@@ -97,12 +114,15 @@ const PositionsTableContext = createContext<PositionsTableContextValue | null>(n
 
 export function PositionsTableProvider({ children }: PropsWithChildren) {
   const session = useUnit($session)
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [rows, setRows] = useState<PositionDto[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(20)
   const [searchQuery, setSearchQuery] = useState('')
+  const [appliedFilters, setAppliedFilters] = useState<PositionTableFilters>(EMPTY_FILTERS)
+  const [filtersReady, setFiltersReady] = useState(false)
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
   const [selectedIds, setSelectedIds] = useState<AbzaTableRowId[]>([])
@@ -111,6 +131,7 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
   const [editingPosition, setEditingPosition] = useState<PositionDto | null>(null)
   const [editDraft, setEditDraft] = useState<EditDraftState | null>(null)
   const [resumePositionIds, setResumePositionIds] = useState<number[]>([])
@@ -118,6 +139,57 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
   const canManagePositions = isRecruiterOrAdmin(session)
   const canCreateResumes = isCandidate(session)
   const resumePositionIdSet = useMemo(() => new Set(resumePositionIds), [resumePositionIds])
+  const isFilterActive = appliedFilters.tags.length > 0
+
+  const syncTagIdsToUrl = useCallback(
+    (tags: AbzaSelectOption[]) => {
+      const next = new URLSearchParams(searchParams)
+      next.delete('tagIds')
+      for (const tag of tags) {
+        const id = Number(tag.value)
+        if (Number.isFinite(id) && id > 0) {
+          next.append('tagIds', String(id))
+        }
+      }
+      setSearchParams(next, { replace: true })
+    },
+    [searchParams, setSearchParams],
+  )
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const tagIds = parseTagIdsFromSearchParams(searchParams)
+
+    void (async () => {
+      if (tagIds.length === 0) {
+        if (!controller.signal.aborted) {
+          setFiltersReady(true)
+        }
+        return
+      }
+
+      try {
+        const result = await fetchTags(
+          { page: 1, size: tagIds.length, ids: tagIds, sortBy: 'name', sortDir: 'asc' },
+          { signal: controller.signal },
+        )
+        if (!controller.signal.aborted) {
+          setAppliedFilters({ tags: tagsToSelectOptions(result.items) })
+          setFiltersReady(true)
+        }
+      } catch (error) {
+        if (isAxiosError(error) && error.code === 'ERR_CANCELED') {
+          return
+        }
+
+        if (!controller.signal.aborted) {
+          setFiltersReady(true)
+        }
+      }
+    })()
+
+    return () => controller.abort()
+  }, [])
 
   const loadAttributeOptions = useCallback(async (search: string, signal?: AbortSignal, page = 1) => {
     const result = await fetchAttributes(
@@ -164,8 +236,16 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
   }, [canCreateResumes])
 
   const loadPositions = useCallback(async (signal?: AbortSignal) => {
+    if (!filtersReady) {
+      return
+    }
+
     setIsLoading(true)
     setActionError(null)
+
+    const tagIds = appliedFilters.tags
+      .map((tag) => Number(tag.value))
+      .filter((id) => Number.isFinite(id) && id > 0)
 
     try {
       const result = await fetchPositions(
@@ -176,7 +256,10 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
           sortBy,
           sortDir,
         },
-        { signal },
+        {
+          signal,
+          tagIds: tagIds.length > 0 ? tagIds : undefined,
+        },
       )
 
       if (!signal?.aborted) {
@@ -196,7 +279,7 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
         setIsLoading(false)
       }
     }
-  }, [page, pageSize, searchQuery, sortBy, sortDir])
+  }, [appliedFilters, filtersReady, page, pageSize, searchQuery, sortBy, sortDir])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -231,6 +314,23 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
     setSearchQuery(query.trim())
     setPage(0)
   }, [])
+
+  const handleApplyFilters = useCallback(
+    (filters: PositionTableFilters) => {
+      setAppliedFilters({ tags: filters.tags })
+      syncTagIdsToUrl(filters.tags)
+      setIsFilterModalOpen(false)
+      setPage(0)
+    },
+    [syncTagIdsToUrl],
+  )
+
+  const handleResetFilters = useCallback(() => {
+    setAppliedFilters(EMPTY_FILTERS)
+    syncTagIdsToUrl([])
+    setIsFilterModalOpen(false)
+    setPage(0)
+  }, [syncTagIdsToUrl])
 
   const handleSortChange = useCallback((nextSortBy: string, nextSortDir: SortDirection) => {
     setSortBy(nextSortBy)
@@ -454,8 +554,11 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
       isCreateModalOpen,
       isEditModalOpen,
       isViewModalOpen,
+      isFilterModalOpen,
       editingPosition,
       editDraft,
+      appliedFilters,
+      isFilterActive,
       canManagePositions,
       canCreateResumes,
       resumePositionIdSet,
@@ -466,9 +569,12 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
       setIsCreateModalOpen,
       setIsEditModalOpen,
       setIsViewModalOpen,
+      setIsFilterModalOpen,
       setActionError,
       handleSortChange,
       handleFilter,
+      handleApplyFilters,
+      handleResetFilters,
       handleCreateClick,
       handleCreateSubmit,
       handleEditSubmit,
@@ -491,14 +597,19 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
       isCreateModalOpen,
       isEditModalOpen,
       isViewModalOpen,
+      isFilterModalOpen,
       editingPosition,
       editDraft,
+      appliedFilters,
+      isFilterActive,
       canManagePositions,
       canCreateResumes,
       resumePositionIdSet,
       loadAttributeOptions,
       handleSortChange,
       handleFilter,
+      handleApplyFilters,
+      handleResetFilters,
       handleCreateClick,
       handleCreateSubmit,
       handleEditSubmit,

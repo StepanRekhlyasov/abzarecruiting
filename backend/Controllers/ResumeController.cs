@@ -100,6 +100,7 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
         [FromQuery] PaginationParams pagination,
         [FromQuery] int? positionId,
         [FromQuery] string? candidateId,
+        [FromQuery] List<int>? tagIds,
         CancellationToken cancellationToken)
     {
         if (positionId.HasValue)
@@ -132,6 +133,7 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
             User.IsAdmin(),
             User.IsRecruiter(),
             candidateId,
+            tagIds,
             cancellationToken);
 
         return Ok(result);

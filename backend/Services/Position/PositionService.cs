@@ -14,6 +14,7 @@ public interface IPositionService
     Task<PagedResult<PositionListItemDto>> GetListAsync(
         PaginationParams pagination,
         ClaimsPrincipal? user,
+        IEnumerable<int>? tagIds = null,
         CancellationToken cancellationToken = default);
 
     Task<PositionDetailDto?> GetByIdAsync(
@@ -79,9 +80,22 @@ public class PositionService(
     public async Task<PagedResult<PositionListItemDto>> GetListAsync(
         PaginationParams pagination,
         ClaimsPrincipal? user,
+        IEnumerable<int>? tagIds = null,
         CancellationToken cancellationToken = default)
     {
         var query = db.Positions.AsNoTracking();
+
+        var filterTagIds = (tagIds ?? [])
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        foreach (var tagId in filterTagIds)
+        {
+            var currentTagId = tagId;
+            query = query.Where(position =>
+                position.PositionTags.Any(item => item.TagId == currentTagId));
+        }
 
         if (!string.IsNullOrWhiteSpace(pagination.Search))
         {

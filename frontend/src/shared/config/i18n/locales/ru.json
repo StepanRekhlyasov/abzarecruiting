@@ -114,7 +114,33 @@
   },
   "home": {
     "title": "Главная",
-    "description": "React + TypeScript + MUI + Effector + i18n с FSD архитектурой"
+    "viewAll": "Смотреть все",
+    "latestPositions": {
+      "title": "Последние вакансии",
+      "empty": "Вакансий пока нет"
+    },
+    "popularPositions": {
+      "title": "Популярные вакансии",
+      "empty": "Вакансий пока нет"
+    },
+    "discussedPositions": {
+      "title": "Самые обсуждаемые вакансии",
+      "empty": "Вакансий пока нет"
+    },
+    "tagCloud": {
+      "title": "Технологии",
+      "positions": "Вакансии",
+      "resumes": "Резюме",
+      "empty": "Тегов пока нет"
+    },
+    "stats": {
+      "title": "Статистика",
+      "cvsLast24Hours": "Резюме за последние 24 часа",
+      "totalPositions": "Всего вакансий",
+      "totalCandidates": "Всего кандидатов",
+      "totalRecruiters": "Всего рекрутеров",
+      "totalSubmittedCvs": "Всего отправленных резюме"
+    }
   },
   "counter": {
     "title": "Счётчик",
@@ -330,6 +356,13 @@
     "search": "Поиск по названию",
     "loading": "Загрузка...",
     "empty": "Вакансии не найдены",
+    "filter": {
+      "title": "Фильтр вакансий",
+      "tags": "Теги"
+    },
+    "actions": {
+      "filter": "Фильтр"
+    },
     "tabs": {
       "info": "Информация",
       "attributes": "Атрибуты",
@@ -442,6 +475,13 @@
     "search": "Поиск по вакансии",
     "loading": "Загрузка...",
     "empty": "Резюме не найдены",
+    "filter": {
+      "title": "Фильтр резюме",
+      "tags": "Теги"
+    },
+    "actions": {
+      "filter": "Фильтр"
+    },
     "columns": {
       "id": "ID",
       "positionName": "Вакансия",
@@ -537,6 +577,9 @@
     "unknown": "Произошла ошибка. Попробуйте снова.",
     "unauthorized": "Нет доступа. Пожалуйста, войдите заново.",
     "oldVersion": "Данные устарели. Обновите страницу",
+    "dashboard": {
+      "load": "Не удалось загрузить дашборд"
+    },
     "auth": {
       "invalidRole": "Некорректная роль.",
       "invalidCredentials": "Неверный email или пароль.",

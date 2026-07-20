@@ -17,6 +17,7 @@ import type { ResumeListItemDto } from '@entities/resume'
 import { getErrorKey } from '@shared/lib/errors'
 import { CandidateProfileLink } from '@shared/ui'
 import { CvsTableProvider, useCvsTable } from '../model'
+import { CvsFilterModal } from './FilterModal'
 
 function CvsTableContent() {
   const { t } = useTranslation()
@@ -33,10 +34,12 @@ function CvsTableContent() {
     canCreateResumes,
     canDeleteResumes,
     canLikeResumes,
+    canFilterByTags,
     showCandidateColumn,
     showPositionColumn,
     showPublishedColumn,
     showCandidateSelect,
+    hidePositionSelect,
     canLinkCandidateProfile,
     sortBy,
     sortDir,
@@ -55,6 +58,8 @@ function CvsTableContent() {
     handleFilter,
     handleCreateClick,
     handleDeleteSelected,
+    isFilterActive,
+    setIsFilterModalOpen,
   } = useCvsTable()
 
   const createFormConfig = useMemo(
@@ -63,8 +68,16 @@ function CvsTableContent() {
         loadPositionOptions,
         loadCandidateOptions,
         showCandidateSelect,
+        hidePositionSelect,
       }),
-    [i18n.language, loadCandidateOptions, loadPositionOptions, showCandidateSelect, t],
+    [
+      hidePositionSelect,
+      i18n.language,
+      loadCandidateOptions,
+      loadPositionOptions,
+      showCandidateSelect,
+      t,
+    ],
   )
 
   const columns = useMemo<AbzaTableColumn<ResumeListItemDto>[]>(() => {
@@ -167,6 +180,15 @@ function CvsTableContent() {
               label: t('cvs.search'),
               onSearch: handleFilter,
             }}
+            filter={
+              canFilterByTags
+                ? {
+                    active: isFilterActive,
+                    onClick: () => setIsFilterModalOpen(true),
+                    'aria-label': t('cvs.actions.filter'),
+                  }
+                : undefined
+            }
             create={canCreateResumes ? { onClick: handleCreateClick } : undefined}
             delete={
               canDeleteResumes
@@ -221,6 +243,8 @@ function CvsTableContent() {
           />
         </AbzaModal>
       ) : null}
+
+      {canFilterByTags ? <CvsFilterModal /> : null}
     </>
   )
 }

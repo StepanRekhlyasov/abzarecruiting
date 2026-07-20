@@ -6,11 +6,12 @@ import type {
   PositionDto,
   UpdatePositionRequest,
 } from '@shared/types'
-import { apiClient } from '@shared/api'
+import { apiClient, serializeListQueryParams } from '@shared/api'
 import { parseApiError } from '@shared/lib/errors'
 
 type FetchPositionsOptions = {
   signal?: AbortSignal
+  tagIds?: number[]
 }
 
 export async function fetchPositions(
@@ -19,7 +20,11 @@ export async function fetchPositions(
 ): Promise<PagedResult<PositionDto>> {
   try {
     const { data } = await apiClient.get<PagedResult<PositionDto>>('/position', {
-      params,
+      params: {
+        ...params,
+        tagIds: options?.tagIds,
+      },
+      paramsSerializer: serializeListQueryParams,
       signal: options?.signal,
     })
     return data
