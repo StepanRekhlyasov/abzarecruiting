@@ -28,6 +28,7 @@ type FileFieldProps = {
   onBlur?: () => void
   disabled?: boolean
   tooltip?: string
+  maxFileSizeKb?: number
 }
 
 export function FileField({
@@ -38,6 +39,7 @@ export function FileField({
   onBlur,
   disabled = false,
   tooltip,
+  maxFileSizeKb,
 }: FileFieldProps) {
   const { t } = useTranslation()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -69,6 +71,11 @@ export function FileField({
 
     if (file.size > MAX_ATTRIBUTE_FILE_SIZE_BYTES) {
       setError(t('error.files.tooLarge'))
+      return
+    }
+
+    if (maxFileSizeKb !== undefined && file.size > maxFileSizeKb * 1024) {
+      setError(t('error.attributes.validationMaxFileSize', { max: maxFileSizeKb }))
       return
     }
 

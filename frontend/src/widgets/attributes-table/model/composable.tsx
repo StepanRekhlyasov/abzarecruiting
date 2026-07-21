@@ -13,7 +13,7 @@ import { isAxiosError } from 'axios'
 import { useUnit } from 'effector-react'
 import type { AbzaFormValues } from '@features/abza-form'
 import type { AbzaTableRowId } from '@features/abza-table'
-import type { AttributeCategory, AttributeDto } from '@entities/attribute'
+import type { AttributeCategory, AttributeDto, AttributeValidationRequest } from '@entities/attribute'
 import type { AbzaSelectOption, AsyncEntityLoadOptions, SortDirection } from '@shared/types'
 import {
   createAttribute,
@@ -33,7 +33,7 @@ import {
 } from '@shared/lib/helpers'
 import { ASYNC_ENTITY_TAGS_PAGE_SIZE, NEW_TAG_VALUE_PREFIX } from '@shared/ui/inputs'
 
-function toAttributeSubmitValues(values: AbzaFormValues) {
+function toAttributeSubmitValues(values: AbzaFormValues, validations: AttributeValidationRequest[]) {
   const { name, valueType, category } = toSubmitValues(values, ['name', 'valueType', 'category'])
 
   return {
@@ -42,6 +42,7 @@ function toAttributeSubmitValues(values: AbzaFormValues) {
     category: category as AttributeCategory,
     valueType,
     options: valueType === 'select' ? toSubmitStringArray(values, 'options') : undefined,
+    validations,
   }
 }
 
@@ -101,8 +102,8 @@ type AttributesTableContextValue = {
   handleApplyFilters: (filters: AttributeTableFilters) => void
   handleResetFilters: () => void
   handleCreateClick: () => void
-  handleCreateSubmit: (values: AbzaFormValues) => Promise<void>
-  handleEditSubmit: (values: AbzaFormValues) => Promise<void>
+  handleCreateSubmit: (values: AbzaFormValues, validations: AttributeValidationRequest[]) => Promise<void>
+  handleEditSubmit: (values: AbzaFormValues, validations: AttributeValidationRequest[]) => Promise<void>
   handleCreateModalSubmit: () => void
   handleEditModalSubmit: () => void
   handleRowClick: (row: AttributeDto) => void
@@ -328,11 +329,11 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
   }, [])
 
   const handleCreateSubmit = useCallback(
-    async (values: AbzaFormValues) => {
+    async (values: AbzaFormValues, validations: AttributeValidationRequest[]) => {
       setIsLoading(true)
 
       try {
-        await createAttribute(toAttributeSubmitValues(values))
+        await createAttribute(toAttributeSubmitValues(values, validations))
         setIsCreateModalOpen(false)
         await loadAttributes()
       } finally {
@@ -343,7 +344,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
   )
 
   const handleEditSubmit = useCallback(
-    async (values: AbzaFormValues) => {
+    async (values: AbzaFormValues, validations: AttributeValidationRequest[]) => {
       if (!editingAttribute) {
         return
       }
@@ -352,7 +353,7 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
 
       try {
         const updated = await updateAttribute(editingAttribute.id, {
-          ...toAttributeSubmitValues(values),
+          ...toAttributeSubmitValues(values, validations),
           version: editingAttribute.version,
         })
         setRows((currentRows) =>

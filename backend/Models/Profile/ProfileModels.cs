@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Backend.Api.Models.Attribute;
 
 namespace Backend.Api.Models.Profile;
 
@@ -17,6 +18,8 @@ public class ProfileAttributeDto
     public string InputType { get; set; } = string.Empty;
 
     public IList<string> Options { get; set; } = [];
+
+    public IList<AttributeValidationDto> Validations { get; set; } = [];
 
     public object? Value { get; set; }
 

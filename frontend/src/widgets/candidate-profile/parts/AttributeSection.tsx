@@ -3,11 +3,6 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import { useTranslation } from 'react-i18next'
-import {
-  AbzaForm,
-  attributesToFormConfig,
-  attributesToFormValues,
-} from '@features/abza-form'
 import type {
   AbzaSelectOption,
   AsyncEntityLoadOptions,
@@ -16,13 +11,13 @@ import type {
 } from '@shared/types'
 import { groupAttributesByCategory } from '@shared/types'
 import { AsyncEntityTags } from '@shared/ui/inputs'
+import { AttributeCategoryForm } from './AttributeCategoryForm'
 
 export type AttributeSectionMode = 'default' | 'attrs'
 
 export type AttributeSectionProps = {
   mode: AttributeSectionMode
   attributes: ProfileAttributeDto[]
-  draftValues: Record<number, AttributeDraftValue>
   onChange: (attributeId: number, value: AttributeDraftValue) => void
   emptyMessage?: string
   loadAttributeOptions?: AsyncEntityLoadOptions
@@ -31,12 +26,12 @@ export type AttributeSectionProps = {
   isAdding?: boolean
   editable?: boolean
   highlightEmptyFields?: boolean
+  fieldErrors?: Record<string, string>
 }
 
 export function AttributeSection({
   mode,
   attributes,
-  draftValues,
   onChange,
   emptyMessage,
   loadAttributeOptions,
@@ -45,6 +40,7 @@ export function AttributeSection({
   isAdding = false,
   editable = true,
   highlightEmptyFields = false,
+  fieldErrors,
 }: AttributeSectionProps) {
   const { t } = useTranslation()
   const [selectedAttributes, setSelectedAttributes] = useState<AbzaSelectOption[]>([])
@@ -96,39 +92,20 @@ export function AttributeSection({
           </Typography>
         ) : null
       ) : (
-        groupedAttributes.map(({ category, attributes: categoryAttributes }) => {
-          const formConfig = attributesToFormConfig(categoryAttributes, {
-            disabled: !canEdit,
-            deletable: canDelete,
-            size: 'small',
-          })
-          const formValues = attributesToFormValues(categoryAttributes, draftValues)
-
-          return (
-            <Box key={category} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              <Typography variant="h6" component="h3">
-                {t(`attributes.categories.${category}`, category)}
-              </Typography>
-              <AbzaForm
-                config={formConfig}
-                values={formValues}
-                hideSubmitButton
-                isLoading={isAdding}
-                onFieldChange={(name, value) => {
-                  onChange(Number(name), value as AttributeDraftValue)
-                }}
-                onFieldDelete={
-                  onRemoveAttribute
-                    ? (name) => {
-                        void onRemoveAttribute(Number(name))
-                      }
-                    : undefined
-                }
-                highlightEmptyFields={highlightEmptyFields}
-              />
-            </Box>
-          )
-        })
+        groupedAttributes.map(({ category, attributes: categoryAttributes }) => (
+          <AttributeCategoryForm
+            key={category}
+            category={category}
+            categoryAttributes={categoryAttributes}
+            canEdit={canEdit}
+            canDelete={canDelete}
+            isAdding={isAdding}
+            highlightEmptyFields={highlightEmptyFields}
+            fieldErrors={fieldErrors}
+            onChange={onChange}
+            onRemoveAttribute={onRemoveAttribute}
+          />
+        ))
       )}
     </Box>
   )

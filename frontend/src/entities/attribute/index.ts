@@ -2,6 +2,7 @@ export type {
   AttributeCategory,
   AttributeDto,
   AttributeInputType,
+  AttributeValidationRequest,
   AttributeValueType,
   CreateAttributeRequest,
   DeleteAttributeItem,

@@ -1,4 +1,4 @@
-import type { FileAttributeValue } from './attribute.types'
+import type { AttributeValidationDto, FileAttributeValue } from './attribute.types'
 
 export type ProfileAttributeDto = {
   id: number
@@ -8,6 +8,7 @@ export type ProfileAttributeDto = {
   valueType: string
   inputType: string
   options: string[]
+  validations: AttributeValidationDto[]
   value: string | FileAttributeValue | null
   version: number
   isDefault: boolean

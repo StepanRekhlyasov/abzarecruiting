@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Backend.Api.Services.Attributes;
 
 namespace Backend.Api.Middleware;
 
@@ -11,6 +12,30 @@ public class InvalidOperationExceptionMiddleware(RequestDelegate next)
         try
         {
             await next(context);
+        }
+        catch (AttributeValueValidationException exception)
+        {
+            if (context.Response.HasStarted)
+            {
+                throw;
+            }
+
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsync(
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        message = exception.Message,
+                        fieldErrors = exception.FieldErrors.ToDictionary(
+                            pair => pair.Key.ToString(),
+                            pair => new
+                            {
+                                message = pair.Value.Message,
+                                @params = pair.Value.Params,
+                            }),
+                    },
+                    JsonOptions));
         }
         catch (InvalidOperationException exception)
         {

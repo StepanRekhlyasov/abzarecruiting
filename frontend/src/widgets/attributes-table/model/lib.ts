@@ -1,5 +1,5 @@
 import type { AbzaFormValues } from '@shared/types'
-import type { AttributeDto } from '@entities/attribute'
+import type { AttributeDto, AttributeValidationRequest } from '@entities/attribute'
 
 export function attributeToFormValues(attribute: AttributeDto): AbzaFormValues {
   return {
@@ -9,4 +9,11 @@ export function attributeToFormValues(attribute: AttributeDto): AbzaFormValues {
     valueType: attribute.valueType,
     options: attribute.options ?? [],
   }
+}
+
+export function attributeToValidations(attribute: AttributeDto): AttributeValidationRequest[] {
+  return (attribute.validations ?? []).map((item) => ({
+    validationType: item.validationType,
+    validationValue: item.validationValue,
+  }))
 }

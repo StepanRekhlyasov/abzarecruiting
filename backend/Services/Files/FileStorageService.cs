@@ -107,6 +107,7 @@ public class FileStorageService(
             Uid = fileUid,
             Url = url,
             Name = safeFileName,
+            Size = file.Length,
         });
         await db.SaveChangesAsync(cancellationToken);
 

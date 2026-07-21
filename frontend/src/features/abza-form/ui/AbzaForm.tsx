@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import { AbzaError } from '@features/abza-error'
-import { parseApiError } from '@shared/lib/errors'
+import { parseApiError, resolveErrorMessage } from '@shared/lib/errors'
 import type { AbzaFieldConfig, AbzaFormConfig, AbzaFormValue, AbzaFormValues } from '@shared/types'
 import { validateAbzaForm } from '../lib/validate'
 import { isFieldVisible } from '../lib/fieldVisibility'
@@ -21,6 +21,7 @@ type AbzaFormProps = {
   onFieldBlur?: (name: string) => void
   onFieldDelete?: (name: string) => void
   highlightEmptyFields?: boolean
+  externalErrors?: Record<string, string>
 }
 
 function createInitialValues(fields: AbzaFieldConfig[], initialValues?: AbzaFormValues): AbzaFormValues {
@@ -54,6 +55,7 @@ export function AbzaForm({
   onFieldBlur,
   onFieldDelete,
   highlightEmptyFields = false,
+  externalErrors,
 }: AbzaFormProps) {
   const { t } = useTranslation()
   const isControlled = controlledValues !== undefined
@@ -152,7 +154,11 @@ export function AbzaForm({
           return null
         }
 
-        const error = (highlightEmptyFields && values[field.name] === '') || (touched[field.name] ? errors[field.name] : undefined)
+        const externalError = externalErrors?.[field.name]
+        const error =
+          (externalError ? resolveErrorMessage(externalError) ?? externalError : undefined) ||
+          ((highlightEmptyFields && values[field.name] === '') ||
+            (touched[field.name] ? errors[field.name] : undefined))
 
         return (
           <AbzaField

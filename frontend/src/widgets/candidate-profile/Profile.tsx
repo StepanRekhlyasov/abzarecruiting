@@ -45,7 +45,7 @@ function ProfileContent() {
   const [activeTab, setActiveTab] = useState<ProfileTab>('info')
 
   const {
-    draft,
+    fieldErrors,
     isDirty,
     canSave,
     handleChange,
@@ -145,9 +145,9 @@ function ProfileContent() {
                 <AttributeSection
                   mode="default"
                   attributes={defaultAttributes}
-                  draftValues={draft}
                   onChange={handleChange}
                   editable={canEditProfile}
+                  fieldErrors={fieldErrors}
                 />
               ) : null}
 
@@ -155,7 +155,6 @@ function ProfileContent() {
                 <AttributeSection
                   mode="attrs"
                   attributes={addedAttributes}
-                  draftValues={draft}
                   onChange={handleChange}
                   emptyMessage={t('profile.addedAttributes.empty')}
                   loadAttributeOptions={canEditProfile ? loadAttributeOptions : undefined}
@@ -163,6 +162,7 @@ function ProfileContent() {
                   onRemoveAttribute={canEditProfile ? handleRemoveAttribute : undefined}
                   isAdding={isMutating}
                   editable={canEditProfile}
+                  fieldErrors={fieldErrors}
                 />
               ) : null}
             </>

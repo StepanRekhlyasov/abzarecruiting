@@ -41,6 +41,7 @@ public interface IAttributeService
 public class AttributeService(
     ApplicationDbContext db,
     IAttributeValueMapper valueMapper,
+    IAttributeValidationEvaluator validationEvaluator,
     ISearchIndexService searchIndex,
     ILuceneIndex lucene) : IAttributeService
 {
@@ -51,6 +52,7 @@ public class AttributeService(
         IQueryable<AttributeEntity> query = db.Attributes
             .AsNoTracking()
             .Include(attribute => attribute.Options)
+            .Include(attribute => attribute.Validations)
             .Where(attribute => !DefaultAttributes.Names.Contains(attribute.Name));
 
         if (!string.IsNullOrWhiteSpace(pagination.Category))
@@ -97,6 +99,7 @@ public class AttributeService(
 
         var inputType = InferInputType(request.ValueType);
         var options = NormalizeOptions(request.Options);
+        var validations = NormalizeValidations(request.Validations, request.ValueType);
 
         var attribute = new AttributeEntity
         {
@@ -116,6 +119,11 @@ public class AttributeService(
                 .ToList();
         }
 
+        if (validations.Count > 0)
+        {
+            attribute.Validations = validations;
+        }
+
         db.Attributes.Add(attribute);
         await db.SaveChangesAsync(cancellationToken);
         await searchIndex.RebuildAttributeAsync(attribute.Id, cancellationToken);
@@ -129,6 +137,7 @@ public class AttributeService(
     {
         var attribute = await db.Attributes
             .Include(item => item.Options)
+            .Include(item => item.Validations)
             .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (attribute is null)
         {
@@ -152,6 +161,7 @@ public class AttributeService(
 
         var inputType = InferInputType(request.ValueType);
         var options = NormalizeOptions(request.Options);
+        var validations = NormalizeValidations(request.Validations, request.ValueType);
 
         attribute.Name = name;
         attribute.Description = request.Description;
@@ -171,6 +181,17 @@ public class AttributeService(
             {
                 attribute.Options.Add(new AttributeOption { InputOption = value });
             }
+        }
+
+        if (attribute.Validations.Count > 0)
+        {
+            db.AttributeValidations.RemoveRange(attribute.Validations);
+            attribute.Validations.Clear();
+        }
+
+        foreach (var validation in validations)
+        {
+            attribute.Validations.Add(validation);
         }
 
         attribute.Version++;
@@ -242,7 +263,9 @@ public class AttributeService(
         SetProfileAttributeRequest request,
         CancellationToken cancellationToken = default)
     {
-        var attribute = await db.Attributes.FirstOrDefaultAsync(item => item.Id == attributeId, cancellationToken);
+        var attribute = await db.Attributes
+            .Include(item => item.Validations)
+            .FirstOrDefaultAsync(item => item.Id == attributeId, cancellationToken);
         if (attribute is null || !await db.Users.AnyAsync(user => user.Id == candidateId, cancellationToken))
         {
             return null;
@@ -278,6 +301,12 @@ public class AttributeService(
             }
         }
 
+        await validationEvaluator.ValidateValueAsync(
+            attribute,
+            request.Value,
+            attribute.Validations.ToList(),
+            cancellationToken);
+
         valueMapper.SetValue(profileAttribute, attribute, request.Value);
         profileAttribute.Version++;
         await db.SaveChangesAsync(cancellationToken);
@@ -307,6 +336,7 @@ public class AttributeService(
 
         var attributeIds = uniqueItems.Select(item => item.AttributeId).ToList();
         var attributes = await db.Attributes
+            .Include(item => item.Validations)
             .Where(item => attributeIds.Contains(item.Id))
             .ToListAsync(cancellationToken);
 
@@ -316,12 +346,21 @@ public class AttributeService(
         }
 
         var attributesById = attributes.ToDictionary(item => item.Id);
+        var validationsByAttributeId = attributes.ToDictionary(
+            item => item.Id,
+            item => (IReadOnlyList<Data.Entities.AttributeValidation>)item.Validations.ToList());
         var profileAttributes = await db.ProfileAttributes
             .Where(item => item.CandidateId == candidateId && attributeIds.Contains(item.AttributeId))
             .ToListAsync(cancellationToken);
         var profileByAttributeId = profileAttributes.ToDictionary(item => item.AttributeId);
 
         var results = new List<SetProfileAttributeBatchResultItem>();
+
+        await validationEvaluator.ValidateBatchAsync(
+            attributesById,
+            validationsByAttributeId,
+            uniqueItems.Select(item => (item.AttributeId, item.Value)),
+            cancellationToken);
 
         foreach (var item in uniqueItems)
         {
@@ -413,6 +452,15 @@ public class AttributeService(
             .OrderBy(option => option.Id)
             .Select(option => option.InputOption)
             .ToList(),
+        Validations = attribute.Validations
+            .OrderBy(validation => validation.Id)
+            .Select(validation => new AttributeValidationDto
+            {
+                Id = validation.Id,
+                ValidationType = validation.ValidationType,
+                ValidationValue = validation.ValidationValue,
+            })
+            .ToList(),
         CreatedAt = attribute.CreatedAt,
         Version = attribute.Version,
     };
@@ -433,6 +481,30 @@ public class AttributeService(
             "file" => "file",
             _ => throw new InvalidOperationException("error.attributes.unsupportedValueType"),
         };
+    }
+
+    private List<Data.Entities.AttributeValidation> NormalizeValidations(
+        IList<AttributeValidationRequest>? validations,
+        string valueType)
+    {
+        if (validations is null || validations.Count == 0)
+        {
+            return [];
+        }
+
+        var normalized = validations
+            .Select(validation => new Data.Entities.AttributeValidation
+            {
+                ValidationType = validation.ValidationType.Trim(),
+                ValidationValue = validation.ValidationValue.Trim(),
+            })
+            .Where(validation =>
+                !string.IsNullOrWhiteSpace(validation.ValidationType)
+                && !string.IsNullOrWhiteSpace(validation.ValidationValue))
+            .ToList();
+
+        validationEvaluator.ValidateDefinitionRules(valueType, normalized);
+        return normalized;
     }
 
     private static List<string> NormalizeOptions(IList<string>? options)

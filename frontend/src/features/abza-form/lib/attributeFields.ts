@@ -7,6 +7,8 @@ import type {
   AttributeDraftValue,
   ProfileAttributeDto,
 } from '@shared/types'
+import { toAttributeDraftValue } from '@shared/types'
+import { getMaxFileSizeKbFromValidations } from '@shared/lib/attributes/attributeValidation'
 
 const INPUT_TYPE_MAP: Record<string, AbzaFieldType> = {
   text: 'text',
@@ -43,6 +45,7 @@ export function attributeToFieldConfig(
     disabled: options?.disabled,
     deletable: options?.deletable,
     size: options?.size ?? 'small',
+    maxFileSizeKb: getMaxFileSizeKbFromValidations(attribute.validations),
   }
 }
 
@@ -61,9 +64,12 @@ export function attributesToFormConfig(
 
 export function attributesToFormValues(
   attributes: ProfileAttributeDto[],
-  draftValues: Record<number, AttributeDraftValue>,
+  draftValues?: Record<number, AttributeDraftValue>,
 ): AbzaFormValues {
   return Object.fromEntries(
-    attributes.map((attribute) => [String(attribute.id), (draftValues[attribute.id] ?? '') as AbzaFormValue]),
+    attributes.map((attribute) => [
+      String(attribute.id),
+      (draftValues?.[attribute.id] ?? toAttributeDraftValue(attribute)) as AbzaFormValue,
+    ]),
   )
 }

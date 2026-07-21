@@ -89,10 +89,11 @@ function ResumeDetailContent() {
   const [activeTab, setActiveTab] = useState<ResumeTab>('personal')
 
   const {
-    draft,
+    fieldErrors,
     isDirty,
     isSaving,
     canSave,
+    getDraftSnapshot,
     handleChange,
     handleManualSave,
     flush,
@@ -105,7 +106,7 @@ function ResumeDetailContent() {
     setAutosaveActive,
   })
 
-  const allFilled = hasAllAttributeValues(attributes, draft)
+  const allFilled = hasAllAttributeValues(attributes, getDraftSnapshot())
   const displayAttributes = useMemo(
     () => withResumeAttributeLabels(attributes, t),
     [attributes, t],
@@ -246,11 +247,11 @@ function ResumeDetailContent() {
           <AttributeSection
             mode="default"
             attributes={personalAttributes}
-            draftValues={draft}
             onChange={handleChange}
             emptyMessage={t('cvs.detail.personalEmpty')}
             editable={canEdit}
             highlightEmptyFields={true}
+            fieldErrors={fieldErrors}
           />
         ) : null}
 
@@ -258,11 +259,11 @@ function ResumeDetailContent() {
           <AttributeSection
             mode="default"
             attributes={infoAttributes}
-            draftValues={draft}
             onChange={handleChange}
             emptyMessage={t('cvs.detail.attributesEmpty')}
             editable={canEdit}
             highlightEmptyFields={true}
+            fieldErrors={fieldErrors}
           />
         ) : null}
 

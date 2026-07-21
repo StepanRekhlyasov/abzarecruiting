@@ -6,8 +6,15 @@ export type AttributeDto = {
   valueType: string
   inputType: string
   options: string[]
+  validations: AttributeValidationDto[]
   createdAt: string
   version: number
+}
+
+export type AttributeValidationDto = {
+  id: number
+  validationType: string
+  validationValue: string
 }
 
 export type CreateAttributeRequest = {
@@ -16,6 +23,12 @@ export type CreateAttributeRequest = {
   category: AttributeCategory
   valueType: string
   options?: string[]
+  validations?: AttributeValidationRequest[]
+}
+
+export type AttributeValidationRequest = {
+  validationType: string
+  validationValue: string
 }
 
 export type UpdateAttributeRequest = CreateAttributeRequest & {

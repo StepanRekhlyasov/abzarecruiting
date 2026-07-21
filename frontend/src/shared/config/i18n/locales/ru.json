@@ -307,6 +307,26 @@
     "form": {
       "submit": "Создать"
     },
+    "tabs": {
+      "general": "Основное",
+      "validation": "Валидация"
+    },
+    "validation": {
+      "type": "Тип валидации",
+      "value": "Значение",
+      "add": "Добавить правило",
+      "remove": "Удалить правило",
+      "empty": "Правила валидации не добавлены",
+      "types": {
+        "maxLength": "Макс. количество символов",
+        "minLength": "Мин. количество символов",
+        "maxNumber": "Макс. число",
+        "minNumber": "Мин. число",
+        "regex": "Регулярное выражение",
+        "maxFileSizeKb": "Макс. размер файла (КБ)",
+        "regexHint": "Можно указать как /шаблон/flags или обычное выражение, например ^[a-z]+$"
+      }
+    },
     "notifications": {
       "created": "Атрибут создан",
       "updated": "Атрибут обновлён",
@@ -616,7 +636,22 @@
       "notFound": "Один или несколько атрибутов не найдены",
       "nameExists": "Атрибут с таким именем уже существует",
       "unsupportedValueType": "Неподдерживаемый тип значения атрибута",
-      "invalidCategory": "Некорректная категория атрибута"
+      "invalidCategory": "Некорректная категория атрибута",
+      "validationFailed": "Значение не прошло валидацию",
+      "invalidValidationType": "Некорректный тип валидации",
+      "validationTypeNotAllowed": "Тип валидации недоступен для этого типа атрибута",
+      "duplicateValidationType": "Тип валидации уже добавлен",
+      "validationValueRequired": "Укажите значение валидации",
+      "invalidValidationLength": "Длина должна быть неотрицательным целым числом",
+      "invalidValidationNumber": "Значение должно быть числом",
+      "invalidValidationRegex": "Некорректное регулярное выражение",
+      "validationMaxLength": "Максимум {{max}} символов",
+      "validationMinLength": "Минимум {{min}} символов",
+      "validationMaxNumber": "Максимальное значение: {{max}}",
+      "validationMinNumber": "Минимальное значение: {{min}}",
+      "validationRegex": "Значение не соответствует шаблону {{pattern}}",
+      "invalidValidationFileSize": "Максимальный размер файла должен быть положительным числом (КБ)",
+      "validationMaxFileSize": "Максимальный размер файла: {{max}} КБ"
     },
     "tags": {
       "load": "Не удалось загрузить теги",

@@ -306,6 +306,26 @@
     "form": {
       "submit": "Create"
     },
+    "tabs": {
+      "general": "General",
+      "validation": "Validation"
+    },
+    "validation": {
+      "type": "Validation type",
+      "value": "Value",
+      "add": "Add rule",
+      "remove": "Remove rule",
+      "empty": "No validation rules added",
+      "types": {
+        "maxLength": "Max characters",
+        "minLength": "Min characters",
+        "maxNumber": "Max number",
+        "minNumber": "Min number",
+        "regex": "Regular expression",
+        "maxFileSizeKb": "Max file size (KB)",
+        "regexHint": "Use /pattern/flags or plain expression, e.g. ^[a-z]+$"
+      }
+    },
     "notifications": {
       "created": "Attribute created",
       "updated": "Attribute updated",
@@ -615,7 +635,22 @@
       "notFound": "One or more attributes were not found",
       "nameExists": "An attribute with this name already exists",
       "unsupportedValueType": "Unsupported attribute value type",
-      "invalidCategory": "Invalid attribute category"
+      "invalidCategory": "Invalid attribute category",
+      "validationFailed": "Attribute validation failed",
+      "invalidValidationType": "Invalid validation type",
+      "validationTypeNotAllowed": "Validation type is not allowed for this attribute type",
+      "duplicateValidationType": "Duplicate validation type",
+      "validationValueRequired": "Validation value is required",
+      "invalidValidationLength": "Validation length must be a non-negative integer",
+      "invalidValidationNumber": "Validation number must be a valid number",
+      "invalidValidationRegex": "Validation regex is invalid",
+      "validationMaxLength": "Maximum length is {{max}}",
+      "validationMinLength": "Minimum length is {{min}}",
+      "validationMaxNumber": "Maximum value is {{max}}",
+      "validationMinNumber": "Minimum value is {{min}}",
+      "validationRegex": "Value does not match pattern {{pattern}}",
+      "invalidValidationFileSize": "Max file size must be a positive number (KB)",
+      "validationMaxFileSize": "Maximum file size is {{max}} KB"
     },
     "tags": {
       "load": "Failed to load tags",

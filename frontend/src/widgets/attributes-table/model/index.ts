@@ -1,4 +1,4 @@
-export { attributeToFormValues } from './lib'
+export { attributeToFormValues, attributeToValidations } from './lib'
 export {
   AttributesTableProvider,
   useAttributesTable,

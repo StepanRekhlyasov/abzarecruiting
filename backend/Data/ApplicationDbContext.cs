@@ -16,6 +16,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<AttributeEntity> Attributes => Set<AttributeEntity>();
     public DbSet<AttributeOption> AttributeOptions => Set<AttributeOption>();
+    public DbSet<AttributeValidation> AttributeValidations => Set<AttributeValidation>();
     public DbSet<ProfileAttribute> ProfileAttributes => Set<ProfileAttribute>();
     public DbSet<Position> Positions => Set<Position>();
     public DbSet<PositionRestriction> PositionRestrictions => Set<PositionRestriction>();
@@ -88,6 +89,25 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(option => new { option.AttributeId, option.InputOption })
+                .IsUnique();
+        });
+
+        builder.Entity<AttributeValidation>(entity =>
+        {
+            entity.Property(validation => validation.ValidationType)
+                .HasMaxLength(64)
+                .IsRequired();
+
+            entity.Property(validation => validation.ValidationValue)
+                .HasMaxLength(1024)
+                .IsRequired();
+
+            entity.HasOne(validation => validation.Attribute)
+                .WithMany(attribute => attribute.Validations)
+                .HasForeignKey(validation => validation.AttributeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(validation => new { validation.AttributeId, validation.ValidationType })
                 .IsUnique();
         });
 
@@ -372,6 +392,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
             entity.Property(file => file.Name)
                 .HasMaxLength(256)
+                .IsRequired();
+
+            entity.Property(file => file.Size)
                 .IsRequired();
         });
     }

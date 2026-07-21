@@ -1,11 +1,9 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
-import { createAttributeFormConfig } from '@shared/config/forms'
 import { i18n } from '@shared/config/i18n'
 import { formatDateTime } from '@shared/lib/date'
 import { AbzaError } from '@features/abza-error'
-import { AbzaForm } from '@features/abza-form'
 import { AbzaModal } from '@features/abza-modal'
 import { AbzaTable } from '@features/abza-table'
 import type { AbzaTableColumn } from '@features/abza-table'
@@ -14,8 +12,10 @@ import type { AttributeDto } from '@entities/attribute'
 import {
   AttributesTableProvider,
   attributeToFormValues,
+  attributeToValidations,
   useAttributesTable,
 } from '../model'
+import { AttributeForm } from './AttributeForm'
 import { AttributesFilterModal } from './FilterModal'
 import { LinkToProfileModal } from './LinkToProfileModal'
 
@@ -68,8 +68,6 @@ function AttributesTableContent() {
   } = useAttributesTable()
 
   const canUseProfileActions = canLinkToProfile || canLinkToCandidateProfile
-
-  const formConfig = useMemo(() => createAttributeFormConfig(t), [i18n.language])
 
   const columns = useMemo(() => {
     const baseColumns: AbzaTableColumn<AttributeDto>[] = [
@@ -227,10 +225,9 @@ function AttributesTableContent() {
         onSubmit={handleCreateModalSubmit}
         isLoading={isLoading}
       >
-        <AbzaForm
+        <AttributeForm
+          key={isCreateModalOpen ? 'create-open' : 'create-closed'}
           formRef={createFormRef}
-          hideSubmitButton
-          config={formConfig}
           onSubmit={handleCreateSubmit}
           isLoading={isLoading}
         />
@@ -248,11 +245,11 @@ function AttributesTableContent() {
         isLoading={isLoading}
       >
         {editingAttribute ? (
-          <AbzaForm
+          <AttributeForm
+            key={editingAttribute.id}
             formRef={editFormRef}
-            hideSubmitButton
-            config={formConfig}
             initialValues={attributeToFormValues(editingAttribute)}
+            initialValidations={attributeToValidations(editingAttribute)}
             onSubmit={handleEditSubmit}
             isLoading={isLoading}
           />

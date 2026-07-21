@@ -196,6 +196,7 @@ builder.Services.AddScoped<IAccountEmailService, AccountEmailService>();
 builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IProfileAttributeService, ProfileAttributeService>();
 builder.Services.AddScoped<IAttributeValueMapper, AttributeValueMapper>();
+builder.Services.AddScoped<IAttributeValidationEvaluator, AttributeValidationEvaluator>();
 builder.Services.AddScoped<IPositionRestrictionEvaluator, PositionRestrictionEvaluator>();
 builder.Services.AddScoped<IPositionService, PositionService>();
 builder.Services.AddScoped<IRestrictionService, RestrictionService>();

@@ -1,7 +1,7 @@
 import { isAxiosError } from 'axios'
 import type { ProfileAttributeDto } from '@shared/types'
 import { apiClient } from '@shared/api'
-import { parseApiError } from '@shared/lib/errors'
+import { parseApiError, throwParsedApiError } from '@shared/lib/errors'
 
 type FetchOptions = {
   signal?: AbortSignal
@@ -42,7 +42,7 @@ export async function setCandidateAttributeValue(
     )
     return data.version
   } catch (error) {
-    throw new Error(parseApiError(error))
+    throwParsedApiError(error)
   }
 }
 
@@ -72,7 +72,7 @@ export async function setCandidateAttributeValuesBatch(
     )
     return data
   } catch (error) {
-    throw new Error(parseApiError(error))
+    throwParsedApiError(error)
   }
 }
 
@@ -83,6 +83,6 @@ export async function deleteCandidateAttributeValue(
   try {
     await apiClient.delete(`/attribute/${attributeId}/candidate/${candidateId}`)
   } catch (error) {
-    throw new Error(parseApiError(error))
+    throwParsedApiError(error)
   }
 }

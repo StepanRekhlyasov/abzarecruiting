@@ -14,6 +14,26 @@ public class AttributeListParams : PaginationParams
     public string[]? Searches { get; init; }
 }
 
+public class AttributeValidationDto
+{
+    public int Id { get; set; }
+
+    public string ValidationType { get; set; } = string.Empty;
+
+    public string ValidationValue { get; set; } = string.Empty;
+}
+
+public class AttributeValidationRequest
+{
+    [Required]
+    [MaxLength(64)]
+    public string ValidationType { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(1024)]
+    public string ValidationValue { get; set; } = string.Empty;
+}
+
 public class CreateAttributeRequest
 {
     [Required]
@@ -32,6 +52,8 @@ public class CreateAttributeRequest
     public string ValueType { get; set; } = string.Empty;
 
     public IList<string> Options { get; set; } = [];
+
+    public IList<AttributeValidationRequest> Validations { get; set; } = [];
 }
 
 public class UpdateAttributeRequest : CreateAttributeRequest
@@ -54,6 +76,8 @@ public class AttributeDto
     public string InputType { get; set; } = string.Empty;
 
     public IList<string> Options { get; set; } = [];
+
+    public IList<AttributeValidationDto> Validations { get; set; } = [];
 
     public DateTime CreatedAt { get; set; }
 

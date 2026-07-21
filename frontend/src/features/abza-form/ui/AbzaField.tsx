@@ -279,6 +279,7 @@ export function AbzaField({
           onBlur={onBlur}
           disabled={isDisabled}
           tooltip={field.tooltip}
+          maxFileSizeKb={field.maxFileSizeKb}
         />
       )
       break

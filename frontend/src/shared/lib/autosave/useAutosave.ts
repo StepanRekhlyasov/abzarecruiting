@@ -22,6 +22,7 @@ export function useAutosave({
   const timerRef = useRef<number | null>(null)
   const autosaveEnabledRef = useRef(enabled)
   const savingRef = useRef(false)
+  const activeRef = useRef(false)
   const onFlushRef = useRef(onFlush)
   const onErrorRef = useRef(onError)
   const setActiveRef = useRef(setActive)
@@ -41,6 +42,15 @@ export function useAutosave({
     }
   }, [])
 
+  const setActiveState = useCallback((active: boolean) => {
+    if (activeRef.current === active) {
+      return
+    }
+
+    activeRef.current = active
+    setActiveRef.current?.(active)
+  }, [])
+
   const flush = useCallback(async () => {
     clearTimer()
 
@@ -50,20 +60,20 @@ export function useAutosave({
 
     savingRef.current = true
     setIsSaving(true)
-    setActiveRef.current?.(true)
+    setActiveState(true)
 
     try {
       await onFlushRef.current()
     } catch (flushError) {
       autosaveEnabledRef.current = false
       setAutosaveEnabled(false)
-      setActiveRef.current?.(false)
+      setActiveState(false)
       onErrorRef.current?.(flushError)
     } finally {
       savingRef.current = false
       setIsSaving(false)
     }
-  }, [clearTimer, enabled])
+  }, [clearTimer, enabled, setActiveState])
 
   const schedule = useCallback(() => {
     if (!enabled || !autosaveEnabledRef.current) {
@@ -71,20 +81,20 @@ export function useAutosave({
     }
 
     clearTimer()
-    setActiveRef.current?.(true)
+    setActiveState(true)
     timerRef.current = window.setTimeout(() => {
       void flush()
     }, delayMs)
-  }, [clearTimer, delayMs, enabled, flush])
+  }, [clearTimer, delayMs, enabled, flush, setActiveState])
 
   const reset = useCallback(
     (nextEnabled = enabled) => {
       clearTimer()
       setAutosaveEnabled(nextEnabled)
       autosaveEnabledRef.current = nextEnabled
-      setActiveRef.current?.(false)
+      setActiveState(false)
     },
-    [clearTimer, enabled],
+    [clearTimer, enabled, setActiveState],
   )
 
   const reenable = useCallback(() => {
@@ -97,9 +107,9 @@ export function useAutosave({
   useEffect(() => {
     return () => {
       clearTimer()
-      setActiveRef.current?.(false)
+      setActiveState(false)
     }
-  }, [clearTimer])
+  }, [clearTimer, setActiveState])
 
   return {
     isSaving,
@@ -109,6 +119,7 @@ export function useAutosave({
     reset,
     reenable,
     clearTimer,
+    setActiveState,
     savingRef,
     autosaveEnabledRef,
   }

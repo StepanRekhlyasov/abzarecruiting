@@ -16,6 +16,7 @@ public class Attribute
     public string? CreatedById { get; set; }
     public ApplicationUser? CreatedBy { get; set; }
     public ICollection<AttributeOption> Options { get; set; } = [];
+    public ICollection<AttributeValidation> Validations { get; set; } = [];
     public ICollection<ProfileAttribute> ProfileAttributes { get; set; } = [];
     public ICollection<PositionRestriction> PositionRestrictions { get; set; } = [];
     public ICollection<PositionAttribute> PositionAttributes { get; set; } = [];

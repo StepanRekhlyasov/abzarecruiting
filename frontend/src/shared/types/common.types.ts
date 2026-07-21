@@ -95,6 +95,7 @@ export type AbzaFieldConfig = {
   tooltip?: string
   deletable?: boolean
   size?: 'small' | 'medium'
+  maxFileSizeKb?: number
   showWhen?: { field: string; value: string }
 }
 

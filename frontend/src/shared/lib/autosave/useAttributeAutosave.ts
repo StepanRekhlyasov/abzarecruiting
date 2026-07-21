@@ -4,6 +4,7 @@ import {
   type AttributeDraftValue,
   type ProfileAttributeDto,
 } from '@shared/types'
+import { parseApiFieldErrors } from '@shared/lib/errors'
 import {
   getDirtyAttributeIds,
   toAttributeDraftMap,
@@ -40,18 +41,25 @@ export function useAttributeAutosave({
 }: UseAttributeAutosaveOptions) {
   const shouldFlushOnUnmount = flushOnUnmount ?? canEdit
 
-  const [draft, setDraft] = useState<Record<number, AttributeDraftValue>>({})
-  const draftRef = useRef(draft)
+  const [isDirty, setIsDirty] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [, bumpDraftRevision] = useState(0)
+  const draftRef = useRef<Record<number, AttributeDraftValue>>({})
   const savedRef = useRef<Record<number, AttributeDraftValue>>({})
   const versionsRef = useRef<Record<number, number>>({})
 
-  const dirtyIds = getDirtyAttributeIds(draft, savedRef.current)
-  const isDirty = dirtyIds.length > 0
+  const syncDirtyState = useCallback(() => {
+    const dirty = getDirtyAttributeIds(draftRef.current, savedRef.current).length > 0
+    setIsDirty((current) => (current === dirty ? current : dirty))
+  }, [])
+
+  const setActiveStateRef = useRef(setAutosaveActive)
+  setActiveStateRef.current = setAutosaveActive
 
   const onFlush = useCallback(async () => {
     const ids = getDirtyAttributeIds(draftRef.current, savedRef.current)
     if (ids.length === 0) {
-      setAutosaveActive(false)
+      setActiveStateRef.current(false)
       return
     }
 
@@ -72,7 +80,7 @@ export function useAttributeAutosave({
     }
 
     if (items.length === 0) {
-      setAutosaveActive(false)
+      setActiveStateRef.current(false)
       return
     }
 
@@ -85,9 +93,11 @@ export function useAttributeAutosave({
       }
     }
 
+    setFieldErrors({})
+    syncDirtyState()
     const stillDirty = getDirtyAttributeIds(draftRef.current, savedRef.current).length > 0
-    setAutosaveActive(stillDirty)
-  }, [saveAttributeValues, setAutosaveActive])
+    setActiveStateRef.current(stillDirty)
+  }, [saveAttributeValues, syncDirtyState])
 
   const {
     isSaving,
@@ -97,6 +107,7 @@ export function useAttributeAutosave({
     reset,
     reenable,
     clearTimer,
+    setActiveState,
     savingRef,
     autosaveEnabledRef,
   } = useAutosave({
@@ -104,13 +115,16 @@ export function useAttributeAutosave({
     onFlush,
     setActive: setAutosaveActive,
     onError: (flushError) => {
+      const nextFieldErrors = parseApiFieldErrors(flushError)
+      if (nextFieldErrors) {
+        setFieldErrors(nextFieldErrors)
+      }
+
       setActionError(flushError instanceof Error ? flushError.message : errorKey)
     },
   })
 
-  useEffect(() => {
-    draftRef.current = draft
-  }, [draft])
+  setActiveStateRef.current = setActiveState
 
   useEffect(() => {
     if (isLoading) {
@@ -119,10 +133,11 @@ export function useAttributeAutosave({
 
     const next = toAttributeDraftMap(attributes)
     draftRef.current = next
-    setDraft(next)
     savedRef.current = { ...next }
     versionsRef.current = toAttributeVersionMap(attributes)
+    setFieldErrors({})
     setActionError(null)
+    setIsDirty(false)
     reset(canEdit)
   }, [attributes, canEdit, isLoading, reset, setActionError])
 
@@ -145,21 +160,32 @@ export function useAttributeAutosave({
     }
   }, [autosaveEnabledRef, saveAttributeValues, savingRef, shouldFlushOnUnmount])
 
+  const getDraftSnapshot = useCallback(() => draftRef.current, [])
+
   const handleChange = useCallback(
     (attributeId: number, value: AttributeDraftValue) => {
       if (!canEdit) {
         return
       }
 
-      const next = { ...draftRef.current, [attributeId]: value }
-      draftRef.current = next
-      setDraft(next)
+      draftRef.current = { ...draftRef.current, [attributeId]: value }
+      syncDirtyState()
+      bumpDraftRevision((revision) => revision + 1)
 
       reenable()
+      setFieldErrors((current) => {
+        if (!current[String(attributeId)]) {
+          return current
+        }
+
+        const next = { ...current }
+        delete next[String(attributeId)]
+        return next
+      })
       setActionError(null)
       schedule()
     },
-    [canEdit, reenable, schedule, setActionError],
+    [canEdit, reenable, schedule, setActionError, syncDirtyState],
   )
 
   const handleManualSave = useCallback(() => {
@@ -173,10 +199,11 @@ export function useAttributeAutosave({
   const canSave = autosaveEnabled && (isDirty || isSaving)
 
   return {
-    draft,
+    fieldErrors,
     isDirty,
     isSaving,
     canSave,
+    getDraftSnapshot,
     handleChange,
     handleManualSave,
     flush,

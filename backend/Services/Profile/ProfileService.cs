@@ -1,5 +1,6 @@
 using Backend.Api.Data;
 using Backend.Api.Data.Relations;
+using Backend.Api.Models.Attribute;
 using Backend.Api.Models.Profile;
 using Backend.Api.Services.Attributes;
 using Backend.Api.Services.Files;
@@ -51,6 +52,7 @@ public class ProfileService(
         var allAttributes = await db.Attributes
             .AsNoTracking()
             .Include(attribute => attribute.Options)
+            .Include(attribute => attribute.Validations)
             .OrderBy(attribute => attribute.Name)
             .ToListAsync(cancellationToken);
         var defaultNames = DefaultAttributes.All.Select(item => item.Name).ToHashSet();
@@ -130,6 +132,7 @@ public class ProfileService(
         var attributes = await db.Attributes
             .AsNoTracking()
             .Include(attribute => attribute.Options)
+            .Include(attribute => attribute.Validations)
             .ToListAsync(cancellationToken);
 
         var attributesByName = attributes
@@ -328,6 +331,15 @@ public class ProfileService(
             Options = attribute.Options
                 .OrderBy(option => option.Id)
                 .Select(option => option.InputOption)
+                .ToList(),
+            Validations = attribute.Validations
+                .OrderBy(validation => validation.Id)
+                .Select(validation => new AttributeValidationDto
+                {
+                    Id = validation.Id,
+                    ValidationType = validation.ValidationType,
+                    ValidationValue = validation.ValidationValue,
+                })
                 .ToList(),
             Value = FileAttributeValueResolver.ToDisplayValue(attribute.ValueType, storedValue, files),
             Version = profileAttribute?.Version ?? 0,
