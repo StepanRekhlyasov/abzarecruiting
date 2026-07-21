@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
 import type { UserRewardsDto } from '@shared/types'
-import { Icon5cv } from '@/assets/icons/icon-5cv'
-import { Icon5Hearts } from '@/assets/icons/icon-5hearts'
-import { Icon5Messages } from '@/assets/icons/icon-5messages'
-import { Icon10Hearts } from '@/assets/icons/icon-10hearts'
+import { Icon5cv } from '@app/assets/icons/icon-5cv'
+import { Icon5Hearts } from '@app/assets/icons/icon-5hearts'
+import { Icon5Messages } from '@app/assets/icons/icon-5messages'
+import { Icon10Hearts } from '@app/assets/icons/icon-10hearts'
 
 export type RewardBadgeKind = 'cv5' | 'hearts5' | 'hearts10' | 'messages5'
 

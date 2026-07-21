@@ -2,7 +2,7 @@ using System.Text;
 using Backend.Api.Data;
 using Backend.Api.Data.Entities;
 using Backend.Api.Data.Relations;
-using Backend.Api.Services.Attributes;
+using Backend.Api.Services.Attribute;
 using Microsoft.EntityFrameworkCore;
 using PositionEntity = Backend.Api.Data.Entities.Position;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;

@@ -1,5 +1,5 @@
 using Backend.Api.Configuration;
-using Backend.Api.Services.Attributes;
+using Backend.Api.Services.Attribute;
 using Backend.Api.Services.Files;
 using Backend.Api.Services.Profile;
 using Microsoft.AspNetCore.Identity;

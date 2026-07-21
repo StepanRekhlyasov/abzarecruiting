@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Backend.Api.Services.Attributes;
+using Backend.Api.Services.Attribute;
 
 namespace Backend.Api.Middleware;
 

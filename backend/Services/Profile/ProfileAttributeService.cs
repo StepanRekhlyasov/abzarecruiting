@@ -1,6 +1,6 @@
 using Backend.Api.Data;
 using Backend.Api.Data.Relations;
-using Backend.Api.Services.Attributes;
+using Backend.Api.Services.Attribute;
 using Microsoft.EntityFrameworkCore;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 

@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Backend.Api.Services.Attributes;
+namespace Backend.Api.Services.Attribute;
 
 public static class AttributeRegexParser
 {

@@ -4,7 +4,7 @@ using Backend.Api.Data;
 using Backend.Api.Data.Entities;
 using Backend.Api.Data.Enums;
 using Backend.Api.Data.Relations;
-using Backend.Api.Services.Attributes;
+using Backend.Api.Services.Attribute;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Api.Services.Position;

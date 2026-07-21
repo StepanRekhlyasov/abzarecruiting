@@ -333,6 +333,7 @@ public static class UserSeeder
                 "..",
                 "frontend",
                 "src",
+                "app",
                 "assets",
                 "avatar-default.svg")),
         };

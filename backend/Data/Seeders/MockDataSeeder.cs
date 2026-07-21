@@ -1,7 +1,7 @@
 using Backend.Api.Data.Entities;
 using Backend.Api.Data.Relations;
 using Backend.Api.Data.Seeders.MockData;
-using Backend.Api.Services.Attributes;
+using Backend.Api.Services.Attribute;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

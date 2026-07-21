@@ -6,7 +6,6 @@ using Backend.Api.Data.Seeders;
 using Backend.Api.Middleware;
 using Backend.Api.Services.Auth;
 using Backend.Api.Services.Attribute;
-using Backend.Api.Services.Attributes;
 using Backend.Api.Services.Dashboard;
 using Backend.Api.Services.Email;
 using Backend.Api.Services.Position;

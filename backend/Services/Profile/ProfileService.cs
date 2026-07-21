@@ -2,7 +2,7 @@ using Backend.Api.Data;
 using Backend.Api.Data.Relations;
 using Backend.Api.Models.Attribute;
 using Backend.Api.Models.Profile;
-using Backend.Api.Services.Attributes;
+using Backend.Api.Services.Attribute;
 using Backend.Api.Services.Files;
 using Backend.Api.Services.Search;
 using Microsoft.EntityFrameworkCore;

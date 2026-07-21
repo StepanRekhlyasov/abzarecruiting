@@ -7,7 +7,7 @@ using Backend.Api.Models.Files;
 using Backend.Api.Models.Profile;
 using Backend.Api.Models.Project;
 using Backend.Api.Models.Resume;
-using Backend.Api.Services.Attributes;
+using Backend.Api.Services.Attribute;
 using Backend.Api.Services.Files;
 using Backend.Api.Services.Position;
 using Backend.Api.Services.Profile;

@@ -6,7 +6,7 @@ using Backend.Api.Services.Files;
 using Microsoft.EntityFrameworkCore;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 
-namespace Backend.Api.Services.Attributes;
+namespace Backend.Api.Services.Attribute;
 
 public class AttributeValidationFieldError
 {
