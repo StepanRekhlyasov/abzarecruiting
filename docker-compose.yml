@@ -8,15 +8,19 @@ services:
       MYSQL_DATABASE: camp_project
       MYSQL_USER: app
       MYSQL_PASSWORD: app
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uapp", "-papp"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot", "--silent"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
+      start_period: 20s
 
   backend:
     build:
@@ -36,7 +40,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - DOTNET_USE_POLLING_FILE_WATCHER=true
-      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=camp_project;User=app;Password=app;SslMode=Disabled;
+      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=camp_project;User=app;Password=app;SslMode=Disabled;AllowPublicKeyRetrieval=True;Connection Timeout=60;
       - Lucene__IndexPath=/app/lucene-index
     volumes:
       - lucene_data:/app/lucene-index
