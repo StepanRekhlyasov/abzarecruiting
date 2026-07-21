@@ -49,15 +49,8 @@ public class TagController(ITagService tagService) : ControllerBase
         [FromBody] UpdateTagRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var tag = await tagService.UpdateAsync(id, request, cancellationToken);
-            return tag is null ? NotFound() : Ok(tag);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var tag = await tagService.UpdateAsync(id, request, cancellationToken);
+        return tag is null ? NotFound() : Ok(tag);
     }
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
@@ -66,29 +59,15 @@ public class TagController(ITagService tagService) : ControllerBase
         [FromBody] DeleteTagsRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            await tagService.DeleteBatchAsync(request.Items, cancellationToken);
-            return NoContent();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        await tagService.DeleteBatchAsync(request.Items, cancellationToken);
+        return NoContent();
     }
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, [FromQuery] int version, CancellationToken cancellationToken)
     {
-        try
-        {
-            var deleted = await tagService.DeleteAsync(id, version, cancellationToken);
-            return deleted ? NoContent() : NotFound();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var deleted = await tagService.DeleteAsync(id, version, cancellationToken);
+        return deleted ? NoContent() : NotFound();
     }
 }

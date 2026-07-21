@@ -44,8 +44,6 @@ public class AttributeService(
     ISearchIndexService searchIndex,
     ILuceneIndex lucene) : IAttributeService
 {
-    private const string VersionChangedMessage = "error.oldVersion";
-
     public async Task<PagedResult<AttributeDto>> GetListAsync(
         AttributeListParams pagination,
         CancellationToken cancellationToken = default)
@@ -67,50 +65,21 @@ public class AttributeService(
             query = query.Where(attribute => attribute.ValueType == valueType);
         }
 
-        // Avoid Contains(collection) / .Any over in-memory lists — MySQL EF fails ValuesExpression type mapping.
-        var ids = (pagination.Ids ?? [])
-            .Where(id => id > 0)
-            .Distinct()
-            .ToList();
-
-        var searchTerms = (pagination.Searches ?? [])
-            .Where(term => !string.IsNullOrWhiteSpace(term))
-            .Select(term => term.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        if (searchTerms.Count == 0 && !string.IsNullOrWhiteSpace(pagination.Search))
-        {
-            searchTerms.Add(pagination.Search.Trim());
-        }
-
-        IReadOnlyList<int> fullTextIds = [];
-        if (searchTerms.Count > 0)
-        {
-            fullTextIds = lucene.Search(SearchEntityTypes.Attribute, string.Join(' ', searchTerms));
-        }
-
-        if (ids.Count > 0 || searchTerms.Count > 0)
-        {
-            var matchedIds = ids.Union(fullTextIds).Distinct().ToList();
-            query = query.Where(LuceneQueryExtensions.BuildIdEqualsAny<AttributeEntity>(matchedIds, attribute => attribute.Id));
-        }
+        query = query.WhereMatchesIdsOrFullText(
+            lucene,
+            SearchEntityTypes.Attribute,
+            pagination.Ids,
+            pagination.Searches,
+            pagination.Search,
+            attribute => attribute.Id);
 
         query = query.ApplySort(pagination, attribute => attribute.Name);
-        var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query
-            .Skip(pagination.Skip)
-            .Take(pagination.NormalizedSize)
-            .Select(attribute => Map(attribute))
-            .ToListAsync(cancellationToken);
 
-        return new PagedResult<AttributeDto>
-        {
-            Items = items,
-            TotalCount = totalCount,
-            Page = pagination.NormalizedPage,
-            Size = pagination.NormalizedSize,
-        };
+        var page = await query.ToPagedResultAsync(pagination, cancellationToken);
+        return page.Items
+            .Select(Map)
+            .ToList()
+            .ToPagedResult(page.TotalCount, pagination);
     }
 
     public async Task<AttributeDto> CreateAsync(
@@ -171,10 +140,7 @@ public class AttributeService(
             throw new InvalidOperationException("error.attributes.editDefault");
         }
 
-        if (attribute.Version != request.Version)
-        {
-            throw new InvalidOperationException(VersionChangedMessage);
-        }
+        VersionedEntityExtensions.EnsureVersion(attribute.Version, request.Version);
 
         var name = request.Name.Trim();
         await EnsureNameIsUniqueAsync(name, attribute.Id, cancellationToken);
@@ -226,10 +192,7 @@ public class AttributeService(
             throw new InvalidOperationException("error.attributes.editDefault");
         }
 
-        if (attribute.Version != version)
-        {
-            throw new InvalidOperationException(VersionChangedMessage);
-        }
+        VersionedEntityExtensions.EnsureVersion(attribute.Version, version);
 
         db.Attributes.Remove(attribute);
         await db.SaveChangesAsync(cancellationToken);
@@ -239,10 +202,7 @@ public class AttributeService(
 
     public async Task DeleteBatchAsync(IEnumerable<DeleteAttributeItem> items, CancellationToken cancellationToken = default)
     {
-        var uniqueItems = items
-            .GroupBy(item => item.Id)
-            .Select(group => group.Last())
-            .ToList();
+        var uniqueItems = VersionedEntityExtensions.DeduplicateById(items, item => item.Id);
 
         if (uniqueItems.Count == 0)
         {
@@ -265,14 +225,11 @@ public class AttributeService(
         }
 
         var versionById = uniqueItems.ToDictionary(item => item.Id, item => item.Version);
-
-        foreach (var attribute in attributes)
-        {
-            if (attribute.Version != versionById[attribute.Id])
-            {
-                throw new InvalidOperationException(VersionChangedMessage);
-            }
-        }
+        VersionedEntityExtensions.EnsureAllVersionsMatch(
+            attributes,
+            versionById,
+            attribute => attribute.Id,
+            attribute => attribute.Version);
 
         db.Attributes.RemoveRange(attributes);
         await db.SaveChangesAsync(cancellationToken);
@@ -296,10 +253,7 @@ public class AttributeService(
 
         if (profileAttribute is null)
         {
-            if (request.Version != 0)
-            {
-                throw new InvalidOperationException(VersionChangedMessage);
-            }
+            VersionedEntityExtensions.EnsureVersion(0, request.Version);
 
             profileAttribute = new ProfileAttribute
             {
@@ -309,9 +263,9 @@ public class AttributeService(
             };
             db.ProfileAttributes.Add(profileAttribute);
         }
-        else if (profileAttribute.Version != request.Version)
+        else
         {
-            throw new InvalidOperationException(VersionChangedMessage);
+            VersionedEntityExtensions.EnsureVersion(profileAttribute.Version, request.Version);
         }
 
         if (FileAttributeValueResolver.IsFileValueType(attribute.ValueType)
@@ -374,10 +328,7 @@ public class AttributeService(
             var attribute = attributesById[item.AttributeId];
             if (!profileByAttributeId.TryGetValue(item.AttributeId, out var profileAttribute))
             {
-                if (item.Version != 0)
-                {
-                    throw new InvalidOperationException(VersionChangedMessage);
-                }
+                VersionedEntityExtensions.EnsureVersion(0, item.Version);
 
                 profileAttribute = new ProfileAttribute
                 {
@@ -388,9 +339,9 @@ public class AttributeService(
                 db.ProfileAttributes.Add(profileAttribute);
                 profileByAttributeId[item.AttributeId] = profileAttribute;
             }
-            else if (profileAttribute.Version != item.Version)
+            else
             {
-                throw new InvalidOperationException(VersionChangedMessage);
+                VersionedEntityExtensions.EnsureVersion(profileAttribute.Version, item.Version);
             }
 
             if (FileAttributeValueResolver.IsFileValueType(attribute.ValueType)

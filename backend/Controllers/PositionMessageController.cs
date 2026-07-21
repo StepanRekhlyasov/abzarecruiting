@@ -28,19 +28,12 @@ public class PositionMessageController(IPositionMessageService messageService) :
         [FromBody] CreatePositionMessageRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var message = await messageService.CreateAsync(
-                positionId,
-                request,
-                User.GetUserId()!,
-                cancellationToken);
-            return message is null ? NotFound() : Ok(message);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var message = await messageService.CreateAsync(
+            positionId,
+            request,
+            User.GetUserId()!,
+            cancellationToken);
+        return message is null ? NotFound() : Ok(message);
     }
 
     [Authorize(Roles = Roles.Admin)]

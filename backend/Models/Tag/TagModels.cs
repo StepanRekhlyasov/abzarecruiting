@@ -29,12 +29,7 @@ public class EnsureTagsRequest
     public IList<string> Names { get; set; } = [];
 }
 
-public class DeleteTagItem
-{
-    public int Id { get; set; }
-
-    public int Version { get; set; }
-}
+public class DeleteTagItem : VersionedId;
 
 public class DeleteTagsRequest
 {

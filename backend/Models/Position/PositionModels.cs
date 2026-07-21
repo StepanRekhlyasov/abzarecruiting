@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Backend.Api.Data.Enums;
+using Backend.Api.Models.Common;
 
 namespace Backend.Api.Models.Position;
 
@@ -43,12 +44,7 @@ public class SyncPositionRelationsRequest
     public IList<int> TagIds { get; set; } = [];
 }
 
-public class DeletePositionItem
-{
-    public int Id { get; set; }
-
-    public int Version { get; set; }
-}
+public class DeletePositionItem : VersionedId;
 
 public class DeletePositionsRequest
 {
@@ -117,37 +113,4 @@ public class PositionListItemDto
     public IReadOnlyList<PositionTagDto> Tags { get; set; } = [];
 }
 
-public class PositionDetailDto
-{
-    public int Id { get; set; }
-
-    public string Name { get; set; } = string.Empty;
-
-    public string Description { get; set; } = string.Empty;
-
-    public string Company { get; set; } = string.Empty;
-
-    public string Country { get; set; } = string.Empty;
-
-    public PositionLevel Level { get; set; }
-
-    public WorkFormat Format { get; set; }
-
-    public int MaxProjects { get; set; }
-
-    public DateTime CreatedAt { get; set; }
-
-    public int Version { get; set; }
-
-    public string CreatedByName { get; set; } = string.Empty;
-
-    public int MessagesCount { get; set; }
-
-    public int ResumesCount { get; set; }
-
-    public bool HasRestrictions { get; set; }
-
-    public IReadOnlyList<PositionAttributeDto> Attributes { get; set; } = [];
-
-    public IReadOnlyList<PositionTagDto> Tags { get; set; } = [];
-}
+public class PositionDetailDto : PositionListItemDto;

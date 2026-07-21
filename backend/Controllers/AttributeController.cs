@@ -28,15 +28,8 @@ public class AttributeController(IAttributeService attributeService) : Controlle
         [FromBody] CreateAttributeRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var attribute = await attributeService.CreateAsync(request, User.GetUserId()!, cancellationToken);
-            return Ok(attribute);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var attribute = await attributeService.CreateAsync(request, User.GetUserId()!, cancellationToken);
+        return Ok(attribute);
     }
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
@@ -46,15 +39,8 @@ public class AttributeController(IAttributeService attributeService) : Controlle
         [FromBody] UpdateAttributeRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var attribute = await attributeService.UpdateAsync(id, request, cancellationToken);
-            return attribute is null ? NotFound() : Ok(attribute);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var attribute = await attributeService.UpdateAsync(id, request, cancellationToken);
+        return attribute is null ? NotFound() : Ok(attribute);
     }
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
@@ -63,30 +49,16 @@ public class AttributeController(IAttributeService attributeService) : Controlle
         [FromBody] DeleteAttributesRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            await attributeService.DeleteBatchAsync(request.Items, cancellationToken);
-            return NoContent();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        await attributeService.DeleteBatchAsync(request.Items, cancellationToken);
+        return NoContent();
     }
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, [FromQuery] int version, CancellationToken cancellationToken)
     {
-        try
-        {
-            var deleted = await attributeService.DeleteAsync(id, version, cancellationToken);
-            return deleted ? NoContent() : NotFound();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var deleted = await attributeService.DeleteAsync(id, version, cancellationToken);
+        return deleted ? NoContent() : NotFound();
     }
 
     [Authorize]
@@ -97,20 +69,13 @@ public class AttributeController(IAttributeService attributeService) : Controlle
         [FromBody] SetProfileAttributeRequest request,
         CancellationToken cancellationToken)
     {
-        if (!User.IsAdmin() && User.GetUserId() != candidateId)
+        if (!User.IsSelfOrAdmin(candidateId))
         {
             return Forbid();
         }
 
-        try
-        {
-            var version = await attributeService.SetCandidateValueAsync(id, candidateId, request, cancellationToken);
-            return version is null ? NotFound() : Ok(new { version });
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var version = await attributeService.SetCandidateValueAsync(id, candidateId, request, cancellationToken);
+        return version is null ? NotFound() : Ok(new { version });
     }
 
     [Authorize]
@@ -120,19 +85,12 @@ public class AttributeController(IAttributeService attributeService) : Controlle
         string candidateId,
         CancellationToken cancellationToken)
     {
-        if (!User.IsAdmin() && User.GetUserId() != candidateId)
+        if (!User.IsSelfOrAdmin(candidateId))
         {
             return Forbid();
         }
 
-        try
-        {
-            var deleted = await attributeService.DeleteCandidateValueAsync(id, candidateId, cancellationToken);
-            return deleted ? NoContent() : NotFound();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var deleted = await attributeService.DeleteCandidateValueAsync(id, candidateId, cancellationToken);
+        return deleted ? NoContent() : NotFound();
     }
 }

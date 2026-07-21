@@ -26,15 +26,8 @@ public class RestrictionController(IRestrictionService restrictionService) : Con
         [FromBody] CreateRestrictionRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var restriction = await restrictionService.CreateAsync(request, User.GetUserId()!, cancellationToken);
-            return restriction is null ? NotFound() : Ok(restriction);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var restriction = await restrictionService.CreateAsync(request, User.GetUserId()!, cancellationToken);
+        return restriction is null ? NotFound() : Ok(restriction);
     }
 
     [HttpPut("sync")]
@@ -42,15 +35,8 @@ public class RestrictionController(IRestrictionService restrictionService) : Con
         [FromBody] SyncRestrictionsRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var items = await restrictionService.SyncAsync(request, User.GetUserId()!, cancellationToken);
-            return Ok(items);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var items = await restrictionService.SyncAsync(request, User.GetUserId()!, cancellationToken);
+        return Ok(items);
     }
 
     [HttpPost("{id:int}")]
@@ -59,28 +45,14 @@ public class RestrictionController(IRestrictionService restrictionService) : Con
         [FromBody] UpdateRestrictionRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var restriction = await restrictionService.UpdateAsync(id, request, cancellationToken);
-            return restriction is null ? NotFound() : Ok(restriction);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var restriction = await restrictionService.UpdateAsync(id, request, cancellationToken);
+        return restriction is null ? NotFound() : Ok(restriction);
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, [FromQuery] int version, CancellationToken cancellationToken)
     {
-        try
-        {
-            var deleted = await restrictionService.DeleteAsync(id, version, cancellationToken);
-            return deleted ? NoContent() : NotFound();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var deleted = await restrictionService.DeleteAsync(id, version, cancellationToken);
+        return deleted ? NoContent() : NotFound();
     }
 }

@@ -308,4 +308,42 @@ public static class LuceneQueryExtensions
         var ids = lucene.Search(entityType, search);
         return query.Where(BuildIdEqualsAny(ids, idSelector));
     }
+
+    public static IQueryable<TEntity> WhereMatchesIdsOrFullText<TEntity>(
+        this IQueryable<TEntity> query,
+        ILuceneIndex lucene,
+        string entityType,
+        IEnumerable<int>? ids,
+        IEnumerable<string>? searches,
+        string? search,
+        Expression<Func<TEntity, int>> idSelector)
+    {
+        var normalizedIds = (ids ?? [])
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        var searchTerms = (searches ?? [])
+            .Where(term => !string.IsNullOrWhiteSpace(term))
+            .Select(term => term.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (searchTerms.Count == 0 && !string.IsNullOrWhiteSpace(search))
+        {
+            searchTerms.Add(search.Trim());
+        }
+
+        if (normalizedIds.Count == 0 && searchTerms.Count == 0)
+        {
+            return query;
+        }
+
+        IReadOnlyList<int> fullTextIds = searchTerms.Count > 0
+            ? lucene.Search(entityType, string.Join(' ', searchTerms))
+            : [];
+
+        var matchedIds = normalizedIds.Union(fullTextIds).Distinct().ToList();
+        return query.Where(BuildIdEqualsAny(matchedIds, idSelector));
+    }
 }

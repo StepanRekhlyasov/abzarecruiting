@@ -29,22 +29,15 @@ public class FileController(IFileStorageService fileStorageService) : Controller
             return BadRequest(new { message = "error.files.unsupportedKind" });
         }
 
-        try
+        var uploaded = await fileStorageService.SaveAsync(file, uploadKind, cancellationToken: cancellationToken);
+        return Ok(new UploadFileResponse
         {
-            var uploaded = await fileStorageService.SaveAsync(file, uploadKind, cancellationToken: cancellationToken);
-            return Ok(new UploadFileResponse
-            {
-                Uid = uploaded.Uid,
-                Url = uploaded.Url,
-                Name = uploaded.Name,
-                ContentType = uploaded.ContentType,
-                Size = uploaded.Size,
-            });
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+            Uid = uploaded.Uid,
+            Url = uploaded.Url,
+            Name = uploaded.Name,
+            ContentType = uploaded.ContentType,
+            Size = uploaded.Size,
+        });
     }
 
     private static bool TryParseKind(string kind, out UploadKind uploadKind)

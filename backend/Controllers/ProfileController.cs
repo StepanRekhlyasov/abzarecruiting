@@ -27,20 +27,13 @@ public class ProfileController(IProfileService profileService, IAttributeService
         string candidateId,
         CancellationToken cancellationToken)
     {
-        if (!User.IsAdmin() && User.GetUserId() != candidateId)
+        if (!User.IsSelfOrAdmin(candidateId))
         {
             return Forbid();
         }
 
-        try
-        {
-            var attributes = await profileService.GetMeInfoAsync(candidateId, cancellationToken);
-            return attributes is null ? NotFound() : Ok(attributes);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var attributes = await profileService.GetMeInfoAsync(candidateId, cancellationToken);
+        return attributes is null ? NotFound() : Ok(attributes);
     }
 
     [Authorize]
@@ -49,7 +42,7 @@ public class ProfileController(IProfileService profileService, IAttributeService
         string candidateId,
         CancellationToken cancellationToken)
     {
-        if (!User.IsAdmin() && User.GetUserId() != candidateId)
+        if (!User.IsSelfOrAdmin(candidateId))
         {
             return Forbid();
         }
@@ -65,20 +58,13 @@ public class ProfileController(IProfileService profileService, IAttributeService
         [FromBody] AddProfileAttributesRequest request,
         CancellationToken cancellationToken)
     {
-        if (!User.IsAdmin() && User.GetUserId() != candidateId)
+        if (!User.IsSelfOrAdmin(candidateId))
         {
             return Forbid();
         }
 
-        try
-        {
-            var added = await profileService.AddAttributesAsync(candidateId, request.AttributeIds, cancellationToken);
-            return added ? NoContent() : NotFound();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var added = await profileService.AddAttributesAsync(candidateId, request.AttributeIds, cancellationToken);
+        return added ? NoContent() : NotFound();
     }
 
     [Authorize]
@@ -88,20 +74,13 @@ public class ProfileController(IProfileService profileService, IAttributeService
         [FromBody] RemoveProfileAttributesRequest request,
         CancellationToken cancellationToken)
     {
-        if (!User.IsAdmin() && User.GetUserId() != candidateId)
+        if (!User.IsSelfOrAdmin(candidateId))
         {
             return Forbid();
         }
 
-        try
-        {
-            var removed = await profileService.RemoveAttributesAsync(candidateId, request.AttributeIds, cancellationToken);
-            return removed ? NoContent() : NotFound();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var removed = await profileService.RemoveAttributesAsync(candidateId, request.AttributeIds, cancellationToken);
+        return removed ? NoContent() : NotFound();
     }
 
     [Authorize]
@@ -111,22 +90,15 @@ public class ProfileController(IProfileService profileService, IAttributeService
         [FromBody] SetProfileAttributesBatchRequest request,
         CancellationToken cancellationToken)
     {
-        if (!User.IsAdmin() && User.GetUserId() != candidateId)
+        if (!User.IsSelfOrAdmin(candidateId))
         {
             return Forbid();
         }
 
-        try
-        {
-            var results = await attributeService.SetCandidateValuesBatchAsync(
-                candidateId,
-                request.Items,
-                cancellationToken);
-            return Ok(results);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var results = await attributeService.SetCandidateValuesBatchAsync(
+            candidateId,
+            request.Items,
+            cancellationToken);
+        return Ok(results);
     }
 }

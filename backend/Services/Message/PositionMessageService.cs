@@ -2,6 +2,7 @@ using Backend.Api.Data;
 using Backend.Api.Data.Entities;
 using Backend.Api.Extensions;
 using Backend.Api.Models.Message;
+using Backend.Api.Services.User;
 using Backend.Api.WebSockets;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,7 +25,8 @@ public interface IPositionMessageService
 
 public class PositionMessageService(
     ApplicationDbContext db,
-    NotificationWebSocketHandler webSocketHandler) : IPositionMessageService
+    NotificationWebSocketHandler webSocketHandler,
+    IUserNameService userNameService) : IPositionMessageService
 {
     public const string CreatedEventType = "positionMessageCreated";
     public const string DeletedEventType = "positionMessageDeleted";
@@ -150,7 +152,7 @@ public class PositionMessageService(
             .Distinct()
             .ToList();
 
-        var nameMap = await LoadCreatorNameMapAsync(userIds, cancellationToken);
+        var nameMap = await userNameService.GetFullNameMapAsync(userIds, cancellationToken);
         var roleMap = await LoadRoleMapAsync(userIds, cancellationToken);
 
         return messages
@@ -196,66 +198,5 @@ public class PositionMessageService(
                 group => group.Key,
                 group => group.Select(row => row.Name).FirstOrDefault(name => !string.IsNullOrWhiteSpace(name))
                     ?? string.Empty);
-    }
-
-    private async Task<Dictionary<string, string>> LoadCreatorNameMapAsync(
-        IReadOnlyList<string> userIds,
-        CancellationToken cancellationToken)
-    {
-        if (userIds.Count == 0)
-        {
-            return [];
-        }
-
-        var userIdSet = userIds.ToHashSet(StringComparer.Ordinal);
-
-        var nameAttributeIds = await db.Attributes
-            .AsNoTracking()
-            .Where(attribute =>
-                attribute.Name == DefaultAttributes.FirstName || attribute.Name == DefaultAttributes.LastName)
-            .Select(attribute => new { attribute.Id, attribute.Name })
-            .ToListAsync(cancellationToken);
-
-        var firstNameId = nameAttributeIds.FirstOrDefault(item => item.Name == DefaultAttributes.FirstName)?.Id;
-        var lastNameId = nameAttributeIds.FirstOrDefault(item => item.Name == DefaultAttributes.LastName)?.Id;
-
-        var profileAttributes = await db.ProfileAttributes
-            .AsNoTracking()
-            .Where(profileAttribute =>
-                (firstNameId.HasValue && profileAttribute.AttributeId == firstNameId.Value)
-                || (lastNameId.HasValue && profileAttribute.AttributeId == lastNameId.Value))
-            .Select(profileAttribute => new
-            {
-                profileAttribute.CandidateId,
-                profileAttribute.AttributeId,
-                profileAttribute.ValueString,
-            })
-            .ToListAsync(cancellationToken);
-
-        var relevantAttributes = profileAttributes
-            .Where(item => userIdSet.Contains(item.CandidateId))
-            .ToList();
-
-        return userIds.ToDictionary(
-            userId => userId,
-            userId =>
-            {
-                var firstName = firstNameId.HasValue
-                    ? relevantAttributes
-                        .FirstOrDefault(item => item.CandidateId == userId && item.AttributeId == firstNameId.Value)
-                        ?.ValueString
-                        ?.Trim()
-                        ?? string.Empty
-                    : string.Empty;
-                var lastName = lastNameId.HasValue
-                    ? relevantAttributes
-                        .FirstOrDefault(item => item.CandidateId == userId && item.AttributeId == lastNameId.Value)
-                        ?.ValueString
-                        ?.Trim()
-                        ?? string.Empty
-                    : string.Empty;
-
-                return string.Join(' ', new[] { firstName, lastName }.Where(part => !string.IsNullOrWhiteSpace(part)));
-            });
     }
 }

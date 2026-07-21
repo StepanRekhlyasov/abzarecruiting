@@ -154,15 +154,8 @@ public class ProjectController(IProjectService projectService, ApplicationDbCont
             return Forbid();
         }
 
-        try
-        {
-            var updated = await projectService.SyncTagsAsync(id, request.TagIds, cancellationToken);
-            return updated ? NoContent() : NotFound();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var updated = await projectService.SyncTagsAsync(id, request.TagIds, cancellationToken);
+        return updated ? NoContent() : NotFound();
     }
 
     [HttpDelete("delete")]
@@ -190,15 +183,8 @@ public class ProjectController(IProjectService projectService, ApplicationDbCont
             return Forbid();
         }
 
-        try
-        {
-            await projectService.DeleteBatchAsync(uniqueIds, cancellationToken);
-            return NoContent();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        await projectService.DeleteBatchAsync(uniqueIds, cancellationToken);
+        return NoContent();
     }
 
     [HttpDelete("{id:int}/tags/{tagId:int}")]

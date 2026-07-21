@@ -30,59 +30,27 @@ public interface ITagService
 
 public class TagService(ApplicationDbContext db, ISearchIndexService searchIndex, ILuceneIndex lucene) : ITagService
 {
-    private const string VersionChangedMessage = "error.oldVersion";
-
     public async Task<PagedResult<TagDto>> GetListAsync(
         TagListParams pagination,
         CancellationToken cancellationToken = default)
     {
         IQueryable<TagEntity> query = db.Tags.AsNoTracking();
 
-        // Avoid Contains(collection) / .Any over in-memory lists — MySQL EF fails ValuesExpression type mapping.
-        var ids = (pagination.Ids ?? [])
-            .Where(id => id > 0)
-            .Distinct()
-            .ToList();
-
-        var searchTerms = (pagination.Searches ?? [])
-            .Where(term => !string.IsNullOrWhiteSpace(term))
-            .Select(term => term.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        if (searchTerms.Count == 0 && !string.IsNullOrWhiteSpace(pagination.Search))
-        {
-            searchTerms.Add(pagination.Search.Trim());
-        }
-
-        IReadOnlyList<int> fullTextIds = [];
-        if (searchTerms.Count > 0)
-        {
-            fullTextIds = lucene.Search(SearchEntityTypes.Tag, string.Join(' ', searchTerms));
-        }
-
-        if (ids.Count > 0 || searchTerms.Count > 0)
-        {
-            var matchedIds = ids.Union(fullTextIds).Distinct().ToList();
-            query = query.Where(LuceneQueryExtensions.BuildIdEqualsAny<TagEntity>(matchedIds, tag => tag.Id));
-        }
+        query = query.WhereMatchesIdsOrFullText(
+            lucene,
+            SearchEntityTypes.Tag,
+            pagination.Ids,
+            pagination.Searches,
+            pagination.Search,
+            tag => tag.Id);
 
         query = query.ApplySort(pagination, tag => tag.Name);
 
-        var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query
-            .Skip(pagination.Skip)
-            .Take(pagination.NormalizedSize)
-            .Select(tag => Map(tag))
-            .ToListAsync(cancellationToken);
-
-        return new PagedResult<TagDto>
-        {
-            Items = items,
-            TotalCount = totalCount,
-            Page = pagination.NormalizedPage,
-            Size = pagination.NormalizedSize,
-        };
+        var page = await query.ToPagedResultAsync(pagination, cancellationToken);
+        return page.Items
+            .Select(Map)
+            .ToList()
+            .ToPagedResult(page.TotalCount, pagination);
     }
 
     public async Task<TagDto> CreateAsync(
@@ -167,10 +135,7 @@ public class TagService(ApplicationDbContext db, ISearchIndexService searchIndex
             return null;
         }
 
-        if (tag.Version != request.Version)
-        {
-            throw new InvalidOperationException(VersionChangedMessage);
-        }
+        VersionedEntityExtensions.EnsureVersion(tag.Version, request.Version);
 
         tag.Name = request.Name;
         tag.Version++;
@@ -206,10 +171,7 @@ public class TagService(ApplicationDbContext db, ISearchIndexService searchIndex
             return false;
         }
 
-        if (tag.Version != version)
-        {
-            throw new InvalidOperationException(VersionChangedMessage);
-        }
+        VersionedEntityExtensions.EnsureVersion(tag.Version, version);
 
         db.Tags.Remove(tag);
         await db.SaveChangesAsync(cancellationToken);
@@ -219,10 +181,7 @@ public class TagService(ApplicationDbContext db, ISearchIndexService searchIndex
 
     public async Task DeleteBatchAsync(IEnumerable<DeleteTagItem> items, CancellationToken cancellationToken = default)
     {
-        var uniqueItems = items
-            .GroupBy(item => item.Id)
-            .Select(group => group.Last())
-            .ToList();
+        var uniqueItems = VersionedEntityExtensions.DeduplicateById(items, item => item.Id);
 
         if (uniqueItems.Count == 0)
         {
@@ -240,14 +199,11 @@ public class TagService(ApplicationDbContext db, ISearchIndexService searchIndex
         }
 
         var versionById = uniqueItems.ToDictionary(item => item.Id, item => item.Version);
-
-        foreach (var tag in tags)
-        {
-            if (tag.Version != versionById[tag.Id])
-            {
-                throw new InvalidOperationException(VersionChangedMessage);
-            }
-        }
+        VersionedEntityExtensions.EnsureAllVersionsMatch(
+            tags,
+            versionById,
+            tag => tag.Id,
+            tag => tag.Version);
 
         db.Tags.RemoveRange(tags);
         await db.SaveChangesAsync(cancellationToken);

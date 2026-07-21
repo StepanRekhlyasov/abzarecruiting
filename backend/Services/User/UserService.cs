@@ -42,7 +42,8 @@ public class UserService(
     UserManager<ApplicationUser> userManager,
     ApplicationDbContext db,
     IProfileAttributeService profileAttributeService,
-    IAccountEmailService accountEmailService) : IUserService
+    IAccountEmailService accountEmailService,
+    IUserNameService userNameService) : IUserService
 {
     private static DateTimeOffset CreatePermanentLockoutEnd() => DateTimeOffset.UtcNow.AddYears(100);
 
@@ -60,7 +61,7 @@ public class UserService(
             .ToListAsync(cancellationToken);
 
         var userIds = users.Select(user => user.Id).ToList();
-        var nameMap = await LoadNameMapAsync(userIds, cancellationToken);
+        var nameMap = await userNameService.GetNamePartsMapAsync(userIds, cancellationToken);
         var roleMap = await LoadRoleMapAsync(userIds, cancellationToken);
         var now = DateTimeOffset.UtcNow;
 
@@ -382,64 +383,6 @@ public class UserService(
         }
 
         await accountEmailService.SendActivationEmailAsync(user, frontendBaseUrl, cancellationToken);
-    }
-
-    private async Task<Dictionary<string, (string FirstName, string LastName)>> LoadNameMapAsync(
-        List<string> userIds,
-        CancellationToken cancellationToken)
-    {
-        if (userIds.Count == 0)
-        {
-            return [];
-        }
-
-        var userIdSet = userIds.ToHashSet(StringComparer.Ordinal);
-
-        var nameAttributeIds = await db.Attributes
-            .AsNoTracking()
-            .Where(attribute =>
-                attribute.Name == DefaultAttributes.FirstName || attribute.Name == DefaultAttributes.LastName)
-            .Select(attribute => new { attribute.Id, attribute.Name })
-            .ToListAsync(cancellationToken);
-
-        var firstNameId = nameAttributeIds.FirstOrDefault(item => item.Name == DefaultAttributes.FirstName)?.Id;
-        var lastNameId = nameAttributeIds.FirstOrDefault(item => item.Name == DefaultAttributes.LastName)?.Id;
-
-        // Avoid Contains(string[]) — MySql.EntityFrameworkCore 10 fails type mapping for string collections.
-        var profileAttributes = await db.ProfileAttributes
-            .AsNoTracking()
-            .Where(profileAttribute =>
-                (firstNameId.HasValue && profileAttribute.AttributeId == firstNameId.Value)
-                || (lastNameId.HasValue && profileAttribute.AttributeId == lastNameId.Value))
-            .Select(profileAttribute => new
-            {
-                profileAttribute.CandidateId,
-                profileAttribute.AttributeId,
-                profileAttribute.ValueString,
-            })
-            .ToListAsync(cancellationToken);
-
-        var relevantAttributes = profileAttributes
-            .Where(item => userIdSet.Contains(item.CandidateId))
-            .ToList();
-
-        return userIds.ToDictionary(
-            userId => userId,
-            userId =>
-            {
-                var firstName = firstNameId.HasValue
-                    ? relevantAttributes
-                        .FirstOrDefault(item => item.CandidateId == userId && item.AttributeId == firstNameId.Value)
-                        ?.ValueString ?? string.Empty
-                    : string.Empty;
-                var lastName = lastNameId.HasValue
-                    ? relevantAttributes
-                        .FirstOrDefault(item => item.CandidateId == userId && item.AttributeId == lastNameId.Value)
-                        ?.ValueString ?? string.Empty
-                    : string.Empty;
-
-                return (firstName, lastName);
-            });
     }
 
     private async Task<Dictionary<string, string>> LoadRoleMapAsync(

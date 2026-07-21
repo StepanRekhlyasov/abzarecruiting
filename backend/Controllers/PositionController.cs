@@ -30,19 +30,12 @@ public class PositionController(IPositionService positionService) : ControllerBa
         [FromBody] SyncPositionRelationsRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var updated = await positionService.SyncRelationsAsync(
-                id,
-                request.AttributeIds,
-                request.TagIds,
-                cancellationToken);
-            return updated ? NoContent() : NotFound();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var updated = await positionService.SyncRelationsAsync(
+            id,
+            request.AttributeIds,
+            request.TagIds,
+            cancellationToken);
+        return updated ? NoContent() : NotFound();
     }
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
@@ -111,15 +104,8 @@ public class PositionController(IPositionService positionService) : ControllerBa
         [FromBody] UpdatePositionRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var position = await positionService.UpdateAsync(id, request, cancellationToken);
-            return position is null ? NotFound() : Ok(position);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var position = await positionService.UpdateAsync(id, request, cancellationToken);
+        return position is null ? NotFound() : Ok(position);
     }
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
@@ -146,29 +132,15 @@ public class PositionController(IPositionService positionService) : ControllerBa
         [FromBody] DeletePositionsRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            await positionService.DeleteBatchAsync(request.Items, cancellationToken);
-            return NoContent();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        await positionService.DeleteBatchAsync(request.Items, cancellationToken);
+        return NoContent();
     }
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, [FromQuery] int version, CancellationToken cancellationToken)
     {
-        try
-        {
-            var deleted = await positionService.DeleteAsync(id, version, cancellationToken);
-            return deleted ? NoContent() : NotFound();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var deleted = await positionService.DeleteAsync(id, version, cancellationToken);
+        return deleted ? NoContent() : NotFound();
     }
 }

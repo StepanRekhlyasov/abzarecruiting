@@ -1,6 +1,7 @@
 using Backend.Api.Data;
 using Backend.Api.Data.Enums;
 using Backend.Api.Data.Relations;
+using Backend.Api.Extensions;
 using Backend.Api.Models.Restriction;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,8 +27,6 @@ public interface IRestrictionService
 
 public class RestrictionService(ApplicationDbContext db) : IRestrictionService
 {
-    private const string VersionChangedMessage = "error.oldVersion";
-
     public async Task<IReadOnlyList<RestrictionDto>> GetByPositionIdAsync(
         int positionId,
         CancellationToken cancellationToken = default)
@@ -93,10 +92,7 @@ public class RestrictionService(ApplicationDbContext db) : IRestrictionService
             return null;
         }
 
-        if (restriction.Version != request.Version)
-        {
-            throw new InvalidOperationException(VersionChangedMessage);
-        }
+        VersionedEntityExtensions.EnsureVersion(restriction.Version, request.Version);
 
         restriction.PositionId = request.PositionId;
         restriction.AttributeId = request.AttributeId;
@@ -117,10 +113,7 @@ public class RestrictionService(ApplicationDbContext db) : IRestrictionService
             return false;
         }
 
-        if (restriction.Version != version)
-        {
-            throw new InvalidOperationException(VersionChangedMessage);
-        }
+        VersionedEntityExtensions.EnsureVersion(restriction.Version, version);
 
         db.PositionRestrictions.Remove(restriction);
         await db.SaveChangesAsync(cancellationToken);
@@ -182,10 +175,7 @@ public class RestrictionService(ApplicationDbContext db) : IRestrictionService
                     throw new InvalidOperationException("error.restrictions.notFound");
                 }
 
-                if (existing.Version != (item.Version ?? 0))
-                {
-                    throw new InvalidOperationException(VersionChangedMessage);
-                }
+                VersionedEntityExtensions.EnsureVersion(existing.Version, item.Version ?? 0);
 
                 existing.AttributeId = item.AttributeId;
                 existing.TagId = item.TagId;

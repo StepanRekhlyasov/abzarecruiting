@@ -6,6 +6,7 @@ using Backend.Api.Extensions;
 using Backend.Api.Models.Common;
 using Backend.Api.Models.Project;
 using Backend.Api.Services.Search;
+using Backend.Api.Services.User;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Api.Services.Project;
@@ -46,7 +47,8 @@ public interface IProjectService
 public class ProjectService(
     ApplicationDbContext db,
     ISearchIndexService searchIndex,
-    ILuceneIndex lucene) : IProjectService
+    ILuceneIndex lucene,
+    IUserNameService userNameService) : IProjectService
 {
     public async Task<PagedResult<ProjectDto>> GetListForViewerAsync(
         PaginationParams pagination,
@@ -121,12 +123,9 @@ public class ProjectService(
             .Distinct()
             .ToList();
 
-        foreach (var tagId in filterTagIds)
-        {
-            var currentTagId = tagId;
-            query = query.Where(project =>
-                project.ProfileProjectTags.Any(item => item.TagId == currentTagId));
-        }
+        query = query.WhereHasAllTagIds(
+            filterTagIds,
+            tagId => project => project.ProfileProjectTags.Any(item => item.TagId == tagId));
 
         if (!string.IsNullOrWhiteSpace(pagination.Search))
         {
@@ -145,17 +144,14 @@ public class ProjectService(
             .Take(pagination.NormalizedSize)
             .ToListAsync(cancellationToken);
 
-        var nameMap = await LoadCandidateNameMapAsync(
+        var nameMap = await userNameService.GetFullNameMapAsync(
             items.Select(item => item.CandidateId).Distinct().ToList(),
             cancellationToken);
 
-        return new PagedResult<ProjectDto>
-        {
-            Items = items.Select(item => Map(item, nameMap.GetValueOrDefault(item.CandidateId))).ToList(),
-            TotalCount = totalCount,
-            Page = pagination.NormalizedPage,
-            Size = pagination.NormalizedSize,
-        };
+        return items
+            .Select(item => Map(item, nameMap.GetValueOrDefault(item.CandidateId)))
+            .ToList()
+            .ToPagedResult(totalCount, pagination);
     }
 
     private static Expression<Func<ProfileProject, bool>> BuildCandidateIdEqualsAny(IReadOnlyList<string> ids)
@@ -186,7 +182,7 @@ public class ProjectService(
             return null;
         }
 
-        var nameMap = await LoadCandidateNameMapAsync([project.CandidateId], cancellationToken);
+        var nameMap = await userNameService.GetFullNameMapAsync([project.CandidateId], cancellationToken);
         return Map(project, nameMap.GetValueOrDefault(project.CandidateId));
     }
 
@@ -385,70 +381,10 @@ public class ProjectService(
     }
 
     public bool CanAccess(ProfileProject project, string? userId, bool isAdmin, bool isRecruiter = false) =>
-        isAdmin || isRecruiter || project.CandidateId == userId;
+        OwnershipExtensions.CanAccessOwner(project.CandidateId, userId, isAdmin, isRecruiter);
 
     public bool CanModify(ProfileProject project, string? userId, bool isAdmin) =>
-        isAdmin || project.CandidateId == userId;
-
-    private async Task<Dictionary<string, string>> LoadCandidateNameMapAsync(
-        List<string> candidateIds,
-        CancellationToken cancellationToken)
-    {
-        if (candidateIds.Count == 0)
-        {
-            return [];
-        }
-
-        var candidateIdSet = candidateIds.ToHashSet(StringComparer.Ordinal);
-
-        var nameAttributeIds = await db.Attributes
-            .AsNoTracking()
-            .Where(attribute =>
-                attribute.Name == DefaultAttributes.FirstName || attribute.Name == DefaultAttributes.LastName)
-            .Select(attribute => new { attribute.Id, attribute.Name })
-            .ToListAsync(cancellationToken);
-
-        var firstNameId = nameAttributeIds.FirstOrDefault(item => item.Name == DefaultAttributes.FirstName)?.Id;
-        var lastNameId = nameAttributeIds.FirstOrDefault(item => item.Name == DefaultAttributes.LastName)?.Id;
-
-        // Avoid Contains(string[]) — MySql.EntityFrameworkCore 10 fails type mapping for string collections.
-        var profileAttributes = await db.ProfileAttributes
-            .AsNoTracking()
-            .Where(profileAttribute =>
-                (firstNameId.HasValue && profileAttribute.AttributeId == firstNameId.Value)
-                || (lastNameId.HasValue && profileAttribute.AttributeId == lastNameId.Value))
-            .Select(profileAttribute => new
-            {
-                profileAttribute.CandidateId,
-                profileAttribute.AttributeId,
-                profileAttribute.ValueString,
-            })
-            .ToListAsync(cancellationToken);
-
-        var relevantAttributes = profileAttributes
-            .Where(item => candidateIdSet.Contains(item.CandidateId))
-            .ToList();
-
-        return candidateIds.ToDictionary(
-            candidateId => candidateId,
-            candidateId =>
-            {
-                var firstName = firstNameId.HasValue
-                    ? relevantAttributes
-                        .FirstOrDefault(item => item.CandidateId == candidateId && item.AttributeId == firstNameId.Value)
-                        ?.ValueString?.Trim()
-                        ?? string.Empty
-                    : string.Empty;
-                var lastName = lastNameId.HasValue
-                    ? relevantAttributes
-                        .FirstOrDefault(item => item.CandidateId == candidateId && item.AttributeId == lastNameId.Value)
-                        ?.ValueString?.Trim()
-                        ?? string.Empty
-                    : string.Empty;
-
-                return string.Join(' ', new[] { firstName, lastName }.Where(part => !string.IsNullOrWhiteSpace(part)));
-            });
-    }
+        OwnershipExtensions.CanModifyOwner(project.CandidateId, userId, isAdmin);
 
     private static ProjectDto Map(ProfileProject project, string? candidateName = null) => new()
     {

@@ -207,6 +207,7 @@ builder.Services.AddScoped<IResumeService, ResumeService>();
 builder.Services.AddSingleton<ILuceneIndex, LuceneIndex>();
 builder.Services.AddScoped<ISearchIndexService, SearchIndexService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserNameService, UserNameService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddSingleton(sp =>
 {
@@ -295,6 +296,7 @@ app.UseWebSockets();
 app.UseAuthentication();
 app.UseMiddleware<RejectLockedOutUsersMiddleware>();
 app.UseAuthorization();
+app.UseMiddleware<InvalidOperationExceptionMiddleware>();
 
 app.MapControllers();
 app.Map("/ws/notifications", async (HttpContext context, NotificationWebSocketHandler handler) =>

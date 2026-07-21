@@ -60,12 +60,7 @@ public class AttributeDto
     public int Version { get; set; }
 }
 
-public class DeleteAttributeItem
-{
-    public int Id { get; set; }
-
-    public int Version { get; set; }
-}
+public class DeleteAttributeItem : VersionedId;
 
 public class SetProfileAttributeRequest
 {

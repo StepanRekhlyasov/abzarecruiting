@@ -40,15 +40,8 @@ public class UserController(IUserService userService) : ControllerBase
         [FromBody] CreateUserRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var user = await userService.CreateAsync(request, cancellationToken);
-            return Ok(user);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var user = await userService.CreateAsync(request, cancellationToken);
+        return Ok(user);
     }
 
     [Authorize(Roles = Roles.Admin)]
@@ -57,15 +50,8 @@ public class UserController(IUserService userService) : ControllerBase
         [FromBody] ChangeUsersRoleBatchRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            await userService.ChangeRoleBatchAsync(request, cancellationToken);
-            return NoContent();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        await userService.ChangeRoleBatchAsync(request, cancellationToken);
+        return NoContent();
     }
 
     [Authorize(Roles = Roles.Admin)]
@@ -74,15 +60,8 @@ public class UserController(IUserService userService) : ControllerBase
         [FromBody] DeleteUsersRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            await userService.DeleteBatchAsync(request.UserIds, cancellationToken);
-            return NoContent();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        await userService.DeleteBatchAsync(request.UserIds, cancellationToken);
+        return NoContent();
     }
 
     [Authorize(Roles = Roles.Admin)]
@@ -92,15 +71,8 @@ public class UserController(IUserService userService) : ControllerBase
         [FromBody] SetUserLockoutRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            await userService.SetLockoutAsync(userId, request.Locked, cancellationToken);
-            return NoContent();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        await userService.SetLockoutAsync(userId, request.Locked, cancellationToken);
+        return NoContent();
     }
 
     [Authorize(Roles = Roles.Admin)]
@@ -110,15 +82,8 @@ public class UserController(IUserService userService) : ControllerBase
         [FromBody] SetUserActivationRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            await userService.SetActivationAsync(userId, request.Activated, cancellationToken);
-            return NoContent();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        await userService.SetActivationAsync(userId, request.Activated, cancellationToken);
+        return NoContent();
     }
 
     [Authorize(Roles = Roles.Admin)]
@@ -128,14 +93,7 @@ public class UserController(IUserService userService) : ControllerBase
         [FromBody] SendActivationEmailRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            await userService.SendActivationEmailAsync(userId, request.FrontendBaseUrl, cancellationToken);
-            return NoContent();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        await userService.SendActivationEmailAsync(userId, request.FrontendBaseUrl, cancellationToken);
+        return NoContent();
     }
 }

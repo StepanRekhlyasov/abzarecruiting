@@ -5,6 +5,7 @@ using Backend.Api.Extensions;
 using Backend.Api.Models.Common;
 using Backend.Api.Models.Position;
 using Backend.Api.Services.Search;
+using Backend.Api.Services.User;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Api.Services.Position;
@@ -67,16 +68,20 @@ public interface IPositionService
         int id,
         string userId,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<int>> FilterVisiblePositionIdsAsync(
+        IReadOnlyList<int> positionIds,
+        ClaimsPrincipal? user,
+        CancellationToken cancellationToken = default);
 }
 
 public class PositionService(
     ApplicationDbContext db,
     IPositionRestrictionEvaluator restrictionEvaluator,
     ISearchIndexService searchIndex,
-    ILuceneIndex lucene) : IPositionService
+    ILuceneIndex lucene,
+    IUserNameService userNameService) : IPositionService
 {
-    private const string VersionChangedMessage = "error.oldVersion";
-
     public async Task<PagedResult<PositionListItemDto>> GetListAsync(
         PaginationParams pagination,
         ClaimsPrincipal? user,
@@ -90,12 +95,9 @@ public class PositionService(
             .Distinct()
             .ToList();
 
-        foreach (var tagId in filterTagIds)
-        {
-            var currentTagId = tagId;
-            query = query.Where(position =>
-                position.PositionTags.Any(item => item.TagId == currentTagId));
-        }
+        query = query.WhereHasAllTagIds(
+            filterTagIds,
+            tagId => position => position.PositionTags.Any(item => item.TagId == tagId));
 
         if (!string.IsNullOrWhiteSpace(pagination.Search))
         {
@@ -134,13 +136,7 @@ public class PositionService(
 
         var items = await LoadListItemsAsync(pageIds, keyOnly: false, cancellationToken);
 
-        return new PagedResult<PositionListItemDto>
-        {
-            Items = items,
-            TotalCount = totalCount,
-            Page = pagination.NormalizedPage,
-            Size = pagination.NormalizedSize,
-        };
+        return items.ToPagedResult(totalCount, pagination);
     }
 
     public async Task<PositionDetailDto?> GetByIdAsync(
@@ -193,10 +189,7 @@ public class PositionService(
             return null;
         }
 
-        if (position.Version != request.Version)
-        {
-            throw new InvalidOperationException(VersionChangedMessage);
-        }
+        VersionedEntityExtensions.EnsureVersion(position.Version, request.Version);
 
         position.Name = request.Name;
         position.Description = request.Description;
@@ -222,10 +215,7 @@ public class PositionService(
             return false;
         }
 
-        if (position.Version != version)
-        {
-            throw new InvalidOperationException(VersionChangedMessage);
-        }
+        VersionedEntityExtensions.EnsureVersion(position.Version, version);
 
         db.Positions.Remove(position);
         await db.SaveChangesAsync(cancellationToken);
@@ -421,10 +411,7 @@ public class PositionService(
         IEnumerable<DeletePositionItem> items,
         CancellationToken cancellationToken = default)
     {
-        var uniqueItems = items
-            .GroupBy(item => item.Id)
-            .Select(group => group.Last())
-            .ToList();
+        var uniqueItems = VersionedEntityExtensions.DeduplicateById(items, item => item.Id);
 
         if (uniqueItems.Count == 0)
         {
@@ -442,13 +429,11 @@ public class PositionService(
         }
 
         var versionById = uniqueItems.ToDictionary(item => item.Id, item => item.Version);
-        foreach (var position in positions)
-        {
-            if (position.Version != versionById[position.Id])
-            {
-                throw new InvalidOperationException("error.oldVersion");
-            }
-        }
+        VersionedEntityExtensions.EnsureAllVersionsMatch(
+            positions,
+            versionById,
+            position => position.Id,
+            position => position.Version);
 
         db.Positions.RemoveRange(positions);
         await db.SaveChangesAsync(cancellationToken);
@@ -663,7 +648,13 @@ public class PositionService(
         return await LoadDetailAsync(position.Id, cancellationToken);
     }
 
-    private async Task<List<int>> FilterPositionIdsAsync(
+    public Task<IReadOnlyList<int>> FilterVisiblePositionIdsAsync(
+        IReadOnlyList<int> positionIds,
+        ClaimsPrincipal? user,
+        CancellationToken cancellationToken = default) =>
+        FilterPositionIdsAsync(positionIds, user, cancellationToken);
+
+    private async Task<IReadOnlyList<int>> FilterPositionIdsAsync(
         IReadOnlyList<int> positionIds,
         ClaimsPrincipal? user,
         CancellationToken cancellationToken)
@@ -701,23 +692,8 @@ public class PositionService(
             return false;
         }
 
-        if (user?.IsRecruiterOrAdmin() == true)
-        {
-            return true;
-        }
-
-        if (user?.IsCandidate() == true)
-        {
-            var visible = await restrictionEvaluator.GetVisiblePositionIdsForCandidateAsync(
-                user.GetUserId()!,
-                [positionId],
-                cancellationToken);
-
-            return visible.Contains(positionId);
-        }
-
-        var withRestrictions = await restrictionEvaluator.GetPositionIdsWithRestrictionsAsync([positionId], cancellationToken);
-        return !withRestrictions.Contains(positionId);
+        var visible = await FilterVisiblePositionIdsAsync([positionId], user, cancellationToken);
+        return visible.Contains(positionId);
     }
 
     private async Task<PositionDetailDto?> LoadDetailAsync(int id, CancellationToken cancellationToken)
@@ -782,7 +758,7 @@ public class PositionService(
             .Select(id => id!)
             .Distinct()
             .ToList();
-        var creatorNames = await LoadCreatorNameMapAsync(creatorIds, cancellationToken);
+        var creatorNames = await userNameService.GetFullNameMapAsync(creatorIds, cancellationToken);
 
         var messageCounts = await db.PositionMessages
             .AsNoTracking()
@@ -848,66 +824,5 @@ public class PositionService(
                     .ToList(),
             })
             .ToList();
-    }
-
-    private async Task<Dictionary<string, string>> LoadCreatorNameMapAsync(
-        IReadOnlyList<string> userIds,
-        CancellationToken cancellationToken)
-    {
-        if (userIds.Count == 0)
-        {
-            return [];
-        }
-
-        var userIdSet = userIds.ToHashSet(StringComparer.Ordinal);
-
-        var nameAttributeIds = await db.Attributes
-            .AsNoTracking()
-            .Where(attribute =>
-                attribute.Name == DefaultAttributes.FirstName || attribute.Name == DefaultAttributes.LastName)
-            .Select(attribute => new { attribute.Id, attribute.Name })
-            .ToListAsync(cancellationToken);
-
-        var firstNameId = nameAttributeIds.FirstOrDefault(item => item.Name == DefaultAttributes.FirstName)?.Id;
-        var lastNameId = nameAttributeIds.FirstOrDefault(item => item.Name == DefaultAttributes.LastName)?.Id;
-
-        var profileAttributes = await db.ProfileAttributes
-            .AsNoTracking()
-            .Where(profileAttribute =>
-                (firstNameId.HasValue && profileAttribute.AttributeId == firstNameId.Value)
-                || (lastNameId.HasValue && profileAttribute.AttributeId == lastNameId.Value))
-            .Select(profileAttribute => new
-            {
-                profileAttribute.CandidateId,
-                profileAttribute.AttributeId,
-                profileAttribute.ValueString,
-            })
-            .ToListAsync(cancellationToken);
-
-        var relevantAttributes = profileAttributes
-            .Where(item => userIdSet.Contains(item.CandidateId))
-            .ToList();
-
-        return userIds.ToDictionary(
-            userId => userId,
-            userId =>
-            {
-                var firstName = firstNameId.HasValue
-                    ? relevantAttributes
-                        .FirstOrDefault(item => item.CandidateId == userId && item.AttributeId == firstNameId.Value)
-                        ?.ValueString
-                        ?.Trim()
-                        ?? string.Empty
-                    : string.Empty;
-                var lastName = lastNameId.HasValue
-                    ? relevantAttributes
-                        .FirstOrDefault(item => item.CandidateId == userId && item.AttributeId == lastNameId.Value)
-                        ?.ValueString
-                        ?.Trim()
-                        ?? string.Empty
-                    : string.Empty;
-
-                return string.Join(' ', new[] { firstName, lastName }.Where(part => !string.IsNullOrWhiteSpace(part)));
-            });
     }
 }

@@ -30,15 +30,8 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
             return BadRequest(new { message = "error.profile.notCandidate" });
         }
 
-        try
-        {
-            var resume = await resumeService.CreateAsync(request.PositionId, candidateId, cancellationToken);
-            return resume is null ? NotFound() : Ok(resume);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var resume = await resumeService.CreateAsync(request.PositionId, candidateId, cancellationToken);
+        return resume is null ? NotFound() : Ok(resume);
     }
 
     [Authorize(Roles = $"{Roles.Candidate},{Roles.Admin}")]
@@ -58,30 +51,16 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
             return BadRequest(new { message = "error.profile.notCandidate" });
         }
 
-        try
-        {
-            var resumes = await resumeService.CreateBatchAsync(request.PositionIds, candidateId, cancellationToken);
-            return Ok(resumes);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var resumes = await resumeService.CreateBatchAsync(request.PositionIds, candidateId, cancellationToken);
+        return Ok(resumes);
     }
 
     [Authorize(Roles = Roles.Candidate)]
     [HttpPost("position/{positionId:int}")]
     public async Task<ActionResult<ResumeDto>> CreateForPosition(int positionId, CancellationToken cancellationToken)
     {
-        try
-        {
-            var resume = await resumeService.CreateAsync(positionId, User.GetUserId()!, cancellationToken);
-            return resume is null ? NotFound() : Ok(resume);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var resume = await resumeService.CreateAsync(positionId, User.GetUserId()!, cancellationToken);
+        return resume is null ? NotFound() : Ok(resume);
     }
 
     [Authorize(Roles = Roles.Candidate)]
@@ -167,15 +146,8 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
     [HttpPost("{id:int}/like")]
     public async Task<ActionResult<ResumeLikeStateDto>> ToggleLike(int id, CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await resumeService.ToggleLikeAsync(id, User.GetUserId()!, cancellationToken);
-            return result is null ? NotFound() : Ok(result);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var result = await resumeService.ToggleLikeAsync(id, User.GetUserId()!, cancellationToken);
+        return result is null ? NotFound() : Ok(result);
     }
 
     [Authorize]
@@ -231,15 +203,8 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
             return Forbid();
         }
 
-        try
-        {
-            var updated = await resumeService.UpdateAsync(id, request, cancellationToken);
-            return updated is null ? NotFound() : Ok(updated);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var updated = await resumeService.UpdateAsync(id, request, cancellationToken);
+        return updated is null ? NotFound() : Ok(updated);
     }
 
     [Authorize]
@@ -263,15 +228,8 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
             return Forbid();
         }
 
-        try
-        {
-            await resumeService.DeleteBatchAsync(request.Items, cancellationToken);
-            return NoContent();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        await resumeService.DeleteBatchAsync(request.Items, cancellationToken);
+        return NoContent();
     }
 
     [Authorize]
@@ -289,14 +247,7 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
             return Forbid();
         }
 
-        try
-        {
-            var deleted = await resumeService.DeleteAsync(id, version, cancellationToken);
-            return deleted ? NoContent() : NotFound();
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
+        var deleted = await resumeService.DeleteAsync(id, version, cancellationToken);
+        return deleted ? NoContent() : NotFound();
     }
 }

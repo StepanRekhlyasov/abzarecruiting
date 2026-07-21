@@ -16,8 +16,7 @@ public interface IDashboardService
 
 public class DashboardService(
     ApplicationDbContext db,
-    IPositionService positionService,
-    IPositionRestrictionEvaluator restrictionEvaluator) : IDashboardService
+    IPositionService positionService) : IDashboardService
 {
     private const int PositionsLimit = 5;
     private const int TagCloudLimit = 40;
@@ -59,6 +58,7 @@ public class DashboardService(
             user,
             cancellationToken: cancellationToken);
 
+        // Recruiters are excluded from the positions tag cloud (candidate/admin only).
         var includePositionsTagCloud = user?.IsCandidate() == true || user?.IsAdmin() == true;
         var includeResumesTagCloud = user?.IsRecruiterOrAdmin() == true;
 
@@ -97,31 +97,10 @@ public class DashboardService(
             return [];
         }
 
-        IReadOnlyList<int> visiblePositionIds;
-
-        if (user?.IsAdmin() == true)
-        {
-            visiblePositionIds = allPositionIds;
-        }
-        else if (user?.IsCandidate() == true)
-        {
-            var candidateId = user.GetUserId();
-            if (string.IsNullOrWhiteSpace(candidateId))
-            {
-                return [];
-            }
-
-            var visible = await restrictionEvaluator.GetVisiblePositionIdsForCandidateAsync(
-                candidateId,
-                allPositionIds,
-                cancellationToken);
-
-            visiblePositionIds = allPositionIds.Where(id => visible.Contains(id)).ToList();
-        }
-        else
-        {
-            return [];
-        }
+        var visiblePositionIds = await positionService.FilterVisiblePositionIdsAsync(
+            allPositionIds,
+            user,
+            cancellationToken);
 
         if (visiblePositionIds.Count == 0)
         {

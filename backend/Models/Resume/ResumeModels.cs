@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Backend.Api.Models.Common;
 using Backend.Api.Models.Profile;
 using Backend.Api.Models.Project;
 
@@ -21,12 +22,7 @@ public class CreateResumesBatchRequest
     public string? CandidateId { get; set; }
 }
 
-public class DeleteResumeItem
-{
-    public int Id { get; set; }
-
-    public int Version { get; set; }
-}
+public class DeleteResumeItem : VersionedId;
 
 public class DeleteResumesRequest
 {
