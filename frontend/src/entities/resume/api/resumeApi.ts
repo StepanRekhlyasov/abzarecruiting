@@ -13,8 +13,10 @@ import { withApiError } from '@shared/lib/errors'
 type FetchResumesOptions = {
   signal?: AbortSignal
   candidateId?: string
+  candidateIds?: string[]
   positionId?: number
   tagIds?: number[]
+  published?: boolean
 }
 
 export async function fetchResumes(
@@ -26,8 +28,10 @@ export async function fetchResumes(
       params: {
         ...params,
         candidateId: options?.candidateId,
+        candidateIds: options?.candidateIds,
         positionId: options?.positionId,
         tagIds: options?.tagIds,
+        published: options?.published,
       },
       paramsSerializer: serializeListQueryParams,
       signal: options?.signal,

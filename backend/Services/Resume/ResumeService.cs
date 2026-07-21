@@ -43,6 +43,8 @@ public interface IResumeService
         bool isRecruiter,
         string? candidateIdFilter = null,
         IEnumerable<int>? tagIds = null,
+        IEnumerable<string>? candidateIds = null,
+        bool? published = null,
         CancellationToken cancellationToken = default);
 
     Task<PagedResult<ResumeListItemDto>> GetListByPositionAsync(
@@ -263,6 +265,8 @@ public class ResumeService(
         bool isRecruiter,
         string? candidateIdFilter = null,
         IEnumerable<int>? tagIds = null,
+        IEnumerable<string>? candidateIds = null,
+        bool? published = null,
         CancellationToken cancellationToken = default)
     {
         var query = db.Resumes
@@ -270,24 +274,51 @@ public class ResumeService(
             .Include(resume => resume.Position)
             .AsQueryable();
 
+        var candidateIdFilters = (candidateIds ?? [])
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (!string.IsNullOrWhiteSpace(candidateIdFilter)
+            && !candidateIdFilters.Contains(candidateIdFilter, StringComparer.Ordinal))
+        {
+            candidateIdFilters.Add(candidateIdFilter.Trim());
+        }
+
         if (isAdmin)
         {
-            if (!string.IsNullOrWhiteSpace(candidateIdFilter))
+            if (candidateIdFilters.Count == 1)
             {
-                query = query.Where(resume => resume.CandidateId == candidateIdFilter);
+                var filterCandidateId = candidateIdFilters[0];
+                query = query.Where(resume => resume.CandidateId == filterCandidateId);
+            }
+            else if (candidateIdFilters.Count > 1)
+            {
+                query = query.Where(BuildResumeCandidateIdEqualsAny(candidateIdFilters));
             }
         }
         else if (isRecruiter)
         {
             query = query.Where(resume => resume.Published);
-            if (!string.IsNullOrWhiteSpace(candidateIdFilter))
+            if (candidateIdFilters.Count == 1)
             {
-                query = query.Where(resume => resume.CandidateId == candidateIdFilter);
+                var filterCandidateId = candidateIdFilters[0];
+                query = query.Where(resume => resume.CandidateId == filterCandidateId);
+            }
+            else if (candidateIdFilters.Count > 1)
+            {
+                query = query.Where(BuildResumeCandidateIdEqualsAny(candidateIdFilters));
             }
         }
         else
         {
             query = query.Where(resume => resume.CandidateId == userId);
+        }
+
+        if (published.HasValue && (isAdmin || !isRecruiter))
+        {
+            query = query.Where(resume => resume.Published == published.Value);
         }
 
         var filterTagIds = (tagIds ?? [])
@@ -343,8 +374,8 @@ public class ResumeService(
                 return Array.Empty<ResumeListItemDto>().ToPagedResult(totalCount, pagination);
             }
 
-            var candidateIds = pageItems.Select(resume => resume.CandidateId).Distinct().ToList();
-            profileAttributes = await LoadProfileAttributesAsync(candidateIds, cancellationToken);
+            var pageCandidateIds = pageItems.Select(resume => resume.CandidateId).Distinct().ToList();
+            profileAttributes = await LoadProfileAttributesAsync(pageCandidateIds, cancellationToken);
         }
 
         if (pageItems.Count == 0)
@@ -1185,6 +1216,21 @@ public class ResumeService(
         }
 
         return Expression.Lambda<Func<ProfileAttribute, bool>>(body!, parameter);
+    }
+
+    private static Expression<Func<ResumeEntity, bool>> BuildResumeCandidateIdEqualsAny(IReadOnlyList<string> ids)
+    {
+        var parameter = Expression.Parameter(typeof(ResumeEntity), "resume");
+        var property = Expression.Property(parameter, nameof(ResumeEntity.CandidateId));
+
+        Expression? body = null;
+        foreach (var id in ids)
+        {
+            var equals = Expression.Equal(property, Expression.Constant(id, typeof(string)));
+            body = body is null ? equals : Expression.OrElse(body, equals);
+        }
+
+        return Expression.Lambda<Func<ResumeEntity, bool>>(body!, parameter);
     }
 
     private async Task<IQueryable<ResumeEntity>> ApplyViewerListSortAsync(

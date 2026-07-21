@@ -74,3 +74,10 @@ export type ConfirmEmailRequest = {
   userId: string
   token: string
 }
+
+export type UserRewardsDto = {
+  role: string
+  publishedResumesCount: number
+  maxPublishedResumeLikes: number
+  likesGivenCount: number
+}

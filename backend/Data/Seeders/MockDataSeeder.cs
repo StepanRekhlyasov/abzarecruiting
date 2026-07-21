@@ -36,6 +36,7 @@ public static class MockDataSeeder
         await SeedProjectsAsync(db, userManager, createdAt, tagsByName, logger);
         await SeedMessagesAsync(db, userManager, createdAt, logger);
         await SeedResumesAsync(db, userManager, createdAt, logger);
+        await SeedResumeLikesAsync(db, userManager, createdAt, logger);
     }
 
     private static async Task<Dictionary<string, AttributeEntity>> SeedAttributesAsync(
@@ -808,6 +809,13 @@ public static class MockDataSeeder
             }
         }
 
+        await AppendExtraPublishedResumesForCandidateAsync(
+            db,
+            userManager,
+            positionsByName,
+            planned,
+            logger);
+
         var created = 0;
         var published = 0;
         var unpublished = 0;
@@ -857,6 +865,173 @@ public static class MockDataSeeder
             published,
             unpublished,
             planned.Count);
+    }
+
+    /// <summary>
+    /// Extra published CVs for a fixed candidate used in local demos / reward unlock checks.
+    /// </summary>
+    private const string ExtraPublishedResumesCandidateId = "c59d562d-4148-4d4c-a87c-02df12978ff8";
+
+    private static readonly string[] ExtraPublishedPositionNames =
+    [
+        "Senior Platform Engineer",
+        "Junior QA Automation Engineer",
+    ];
+
+    private static async Task AppendExtraPublishedResumesForCandidateAsync(
+        ApplicationDbContext db,
+        UserManager<ApplicationUser> userManager,
+        IReadOnlyDictionary<string, Position> positionsByName,
+        List<(ApplicationUser Candidate, Position Position, bool ForcePublished)> planned,
+        ILogger logger)
+    {
+        var candidate = await userManager.FindByIdAsync(ExtraPublishedResumesCandidateId);
+        if (candidate is null)
+        {
+            logger.LogWarning(
+                "Extra published resumes skipped: candidate '{CandidateId}' was not found.",
+                ExtraPublishedResumesCandidateId);
+            return;
+        }
+
+        var existingPositionIds = await db.Resumes
+            .AsNoTracking()
+            .Where(resume => resume.CandidateId == candidate.Id)
+            .Select(resume => resume.PositionId)
+            .ToListAsync();
+        var occupiedPositionIds = existingPositionIds.ToHashSet();
+
+        foreach (var item in planned.Where(item => item.Candidate.Id == candidate.Id))
+        {
+            occupiedPositionIds.Add(item.Position.Id);
+        }
+
+        var added = 0;
+        foreach (var positionName in ExtraPublishedPositionNames)
+        {
+            if (!positionsByName.TryGetValue(positionName, out var position))
+            {
+                logger.LogWarning(
+                    "Extra published resume skipped: position '{Name}' was not found.",
+                    positionName);
+                continue;
+            }
+
+            if (!occupiedPositionIds.Add(position.Id))
+            {
+                continue;
+            }
+
+            planned.Add((candidate, position, ForcePublished: true));
+            added++;
+        }
+
+        if (added < ExtraPublishedPositionNames.Length)
+        {
+            foreach (var position in positionsByName.Values)
+            {
+                if (added >= ExtraPublishedPositionNames.Length)
+                {
+                    break;
+                }
+
+                if (!occupiedPositionIds.Add(position.Id))
+                {
+                    continue;
+                }
+
+                planned.Add((candidate, position, ForcePublished: true));
+                added++;
+            }
+        }
+
+        logger.LogInformation(
+            "Planned {Count} extra published resume(s) for candidate '{CandidateId}'.",
+            added,
+            ExtraPublishedResumesCandidateId);
+    }
+
+    private static async Task SeedResumeLikesAsync(
+        ApplicationDbContext db,
+        UserManager<ApplicationUser> userManager,
+        DateTime createdAt,
+        ILogger logger)
+    {
+        var recruiterEmails = Enumerable.Range(6, 5)
+            .Select(number => $"user-{number}@fexpost.com")
+            .ToList();
+
+        var recruiters = new List<ApplicationUser>();
+        foreach (var email in recruiterEmails)
+        {
+            var recruiter = await userManager.FindByEmailAsync(email);
+            if (recruiter is not null)
+            {
+                recruiters.Add(recruiter);
+            }
+        }
+
+        if (recruiters.Count == 0)
+        {
+            logger.LogWarning("Mock resume likes skipped: no recruiters (user-6..user-10) were found.");
+            return;
+        }
+
+        var publishedResumes = await db.Resumes
+            .AsNoTracking()
+            .Where(resume => resume.Published)
+            .Select(resume => resume.Id)
+            .OrderBy(id => id)
+            .ToListAsync();
+
+        if (publishedResumes.Count == 0)
+        {
+            logger.LogWarning("Mock resume likes skipped: no published resumes were found.");
+            return;
+        }
+
+        var existingLikes = await db.LikesResumes
+            .Where(like => publishedResumes.Contains(like.ResumeId))
+            .ToListAsync();
+        var existingKeys = existingLikes
+            .Select(like => (like.UserId, like.ResumeId))
+            .ToHashSet();
+
+        var created = 0;
+        for (var resumeIndex = 0; resumeIndex < publishedResumes.Count; resumeIndex++)
+        {
+            var resumeId = publishedResumes[resumeIndex];
+            // 3..5 likes per published resume, deterministic by order.
+            var likeCount = 3 + (resumeIndex % 3);
+
+            for (var likeIndex = 0; likeIndex < likeCount && likeIndex < recruiters.Count; likeIndex++)
+            {
+                var recruiter = recruiters[likeIndex];
+                if (!existingKeys.Add((recruiter.Id, resumeId)))
+                {
+                    continue;
+                }
+
+                db.LikesResumes.Add(new LikesResume
+                {
+                    UserId = recruiter.Id,
+                    ResumeId = resumeId,
+                    CreatedAt = createdAt.AddMinutes(-(resumeIndex * 10 + likeIndex)),
+                });
+                created++;
+            }
+        }
+
+        if (created > 0)
+        {
+            await db.SaveChangesAsync();
+        }
+
+        logger.LogInformation(
+            "Mock resume likes seeded (created: {Created}, published resumes: {ResumeCount}, recruiters: {RecruiterCount}).",
+            created,
+            publishedResumes.Count,
+            recruiters.Count);
     }
 
     private static async Task EnsurePositionAttributesLinkedAsync(

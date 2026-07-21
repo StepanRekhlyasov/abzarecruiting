@@ -36,6 +36,8 @@ public interface IUserService
         string userId,
         string frontendBaseUrl,
         CancellationToken cancellationToken);
+
+    Task<UserRewardsDto?> GetRewardsAsync(string userId, CancellationToken cancellationToken);
 }
 
 public class UserService(
@@ -410,5 +412,54 @@ public class UserService(
                 group => group.Key,
                 group => group.Select(row => row.Name).FirstOrDefault(name => !string.IsNullOrWhiteSpace(name))
                     ?? string.Empty);
+    }
+
+    public async Task<UserRewardsDto?> GetRewardsAsync(string userId, CancellationToken cancellationToken)
+    {
+        var user = await userManager.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Id == userId, cancellationToken);
+        if (user is null)
+        {
+            return null;
+        }
+
+        var roles = await userManager.GetRolesAsync(user);
+        var role = roles.FirstOrDefault(name => !string.IsNullOrWhiteSpace(name)) ?? string.Empty;
+
+        var publishedResumeIds = await db.Resumes
+            .AsNoTracking()
+            .Where(resume => resume.CandidateId == userId && resume.Published)
+            .Select(resume => resume.Id)
+            .ToListAsync(cancellationToken);
+
+        var maxPublishedResumeLikes = 0;
+        if (publishedResumeIds.Count > 0)
+        {
+            var publishedResumeIdSet = publishedResumeIds.ToHashSet();
+            var likeCounts = await db.LikesResumes
+                .AsNoTracking()
+                .GroupBy(like => like.ResumeId)
+                .Select(group => new { ResumeId = group.Key, Count = group.Count() })
+                .ToListAsync(cancellationToken);
+
+            maxPublishedResumeLikes = likeCounts
+                .Where(item => publishedResumeIdSet.Contains(item.ResumeId))
+                .Select(item => item.Count)
+                .DefaultIfEmpty(0)
+                .Max();
+        }
+
+        var likesGivenCount = await db.LikesResumes
+            .AsNoTracking()
+            .CountAsync(like => like.UserId == userId, cancellationToken);
+
+        return new UserRewardsDto
+        {
+            Role = role,
+            PublishedResumesCount = publishedResumeIds.Count,
+            MaxPublishedResumeLikes = maxPublishedResumeLikes,
+            LikesGivenCount = likesGivenCount,
+        };
     }
 }

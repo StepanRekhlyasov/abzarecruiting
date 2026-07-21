@@ -41,10 +41,26 @@ function getEntityOptionValue(values: AbzaFormValues, name: string): AbzaSelectO
 
 export type CvsTableFilters = {
   tags: AbzaSelectOption[]
+  candidates: AbzaSelectOption[]
+  published: string
 }
 
 const EMPTY_FILTERS: CvsTableFilters = {
   tags: [],
+  candidates: [],
+  published: '',
+}
+
+function toOptionalBoolean(value: string): boolean | undefined {
+  if (value === 'true') {
+    return true
+  }
+
+  if (value === 'false') {
+    return false
+  }
+
+  return undefined
 }
 
 type CvsTableContextValue = {
@@ -65,6 +81,8 @@ type CvsTableContextValue = {
   canDeleteResumes: boolean
   canLikeResumes: boolean
   canFilterByTags: boolean
+  showCandidateFilter: boolean
+  showPublishedFilter: boolean
   showCandidateColumn: boolean
   showPositionColumn: boolean
   showPublishedColumn: boolean
@@ -126,12 +144,17 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
   const canDeleteResumes = canCreateResumes
   const canLikeResumes = isRecruiter(session)
   const showCandidateColumn = isRecruiterOrAdmin(session) && !candidateId
+  const showCandidateFilter = showCandidateColumn && canFilterByTags
   const showPositionColumn = !isPositionScoped
   const showPublishedColumn = !isRecruiter(session)
+  const showPublishedFilter = showPublishedColumn && canFilterByTags
   const showCandidateSelect = isAdminUser && !candidateId
   const hidePositionSelect = isPositionScoped
   const canLinkCandidateProfile = isAdminUser
-  const isFilterActive = appliedFilters.tags.length > 0
+  const isFilterActive =
+    appliedFilters.tags.length > 0
+    || appliedFilters.candidates.length > 0
+    || Boolean(appliedFilters.published)
 
   const syncTagIdsToUrl = useCallback(
     (tags: AbzaSelectOption[]) => {
@@ -175,7 +198,11 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
           { signal: controller.signal },
         )
         if (!controller.signal.aborted) {
-          setAppliedFilters({ tags: tagsToSelectOptions(result.items) })
+          setAppliedFilters({
+            tags: tagsToSelectOptions(result.items),
+            candidates: [],
+            published: '',
+          })
           setFiltersReady(true)
         }
       } catch (error) {
@@ -230,6 +257,14 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
             .filter((id) => Number.isFinite(id) && id > 0)
         : []
 
+      const candidateIds = showCandidateFilter
+        ? appliedFilters.candidates.map((item) => item.value.trim()).filter(Boolean)
+        : []
+
+      const published = showPublishedFilter
+        ? toOptionalBoolean(appliedFilters.published)
+        : undefined
+
       try {
         const result = await fetchResumes(
           {
@@ -244,6 +279,9 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
             candidateId,
             positionId,
             tagIds: tagIds.length > 0 ? tagIds : undefined,
+            candidateIds:
+              !candidateId && candidateIds.length > 0 ? candidateIds : undefined,
+            published,
           },
         )
 
@@ -274,6 +312,8 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
       pageSize,
       positionId,
       searchQuery,
+      showCandidateFilter,
+      showPublishedFilter,
       sortBy,
       sortDir,
     ],
@@ -292,7 +332,11 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
 
   const handleApplyFilters = useCallback(
     (filters: CvsTableFilters) => {
-      setAppliedFilters({ tags: filters.tags })
+      setAppliedFilters({
+        tags: filters.tags,
+        candidates: filters.candidates,
+        published: filters.published,
+      })
       syncTagIdsToUrl(filters.tags)
       setIsFilterModalOpen(false)
       setPage(0)
@@ -428,6 +472,8 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
       canDeleteResumes,
       canLikeResumes,
       canFilterByTags,
+      showCandidateFilter,
+      showPublishedFilter,
       showCandidateColumn,
       showPositionColumn,
       showPublishedColumn,
@@ -471,6 +517,8 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
       canDeleteResumes,
       canLikeResumes,
       canFilterByTags,
+      showCandidateFilter,
+      showPublishedFilter,
       showCandidateColumn,
       showPositionColumn,
       showPublishedColumn,

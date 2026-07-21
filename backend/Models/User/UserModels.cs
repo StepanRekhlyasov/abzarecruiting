@@ -21,6 +21,17 @@ public class UserListItemDto
     public DateTime CreatedAt { get; set; }
 }
 
+public class UserRewardsDto
+{
+    public string Role { get; set; } = string.Empty;
+
+    public int PublishedResumesCount { get; set; }
+
+    public int MaxPublishedResumeLikes { get; set; }
+
+    public int LikesGivenCount { get; set; }
+}
+
 public class CreateUserRequest
 {
     [Required]

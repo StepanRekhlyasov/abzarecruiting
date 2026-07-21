@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { Link as RouterLink } from 'react-router-dom'
 import { AbzaError } from '@features/abza-error'
 import { ResumeLike } from '@features/resume-like'
+import { REWARD_THRESHOLDS, RewardBadges } from '@features/reward-badges'
 import {
   toComparableAttributeValue,
   type AttributeDraftValue,
@@ -192,14 +193,24 @@ function ResumeDetailContent() {
               })}
             </CandidateProfileLink>
           </Typography>
-          <ResumeLike
-            resumeId={resume.id}
-            likesCount={resume.likesCount}
-            likedByCurrentUser={resume.likedByCurrentUser}
-            canToggle={canLike}
-            onChange={applyLikeState}
-            onError={(likeError) => setActionError(getErrorKey(likeError, 'error.resumes.like'))}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            <ResumeLike
+              resumeId={resume.id}
+              likesCount={resume.likesCount}
+              likedByCurrentUser={resume.likedByCurrentUser}
+              canToggle={canLike}
+              onChange={applyLikeState}
+              onError={(likeError) => setActionError(getErrorKey(likeError, 'error.resumes.like'))}
+            />
+            <RewardBadges
+              badges={[
+                {
+                  kind: 'hearts5',
+                  unlocked: resume.likesCount >= REWARD_THRESHOLDS.hearts5,
+                },
+              ]}
+            />
+          </Box>
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>

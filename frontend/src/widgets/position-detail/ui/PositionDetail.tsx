@@ -11,6 +11,7 @@ import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { AbzaError } from '@features/abza-error'
 import { AbzaForm } from '@features/abza-form'
+import { REWARD_THRESHOLDS, RewardBadges } from '@features/reward-badges'
 import { createPositionInfoFormConfig } from '@shared/config/forms'
 import { i18n } from '@shared/config/i18n'
 import { areAbzaFormValuesEqual, useAutosave } from '@shared/lib/autosave'
@@ -277,6 +278,14 @@ function PositionDetailContent() {
           <Typography variant="body1" color="text.secondary">
             {t('positions.detail.postedAt', { date: formatDateTime(position.createdAt) })}
           </Typography>
+          <RewardBadges
+            badges={[
+              {
+                kind: 'messages5',
+                unlocked: position.messagesCount >= REWARD_THRESHOLDS.messages5,
+              },
+            ]}
+          />
         </Box>
 
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>

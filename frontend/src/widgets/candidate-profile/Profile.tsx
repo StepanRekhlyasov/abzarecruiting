@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography'
 import { useTranslation } from 'react-i18next'
 import { useUnit } from 'effector-react'
 import { AbzaError } from '@features/abza-error'
+import { RewardBadges, type RewardBadgeConfig } from '@features/reward-badges'
 import { $session, isAdmin, isCandidate } from '@entities/user'
 import { useAttributeAutosave } from '@shared/lib/autosave'
 import { AutosaveButton } from '@shared/ui'
@@ -19,9 +20,10 @@ type ProfileTab = 'info' | 'attributes' | 'projects' | 'resumes'
 
 type ProfileProps = {
   candidateId: string
+  rewardBadges?: RewardBadgeConfig[]
 }
 
-function ProfileContent() {
+function ProfileContent({ rewardBadges = [] }: { rewardBadges?: RewardBadgeConfig[] }) {
   const { t } = useTranslation()
   const session = useUnit($session)
   const {
@@ -98,18 +100,21 @@ function ProfileContent() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Typography variant="h4" component="h1">
-          {t('profile.title')}
-        </Typography>
-        {showSaveButton ? (
-          <AutosaveButton
-            label={t('profile.save')}
-            onClick={handleManualSave}
-            disabled={!canSave}
-            active={isAutosaveActive || isDirty}
-          />
-        ) : null}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="h4" component="h1">
+            {t('profile.title')}
+          </Typography>
+          {showSaveButton ? (
+            <AutosaveButton
+              label={t('profile.save')}
+              onClick={handleManualSave}
+              disabled={!canSave}
+              active={isAutosaveActive || isDirty}
+            />
+          ) : null}
+        </Box>
+        <RewardBadges badges={rewardBadges} />
       </Box>
 
       <AbzaError error={error} />
@@ -173,10 +178,10 @@ function ProfileContent() {
   )
 }
 
-export function Profile({ candidateId }: ProfileProps) {
+export function Profile({ candidateId, rewardBadges }: ProfileProps) {
   return (
     <CandidateProfileProvider candidateId={candidateId}>
-      <ProfileContent />
+      <ProfileContent rewardBadges={rewardBadges} />
     </CandidateProfileProvider>
   )
 }

@@ -4,12 +4,25 @@ import type {
   PagedResult,
   UserListItem,
   UserListParams,
+  UserRewardsDto,
 } from '@shared/types'
 import { apiClient } from '@shared/api'
 import { withApiError } from '@shared/lib/errors'
 
 type FetchUsersOptions = {
   signal?: AbortSignal
+}
+
+export async function fetchUserRewards(
+  userId: string,
+  options?: FetchUsersOptions,
+): Promise<UserRewardsDto> {
+  return withApiError(async () => {
+    const { data } = await apiClient.get<UserRewardsDto>(`/user/${userId}/rewards`, {
+      signal: options?.signal,
+    })
+    return data
+  })
 }
 
 export async function fetchUsers(

@@ -64,6 +64,20 @@ public class UserController(IUserService userService) : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("{userId}/rewards")]
+    public async Task<ActionResult<UserRewardsDto>> GetRewards(
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        if (!User.IsSelfOrAdmin(userId))
+        {
+            return Forbid();
+        }
+
+        var rewards = await userService.GetRewardsAsync(userId, cancellationToken);
+        return rewards is null ? NotFound() : Ok(rewards);
+    }
+
     [Authorize(Roles = Roles.Admin)]
     [HttpPost("{userId}/lockout")]
     public async Task<IActionResult> SetLockout(

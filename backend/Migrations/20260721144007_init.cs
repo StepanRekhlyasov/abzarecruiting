@@ -7,7 +7,7 @@ using MySql.EntityFrameworkCore.Metadata;
 namespace Backend.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class Init : Migration
+    public partial class init : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -63,7 +63,8 @@ namespace Backend.Api.Migrations
                 {
                     Uid = table.Column<Guid>(type: "char(36)", nullable: false),
                     Url = table.Column<string>(type: "varchar(2048)", maxLength: 2048, nullable: false),
-                    Name = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false)
+                    Name = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false),
+                    Size = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -300,6 +301,28 @@ namespace Backend.Api.Migrations
                     table.PrimaryKey("PK_AttributeOptions", x => x.Id);
                     table.ForeignKey(
                         name: "FK_AttributeOptions_Attributes_AttributeId",
+                        column: x => x.AttributeId,
+                        principalTable: "Attributes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "AttributeValidations",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    AttributeId = table.Column<int>(type: "int", nullable: false),
+                    ValidationType = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false),
+                    ValidationValue = table.Column<string>(type: "varchar(1024)", maxLength: 1024, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AttributeValidations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AttributeValidations_Attributes_AttributeId",
                         column: x => x.AttributeId,
                         principalTable: "Attributes",
                         principalColumn: "Id",
@@ -602,6 +625,12 @@ namespace Backend.Api.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_AttributeValidations_AttributeId_ValidationType",
+                table: "AttributeValidations",
+                columns: new[] { "AttributeId", "ValidationType" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_LikesResume_ResumeId",
                 table: "LikesResume",
                 column: "ResumeId");
@@ -708,6 +737,9 @@ namespace Backend.Api.Migrations
 
             migrationBuilder.DropTable(
                 name: "AttributeOptions");
+
+            migrationBuilder.DropTable(
+                name: "AttributeValidations");
 
             migrationBuilder.DropTable(
                 name: "Files");

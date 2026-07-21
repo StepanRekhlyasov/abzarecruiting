@@ -79,7 +79,9 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
         [FromQuery] PaginationParams pagination,
         [FromQuery] int? positionId,
         [FromQuery] string? candidateId,
+        [FromQuery] List<string>? candidateIds,
         [FromQuery] List<int>? tagIds,
+        [FromQuery] bool? published,
         CancellationToken cancellationToken)
     {
         if (positionId.HasValue)
@@ -106,6 +108,12 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
             return Forbid();
         }
 
+        if ((candidateIds?.Any(id => !string.IsNullOrWhiteSpace(id)) ?? false)
+            && !User.IsRecruiterOrAdmin())
+        {
+            return Forbid();
+        }
+
         var result = await resumeService.GetListForViewerAsync(
             pagination,
             User.GetUserId()!,
@@ -113,6 +121,8 @@ public class ResumeController(IResumeService resumeService, ApplicationDbContext
             User.IsRecruiter(),
             candidateId,
             tagIds,
+            candidateIds,
+            published,
             cancellationToken);
 
         return Ok(result);

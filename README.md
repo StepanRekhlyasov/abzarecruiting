@@ -93,7 +93,7 @@ docker compose up -d --build backend
 2. Роли Identity  
 3. `AttributeSeeder` — системные (default) атрибуты + Admin  
 4. `UserSeeder` — демо-пользователи  
-5. `MockDataSeeder` — атрибуты/теги/вакансии/проекты/сообщения/резюме  
+5. `MockDataSeeder` — атрибуты/теги/вакансии/проекты/сообщения/резюме/лайки  
 6. Rebuild Lucene  
 
 ### Роли и пароль демо-пользователей
@@ -112,6 +112,5 @@ docker compose up -d --build backend
 | `user-8@fexpost.com` | Igor Novikov | Recruiter |
 | `user-9@fexpost.com` | Julia Fedorova | Recruiter |
 | `user-10@fexpost.com` | Kirill Orlov | Recruiter |
-| `user-11@fexpost.com` … `user-20@fexpost.com` | Laura Nowak … Umut Yilmaz | Candidate |
 
-У кандидатов заполнены default-атрибуты профиля: имя, фамилия, email, телефон, bio, location, фото (общий дефолтный аватар).
+У кандидатов заполнены default-атрибуты профиля: имя, фамилия, email, телефон, bio, location, фото (общий дефолтный аватар). На каждое опубликованное резюме рекрутеры ставят от 3 до 5 лайков.

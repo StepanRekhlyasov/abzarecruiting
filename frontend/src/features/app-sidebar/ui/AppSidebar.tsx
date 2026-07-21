@@ -9,7 +9,7 @@ import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
 import Typography from '@mui/material/Typography'
-import { $session, isAdmin, isCandidate, isRecruiterOrAdmin } from '@entities/user'
+import { $session, isAdmin, isCandidate, isRecruiter, isRecruiterOrAdmin } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
 import { useAppSettings } from '@shared/config/app/index'
 
@@ -43,7 +43,7 @@ export function AppSidebar({ open, onClose }: AppSidebarProps) {
       items.push({ to: ROUTES.projects, labelKey: 'common.projects' as const })
     }
 
-    if (isCandidate(session) || isAdmin(session)) {
+    if (isCandidate(session) || isAdmin(session) || isRecruiter(session)) {
       items.push({ to: ROUTES.profile, labelKey: 'common.profile' as const })
     }
 

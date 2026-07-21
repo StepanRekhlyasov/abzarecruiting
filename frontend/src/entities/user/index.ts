@@ -11,6 +11,7 @@ export type {
   SessionUser,
   User,
   UserListItem,
+  UserRewardsDto,
   UserRole,
 } from '@shared/types'
 export { getSessionDisplayName, isAdmin, isCandidate, isRecruiter, isRecruiterOrAdmin } from './model/helpers'
@@ -20,6 +21,7 @@ export {
   changeUsersRoleBatch,
   createUser,
   deleteUsersBatch,
+  fetchUserRewards,
   fetchUsers,
   sendUserActivationEmail,
   setUserActivation,

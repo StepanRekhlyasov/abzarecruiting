@@ -100,6 +100,7 @@ export type {
   SessionUser,
   User,
   UserListItem,
+  UserRewardsDto,
   UserRole,
 } from './user.types'
 

@@ -28,6 +28,14 @@
   "users": {
     "title": "Users"
   },
+  "rewards": {
+    "hints": {
+      "cv5": "Publish 5 resumes to unlock this reward",
+      "hearts5": "Get 5 likes on a published resume to unlock this reward",
+      "hearts10": "Like 10 candidate resumes in total to unlock this reward",
+      "messages5": "Reach 5 messages in the vacancy discussion to unlock this reward"
+    }
+  },
   "profile": {
     "title": "Profile",
     "save": "Save changes",
@@ -498,7 +506,9 @@
     "empty": "No resumes found",
     "filter": {
       "title": "Filter CVs",
-      "tags": "Tags"
+      "tags": "Tags",
+      "candidates": "Candidates",
+      "published": "Published"
     },
     "actions": {
       "filter": "Filter"

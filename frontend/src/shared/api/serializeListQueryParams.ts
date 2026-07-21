@@ -9,6 +9,7 @@ type ListQueryParams = PaginationParams & {
   positionId?: number
   category?: string
   valueType?: string
+  published?: boolean
 }
 
 export function serializeListQueryParams(params: ListQueryParams): string {
@@ -40,6 +41,9 @@ export function serializeListQueryParams(params: ListQueryParams): string {
   }
   if (params.positionId != null && Number.isFinite(params.positionId) && params.positionId > 0) {
     searchParams.set('positionId', String(params.positionId))
+  }
+  if (params.published != null) {
+    searchParams.set('published', String(params.published))
   }
 
   for (const id of params.ids ?? []) {

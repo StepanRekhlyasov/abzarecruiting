@@ -3,7 +3,7 @@ import { useUnit } from 'effector-react'
 import { $session, isAdmin } from '@entities/user'
 import { ROUTES } from '@shared/config/routes'
 import { PageTemplate } from '@/shared/ui'
-import { Profile } from '@widgets/candidate-profile'
+import { ProfileView } from './ProfileView'
 
 export function ProfileDetailPage() {
   const { candidateId } = useParams<{ candidateId: string }>()
@@ -23,7 +23,7 @@ export function ProfileDetailPage() {
 
   return (
     <PageTemplate>
-      <Profile candidateId={candidateId} />
+      <ProfileView userId={candidateId} />
     </PageTemplate>
   )
 }
