@@ -1,8 +1,12 @@
 import type { AbzaFormValues, AbzaSelectOption, AttributeConditionDraft } from '@shared/types'
-import type { PositionLevel, WorkFormat } from '@entities/position'
-import { syncPositionRelations as syncPositionRelationsApi } from '@entities/position'
+import type { PositionDto, PositionLevel, WorkFormat } from '@entities/position'
+import {
+  fetchPosition,
+  syncPositionRelations as syncPositionRelationsApi,
+  updatePosition,
+} from '@entities/position'
 import { syncRestrictions } from '@entities/restriction'
-import { resolveTagIds } from '@entities/tag'
+import { getTagOptionsFromValues, resolveTagIds } from '@entities/tag'
 import { toSubmitNumber, toSubmitValues } from '@shared/lib/helpers'
 import type { PositionFormSubmitPayload } from '../ui/PositionFormModal'
 
@@ -97,4 +101,41 @@ export async function optionsFromPayload(payload: PositionFormSubmitPayload) {
     attributeIds: optionsToIds(payload.attributes),
     tagIds: await resolveTagIds(payload.tags),
   }
+}
+
+export async function optionsFromRelationValues(values: AbzaFormValues) {
+  const attributes = getTagOptionsFromValues(values, 'attributes')
+  const tags = getTagOptionsFromValues(values, 'tags')
+  return {
+    attributeIds: optionsToIds(attributes),
+    tagIds: await resolveTagIds(tags),
+  }
+}
+
+type PositionEditTarget = Pick<PositionDto, 'id' | 'version' | 'attributes' | 'tags'>
+
+export async function savePositionFromFormPayload(
+  position: PositionEditTarget,
+  payload: PositionFormSubmitPayload,
+): Promise<PositionDto> {
+  await updatePosition(position.id, {
+    ...toPositionSubmitValues(payload.info),
+    version: position.version,
+  })
+  const { attributeIds, tagIds } = await optionsFromPayload(payload)
+  await syncPositionRelations(
+    position.id,
+    attributeIds,
+    tagIds,
+    position.attributes.map((item) => item.attributeId),
+    position.tags.map((item) => item.tagId),
+  )
+  await syncPositionRestrictions(
+    position.id,
+    payload.requiredTags,
+    payload.attributeConditions,
+    payload.initialTagRestrictionIds,
+    payload.initialAttributeRestrictionIds,
+  )
+  return fetchPosition(position.id)
 }

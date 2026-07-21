@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios'
 import type {
   CreatePositionRequest,
   PagedResult,
@@ -6,8 +5,8 @@ import type {
   PositionDto,
   UpdatePositionRequest,
 } from '@shared/types'
-import { apiClient, serializeListQueryParams } from '@shared/api'
-import { parseApiError } from '@shared/lib/errors'
+import { apiClient, downloadApiBlob, serializeListQueryParams } from '@shared/api'
+import { withApiError } from '@shared/lib/errors'
 
 type FetchPositionsOptions = {
   signal?: AbortSignal
@@ -18,7 +17,7 @@ export async function fetchPositions(
   params: PaginationParams,
   options?: FetchPositionsOptions,
 ): Promise<PagedResult<PositionDto>> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.get<PagedResult<PositionDto>>('/position', {
       params: {
         ...params,
@@ -28,85 +27,61 @@ export async function fetchPositions(
       signal: options?.signal,
     })
     return data
-  } catch (error) {
-    if (isAxiosError(error) && error.code === 'ERR_CANCELED') {
-      throw error
-    }
-
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function fetchPosition(
   id: number,
   options?: FetchPositionsOptions,
 ): Promise<PositionDto> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.get<PositionDto>(`/position/${id}`, {
       signal: options?.signal,
     })
     return data
-  } catch (error) {
-    if (isAxiosError(error) && error.code === 'ERR_CANCELED') {
-      throw error
-    }
-
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function createPosition(request: CreatePositionRequest): Promise<PositionDto> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.post<PositionDto>('/position', request)
     return data
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function updatePosition(id: number, request: UpdatePositionRequest): Promise<PositionDto> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.post<PositionDto>(`/position/${id}`, request)
     return data
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function deletePosition(id: number, version: number): Promise<void> {
-  try {
+  return withApiError(async () => {
     await apiClient.delete(`/position/${id}`, { params: { version } })
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function deletePositionsBatch(
   items: Array<{ id: number; version: number }>,
 ): Promise<void> {
-  try {
+  return withApiError(async () => {
     await apiClient.delete('/position/delete', { data: { items } })
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function duplicatePosition(id: number): Promise<PositionDto> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.post<PositionDto>(`/position/${id}/duplicate`)
     return data
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function duplicatePositionsBatch(ids: number[]): Promise<PositionDto[]> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.post<PositionDto[]>('/position/duplicate', { ids })
     return data
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function syncPositionRelations(
@@ -114,46 +89,19 @@ export async function syncPositionRelations(
   attributeIds: number[],
   tagIds: number[],
 ): Promise<void> {
-  try {
+  return withApiError(async () => {
     await apiClient.put(`/position/${positionId}/relations`, { attributeIds, tagIds })
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function downloadPositionResumesCsv(positionId: number): Promise<void> {
-  try {
-    const { data, headers } = await apiClient.get<Blob>(`/position/${positionId}/resumes/csv`, {
-      responseType: 'blob',
-    })
-
-    const disposition = headers['content-disposition'] as string | undefined
-    const fileNameMatch = disposition?.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i)
-    const fileName = fileNameMatch
-      ? decodeURIComponent(fileNameMatch[1].replace(/"/g, ''))
-      : `position-${positionId}-resumes.csv`
-
-    const url = URL.createObjectURL(data)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = fileName
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    URL.revokeObjectURL(url)
-  } catch (error) {
-    if (isAxiosError(error) && error.response?.data instanceof Blob) {
-      const text = await error.response.data.text()
-      try {
-        const parsed = JSON.parse(text) as { message?: string }
-        throw new Error(parsed.message ?? parseApiError(error))
-      } catch {
-        throw new Error(parseApiError(error))
-      }
-    }
-
-    throw new Error(parseApiError(error))
-  }
+  await downloadApiBlob(
+    () =>
+      apiClient.get<Blob>(`/position/${positionId}/resumes/csv`, {
+        responseType: 'blob',
+      }),
+    `position-${positionId}-resumes.csv`,
+  )
 }
 
 export async function upsertPositionAttribute(
@@ -161,33 +109,25 @@ export async function upsertPositionAttribute(
   attributeId: number,
   isKey = true,
 ): Promise<void> {
-  try {
+  return withApiError(async () => {
     await apiClient.post(`/position/${positionId}/attributes/${attributeId}`, { isKey })
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function deletePositionAttribute(positionId: number, attributeId: number): Promise<void> {
-  try {
+  return withApiError(async () => {
     await apiClient.delete(`/position/${positionId}/attributes/${attributeId}`)
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function upsertPositionTag(positionId: number, tagId: number, isKey = true): Promise<void> {
-  try {
+  return withApiError(async () => {
     await apiClient.post(`/position/${positionId}/tags/${tagId}`, { isKey })
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function deletePositionTag(positionId: number, tagId: number): Promise<void> {
-  try {
+  return withApiError(async () => {
     await apiClient.delete(`/position/${positionId}/tags/${tagId}`)
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }

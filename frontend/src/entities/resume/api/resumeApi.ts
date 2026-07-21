@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios'
 import type {
   CreateResumeRequest,
   PagedResult,
@@ -8,8 +7,8 @@ import type {
   ResumeListItemDto,
   UpdateResumeRequest,
 } from '@shared/types'
-import { apiClient, serializeListQueryParams } from '@shared/api'
-import { parseApiError } from '@shared/lib/errors'
+import { apiClient, downloadApiBlob, serializeListQueryParams } from '@shared/api'
+import { withApiError } from '@shared/lib/errors'
 
 type FetchResumesOptions = {
   signal?: AbortSignal
@@ -22,7 +21,7 @@ export async function fetchResumes(
   params: PaginationParams,
   options?: FetchResumesOptions,
 ): Promise<PagedResult<ResumeListItemDto>> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.get<PagedResult<ResumeListItemDto>>('/resume', {
       params: {
         ...params,
@@ -34,88 +33,62 @@ export async function fetchResumes(
       signal: options?.signal,
     })
     return data
-  } catch (error) {
-    if (isAxiosError(error) && error.code === 'ERR_CANCELED') {
-      throw error
-    }
-
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function fetchResume(
   id: number,
   options?: FetchResumesOptions,
 ): Promise<ResumeDto> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.get<ResumeDto>(`/resume/${id}`, {
       signal: options?.signal,
     })
     return data
-  } catch (error) {
-    if (isAxiosError(error) && error.code === 'ERR_CANCELED') {
-      throw error
-    }
-
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function fetchResumePositionIds(options?: FetchResumesOptions): Promise<number[]> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.get<number[]>('/resume/position-ids', {
       signal: options?.signal,
     })
     return data
-  } catch (error) {
-    if (isAxiosError(error) && error.code === 'ERR_CANCELED') {
-      throw error
-    }
-
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function createResume(request: CreateResumeRequest): Promise<ResumeDto> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.post<ResumeDto>('/resume', request)
     return data
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function createResumesBatch(
   positionIds: number[],
   candidateId?: string,
 ): Promise<ResumeDto[]> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.post<ResumeDto[]>('/resume/batch', {
       positionIds,
       candidateId,
     })
     return data
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function updateResume(id: number, request: UpdateResumeRequest): Promise<ResumeDto> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.post<ResumeDto>(`/resume/${id}`, request)
     return data
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function toggleResumeLike(id: number): Promise<ResumeLikeStateDto> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.post<ResumeLikeStateDto>(`/resume/${id}/like`)
     return data
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function downloadResumePdf(
@@ -123,58 +96,29 @@ export async function downloadResumePdf(
   lang?: string,
   frontendBaseUrl: string = window.location.origin,
 ): Promise<void> {
-  try {
-    const { data, headers } = await apiClient.get<Blob>(`/resume/${id}/pdf`, {
-      params: {
-        lang: lang || undefined,
-        frontendBaseUrl,
-      },
-      responseType: 'blob',
-    })
-
-    const disposition = headers['content-disposition'] as string | undefined
-    const fileNameMatch = disposition?.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i)
-    const fileName = fileNameMatch
-      ? decodeURIComponent(fileNameMatch[1].replace(/"/g, ''))
-      : `resume-${id}.pdf`
-
-    const url = URL.createObjectURL(data)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = fileName
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    URL.revokeObjectURL(url)
-  } catch (error) {
-    if (isAxiosError(error) && error.response?.data instanceof Blob) {
-      const text = await error.response.data.text()
-      try {
-        const parsed = JSON.parse(text) as { message?: string }
-        throw new Error(parsed.message ?? parseApiError(error))
-      } catch {
-        throw new Error(parseApiError(error))
-      }
-    }
-
-    throw new Error(parseApiError(error))
-  }
+  await downloadApiBlob(
+    () =>
+      apiClient.get<Blob>(`/resume/${id}/pdf`, {
+        params: {
+          lang: lang || undefined,
+          frontendBaseUrl,
+        },
+        responseType: 'blob',
+      }),
+    `resume-${id}.pdf`,
+  )
 }
 
 export async function deleteResume(id: number, version: number): Promise<void> {
-  try {
+  return withApiError(async () => {
     await apiClient.delete(`/resume/${id}`, { params: { version } })
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function deleteResumesBatch(
   items: Array<{ id: number; version: number }>,
 ): Promise<void> {
-  try {
+  return withApiError(async () => {
     await apiClient.delete('/resume/delete', { data: { items } })
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }

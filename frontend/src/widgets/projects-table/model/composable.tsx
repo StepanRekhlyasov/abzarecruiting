@@ -26,7 +26,13 @@ import {
   updateProject,
 } from '@entities/project'
 import { resolveTagIds } from '@entities/tag'
-import { $session, fetchUsers, isAdmin, isCandidate, isRecruiter } from '@entities/user'
+import {
+  $session,
+  isAdmin,
+  isCandidate,
+  isRecruiter,
+  loadCandidateSelectOptions,
+} from '@entities/user'
 import { getErrorKey } from '@shared/lib/errors'
 
 function getEntityOptionValue(values: AbzaFormValues, name: string): AbzaSelectOption | null {
@@ -145,29 +151,10 @@ export function ProjectsTableProvider({ candidateId, children }: ProjectsTablePr
   const isFilterActive =
     appliedFilters.tags.length > 0 || appliedFilters.candidates.length > 0
 
-  const loadCandidateOptions = useCallback(async (search: string, signal?: AbortSignal) => {
-    const result = await fetchUsers(
-      {
-        page: 1,
-        size: 50,
-        search: search || undefined,
-        sortBy: 'firstName',
-        sortDir: 'asc',
-      },
-      { signal },
-    )
-
-    return result.items
-      .filter((item) => item.role === 'Candidate')
-      .slice(0, 20)
-      .map((item) => {
-        const fullName = [item.firstName, item.lastName].filter(Boolean).join(' ').trim()
-        return {
-          value: item.id,
-          label: fullName || item.email,
-        }
-      })
-  }, [])
+  const loadCandidateOptions = useCallback(
+    (search: string, signal?: AbortSignal) => loadCandidateSelectOptions(search, signal),
+    [],
+  )
 
   const loadProjects = useCallback(async (signal?: AbortSignal) => {
     if (!canAccessProjects) {

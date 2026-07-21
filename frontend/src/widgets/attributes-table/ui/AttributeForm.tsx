@@ -13,8 +13,7 @@ import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
-import { AbzaForm } from '@features/abza-form'
-import { validateAbzaForm } from '@features/abza-form/lib/validate'
+import { AbzaForm, createAbzaValidationMessages, validateAbzaForm } from '@features/abza-form'
 import { createAttributeFormConfig } from '@shared/config/forms'
 import { i18n } from '@shared/config/i18n'
 import {
@@ -125,16 +124,7 @@ export function AttributeForm({
   }
 
   const handleSubmit = async (values: AbzaFormValues) => {
-    const validationMessages = {
-      required: t('form.errors.required'),
-      minLength: (min: number) => t('form.errors.minLength', { min }),
-      maxLength: (max: number) => t('form.errors.maxLength', { max }),
-      min: (min: number) => t('form.errors.min', { min }),
-      max: (max: number) => t('form.errors.max', { max }),
-      email: t('form.errors.email'),
-      number: t('form.errors.number'),
-      pattern: (key?: string) => (key ? t(key) : t('form.errors.pattern')),
-    }
+    const validationMessages = createAbzaValidationMessages(t)
     const generalErrors = validateAbzaForm(formConfig.fields, values, validationMessages)
 
     if (Object.keys(generalErrors).length > 0) {

@@ -1,7 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import Stack from '@mui/material/Stack'
-import { AbzaFilterModal } from '@features/abza-filter'
-import { TagsField } from '@entities/tag'
+import { TagsFilterModal } from '@features/abza-filter'
 import { usePositionsTable } from '../model'
 
 export function PositionsFilterModal() {
@@ -16,26 +14,15 @@ export function PositionsFilterModal() {
   } = usePositionsTable()
 
   return (
-    <AbzaFilterModal
+    <TagsFilterModal
       open={isFilterModalOpen}
       onOpenChange={setIsFilterModalOpen}
       value={appliedFilters}
       onApply={handleApplyFilters}
       onReset={handleResetFilters}
       title={t('positions.filter.title')}
+      tagsLabel={t('positions.filter.tags')}
       isLoading={isLoading}
-    >
-      {(draft, setDraft) => (
-        <Stack spacing={2} sx={{ pt: 1 }}>
-          <TagsField
-            label={t('positions.filter.tags')}
-            value={draft.tags}
-            onChange={(tags) => setDraft((current) => ({ ...current, tags }))}
-            allowCreate={false}
-            size="small"
-          />
-        </Stack>
-      )}
-    </AbzaFilterModal>
+    />
   )
 }

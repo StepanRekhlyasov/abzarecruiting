@@ -10,7 +10,7 @@ import {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-type ValidateOptions = {
+export type AbzaValidationMessages = {
   required: string
   minLength: (min: number) => string
   maxLength: (max: number) => string
@@ -21,10 +21,25 @@ type ValidateOptions = {
   pattern: (key?: string) => string
 }
 
+export function createAbzaValidationMessages(
+  t: (key: string, options?: Record<string, unknown>) => string,
+): AbzaValidationMessages {
+  return {
+    required: t('form.errors.required'),
+    minLength: (min: number) => t('form.errors.minLength', { min }),
+    maxLength: (max: number) => t('form.errors.maxLength', { max }),
+    min: (min: number) => t('form.errors.min', { min }),
+    max: (max: number) => t('form.errors.max', { max }),
+    email: t('form.errors.email'),
+    number: t('form.errors.number'),
+    pattern: (key?: string) => (key ? t(key) : t('form.errors.pattern')),
+  }
+}
+
 export function validateAbzaForm(
   fields: AbzaFieldConfig[],
   values: AbzaFormValues,
-  messages: ValidateOptions,
+  messages: AbzaValidationMessages,
 ): AbzaFormErrors {
   const errors: AbzaFormErrors = {}
 

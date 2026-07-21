@@ -18,7 +18,7 @@ import type {
   AttributeConditionDraft,
   PositionMessageDto,
 } from '@shared/types'
-import { fetchAttributes } from '@entities/attribute'
+import { loadAttributeOptions as fetchAttributeOptions } from '@entities/attribute'
 import { fetchPosition, updatePosition, downloadPositionResumesCsv } from '@entities/position'
 import {
   createPositionMessage,
@@ -27,9 +27,7 @@ import {
 } from '@entities/position-message'
 import { fetchRestrictionsByPosition } from '@entities/restriction'
 import { createResume, fetchResumes } from '@entities/resume'
-import { getTagOptionsFromValues, resolveTagIds } from '@entities/tag'
 import { $session, isAdmin, isCandidate, isRecruiterOrAdmin } from '@entities/user'
-import { ASYNC_ENTITY_TAGS_PAGE_SIZE } from '@shared/ui/inputs'
 import { cvDetailPath } from '@shared/config/routes'
 import { getErrorKey } from '@shared/lib/errors'
 import { notificationsSocket } from '@shared/lib/websocket'
@@ -42,7 +40,8 @@ import {
 } from '../../positions-table/model'
 import type { PositionFormSubmitPayload } from '../../positions-table/ui/PositionFormModal'
 import {
-  optionsFromPayload,
+  optionsFromRelationValues,
+  savePositionFromFormPayload,
   syncPositionRelations,
   syncPositionRestrictions,
   toPositionSubmitValues,
@@ -175,27 +174,10 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
     })
   }, [restrictionsDraft, savedRestrictionsDraft])
 
-  const loadAttributeOptions = useCallback(async (search: string, signal?: AbortSignal, page = 1) => {
-    const result = await fetchAttributes(
-      {
-        page,
-        size: ASYNC_ENTITY_TAGS_PAGE_SIZE,
-        search: search || undefined,
-        sortBy: 'name',
-        sortDir: 'asc',
-      },
-      { signal },
-    )
-
-    return {
-      options: result.items.map((item) => ({
-        value: String(item.id),
-        label: item.name,
-        valueType: item.valueType,
-      })),
-      hasMore: result.page * result.size < result.totalCount,
-    }
-  }, [])
+  const loadAttributeOptions = useCallback(
+    (search: string, signal?: AbortSignal, page = 1) => fetchAttributeOptions(search, signal, page),
+    [],
+  )
 
   const loadPosition = useCallback(
     async (signal?: AbortSignal) => {
@@ -480,29 +462,8 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
       setActionError(null)
 
       try {
-        await updatePosition(position.id, {
-          ...toPositionSubmitValues(payload.info),
-          version: position.version,
-        })
-        const { attributeIds, tagIds } = await optionsFromPayload(payload)
-        await syncPositionRelations(
-          position.id,
-          attributeIds,
-          tagIds,
-          position.attributes.map((item) => item.attributeId),
-          position.tags.map((item) => item.tagId),
-        )
-        await syncPositionRestrictions(
-          position.id,
-          payload.requiredTags,
-          payload.attributeConditions,
-          payload.initialTagRestrictionIds,
-          payload.initialAttributeRestrictionIds,
-        )
-        const [refreshed, restrictions] = await Promise.all([
-          fetchPosition(position.id),
-          fetchRestrictionsByPosition(position.id),
-        ])
+        const refreshed = await savePositionFromFormPayload(position, payload)
+        const restrictions = await fetchRestrictionsByPosition(position.id)
         setPosition(refreshed)
         applyRestrictionsDraft(restrictionsToDrafts(restrictions))
         setRestrictionsLoadedForId(position.id)
@@ -530,12 +491,7 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
           ...toPositionSubmitValues(values),
           version: position.version,
         })
-        const attributes = getTagOptionsFromValues(values, 'attributes')
-        const tags = getTagOptionsFromValues(values, 'tags')
-        const attributeIds = attributes
-          .map((item) => Number(item.value))
-          .filter((id) => Number.isFinite(id))
-        const tagIds = await resolveTagIds(tags)
+        const { attributeIds, tagIds } = await optionsFromRelationValues(values)
         await syncPositionRelations(
           position.id,
           attributeIds,

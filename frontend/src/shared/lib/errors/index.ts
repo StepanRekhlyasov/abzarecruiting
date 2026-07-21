@@ -89,6 +89,10 @@ export function parseApiFieldErrors(error: unknown): Record<string, string> | nu
 
 export function throwParsedApiError(error: unknown): never {
   if (isAxiosError(error)) {
+    if (error.code === 'ERR_CANCELED') {
+      throw error
+    }
+
     const body = error.response?.data as ApiErrorBody | undefined
 
     if (body?.fieldErrors && Object.keys(body.fieldErrors).length > 0) {
@@ -100,6 +104,18 @@ export function throwParsedApiError(error: unknown): never {
   }
 
   throw new Error(parseApiError(error))
+}
+
+export async function withApiError<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn()
+  } catch (error) {
+    throwParsedApiError(error)
+  }
+}
+
+export function isRequestCanceled(error: unknown): boolean {
+  return isAxiosError(error) && error.code === 'ERR_CANCELED'
 }
 
 export function getErrorKey(error: unknown, fallback: string = UNKNOWN_ERROR_KEY): string {

@@ -3,6 +3,7 @@ export type {
   AttributeDraftValue,
   AttributeDto,
   AttributeInputType,
+  AttributeValidationRequest,
   AttributeValueType,
   CreateAttributeRequest,
   DeleteAttributeItem,

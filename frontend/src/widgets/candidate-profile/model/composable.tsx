@@ -9,23 +9,20 @@ import {
 } from 'react'
 import { isAxiosError } from 'axios'
 import {
-  fetchAttributes,
   linkAttributesToProfileBatch,
+  loadAttributeOptions as fetchAttributeOptions,
   unlinkAttributesFromProfileBatch,
 } from '@entities/attribute'
 import {
   fetchMeInfo,
-  setCandidateAttributeValuesBatch,
+  saveCandidateAttributeDrafts,
   type ProfileAttributeDto,
 } from '@entities/profile'
 import { getErrorKey } from '@shared/lib/errors'
 import {
-  toPersistedAttributeValue,
-  type AbzaSelectOption,
   type AsyncEntityLoadOptions,
   type AttributeDraftValue,
 } from '@shared/types'
-import { ASYNC_ENTITY_TAGS_PAGE_SIZE } from '@shared/ui/inputs'
 
 type CandidateProfileContextValue = {
   candidateId: string
@@ -101,50 +98,14 @@ export function CandidateProfileProvider({ candidateId, children }: CandidatePro
 
   const saveAttributeValues = useCallback(
     async (items: Array<{ attributeId: number; value: AttributeDraftValue; version: number }>) => {
-      const results = await setCandidateAttributeValuesBatch(
-        candidateId,
-        items.map((item) => {
-          const attribute = meAttributes.find((attr) => attr.id === item.attributeId)
-          return {
-            attributeId: item.attributeId,
-            value: toPersistedAttributeValue(item.value, {
-              valueType: attribute?.valueType,
-              inputType: attribute?.inputType,
-            }),
-            version: item.version,
-          }
-        }),
-      )
-
-      return Object.fromEntries(results.map((item) => [item.attributeId, item.version]))
+      return saveCandidateAttributeDrafts(candidateId, meAttributes, items)
     },
     [candidateId, meAttributes],
   )
 
   const loadAttributeOptions = useCallback(
-    async (search: string, signal?: AbortSignal, page = 1) => {
-      const result = await fetchAttributes(
-        {
-          page,
-          size: ASYNC_ENTITY_TAGS_PAGE_SIZE,
-          search: search || undefined,
-          sortBy: 'name',
-          sortDir: 'asc',
-        },
-        { signal },
-      )
-
-      return {
-        options: result.items
-          .filter((item) => !linkedAttributeIdSet.has(item.id))
-          .map((item) => ({
-            value: String(item.id),
-            label: item.name,
-            valueType: item.valueType,
-          })),
-        hasMore: result.page * result.size < result.totalCount,
-      }
-    },
+    async (search: string, signal?: AbortSignal, page = 1) =>
+      fetchAttributeOptions(search, signal, page, { excludeIds: linkedAttributeIdSet }),
     [linkedAttributeIdSet],
   )
 

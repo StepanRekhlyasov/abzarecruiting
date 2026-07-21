@@ -26,6 +26,11 @@ export {
   setUserLockout,
 } from './api/userApi'
 export {
+  loadCandidateOptions,
+  loadCandidateSelectOptions,
+  userToSelectOption,
+} from './lib/candidateOptions'
+export {
   $session,
   appStarted,
   authSucceeded,

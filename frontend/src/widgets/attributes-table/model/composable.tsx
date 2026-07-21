@@ -21,17 +21,24 @@ import {
   fetchAttributes,
   fetchLinkedProfileAttributeIds,
   linkAttributesToProfileBatch,
+  loadAttributeOptions as fetchAttributeOptions,
   unlinkAttributesFromProfileBatch,
   updateAttribute,
 } from '@entities/attribute'
-import { $session, fetchUsers, isAdmin, isCandidate, isRecruiterOrAdmin } from '@entities/user'
+import {
+  $session,
+  isAdmin,
+  isCandidate,
+  isRecruiterOrAdmin,
+  loadCandidateOptions as fetchCandidateOptions,
+} from '@entities/user'
 import { getErrorKey } from '@shared/lib/errors'
 import {
   toSubmitNullableString,
   toSubmitStringArray,
   toSubmitValues,
 } from '@shared/lib/helpers'
-import { ASYNC_ENTITY_TAGS_PAGE_SIZE, NEW_TAG_VALUE_PREFIX } from '@shared/ui/inputs'
+import { NEW_TAG_VALUE_PREFIX } from '@shared/ui/inputs'
 
 function toAttributeSubmitValues(values: AbzaFormValues, validations: AttributeValidationRequest[]) {
   const { name, valueType, category } = toSubmitValues(values, ['name', 'valueType', 'category'])
@@ -179,52 +186,15 @@ export function AttributesTableProvider({ children }: PropsWithChildren) {
     }
   }, [session?.id, canLinkToProfile])
 
-  const loadAttributeOptions = useCallback(async (search: string, signal?: AbortSignal, page = 1) => {
-    const result = await fetchAttributes(
-      {
-        page,
-        size: ASYNC_ENTITY_TAGS_PAGE_SIZE,
-        search: search || undefined,
-        sortBy: 'name',
-        sortDir: 'asc',
-      },
-      { signal },
-    )
+  const loadAttributeOptions = useCallback(
+    (search: string, signal?: AbortSignal, page = 1) => fetchAttributeOptions(search, signal, page),
+    [],
+  )
 
-    return {
-      options: result.items.map((item) => ({
-        value: String(item.id),
-        label: item.name,
-        valueType: item.valueType,
-      })),
-      hasMore: result.page * result.size < result.totalCount,
-    }
-  }, [])
-
-  const loadCandidateOptions = useCallback(async (search: string, signal?: AbortSignal, page = 1) => {
-    const result = await fetchUsers(
-      {
-        page,
-        size: ASYNC_ENTITY_TAGS_PAGE_SIZE,
-        search: search || undefined,
-        role: 'Candidate',
-        sortBy: 'firstName',
-        sortDir: 'asc',
-      },
-      { signal },
-    )
-
-    return {
-      options: result.items.map((item) => {
-        const fullName = [item.firstName, item.lastName].filter(Boolean).join(' ').trim()
-        return {
-          value: item.id,
-          label: fullName || item.email,
-        }
-      }),
-      hasMore: result.page * result.size < result.totalCount,
-    }
-  }, [])
+  const loadCandidateOptions = useCallback(
+    (search: string, signal?: AbortSignal, page = 1) => fetchCandidateOptions(search, signal, page),
+    [],
+  )
 
   const loadAttributes = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)

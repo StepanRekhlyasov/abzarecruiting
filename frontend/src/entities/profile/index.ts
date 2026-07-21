@@ -9,3 +9,4 @@ export type {
   SetCandidateAttributeBatchItem,
   SetCandidateAttributeBatchResult,
 } from './api/profileApi'
+export { saveCandidateAttributeDrafts } from './lib/saveAttributeDrafts'

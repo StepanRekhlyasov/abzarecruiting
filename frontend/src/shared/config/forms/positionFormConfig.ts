@@ -1,12 +1,42 @@
 import type { TFunction } from 'i18next'
 import { POSITION_LEVELS, WORK_FORMATS } from '@shared/types'
-import type { AbzaFormConfig, AsyncEntityLoadOptions } from '@shared/types'
+import type { AbzaFormConfig, AbzaFieldConfig, AsyncEntityLoadOptions } from '@shared/types'
+
+type RelationLoaders = {
+  loadAttributeOptions: AsyncEntityLoadOptions
+  loadTagOptions: AsyncEntityLoadOptions
+}
 
 type CreatePositionInfoFormConfigOptions = {
   readOnly?: boolean
   loadAttributeOptions?: AsyncEntityLoadOptions
   loadTagOptions?: AsyncEntityLoadOptions
   withRelations?: boolean
+}
+
+function createPositionRelationFields(
+  t: TFunction,
+  options: RelationLoaders & { readOnly?: boolean },
+): AbzaFieldConfig[] {
+  const { readOnly = false, loadAttributeOptions, loadTagOptions } = options
+
+  return [
+    {
+      name: 'attributes',
+      label: t('positions.fields.attributes'),
+      type: 'asyncEntityTags',
+      disabled: readOnly,
+      loadOptions: loadAttributeOptions,
+    },
+    {
+      name: 'tags',
+      label: t('positions.fields.tags'),
+      type: 'asyncEntityTags',
+      disabled: readOnly,
+      loadOptions: loadTagOptions,
+      allowCreateOptions: !readOnly,
+    },
+  ]
 }
 
 export function createPositionInfoFormConfig(
@@ -81,21 +111,11 @@ export function createPositionInfoFormConfig(
 
   if (withRelations && loadAttributeOptions && loadTagOptions) {
     fields.push(
-      {
-        name: 'attributes',
-        label: t('positions.fields.attributes'),
-        type: 'asyncEntityTags',
-        disabled: readOnly,
-        loadOptions: loadAttributeOptions,
-      },
-      {
-        name: 'tags',
-        label: t('positions.fields.tags'),
-        type: 'asyncEntityTags',
-        disabled: readOnly,
-        loadOptions: loadTagOptions,
-        allowCreateOptions: !readOnly,
-      },
+      ...createPositionRelationFields(t, {
+        readOnly,
+        loadAttributeOptions,
+        loadTagOptions,
+      }),
     )
   }
 
@@ -113,25 +133,7 @@ export function createPositionRelationsFormConfig(
     loadTagOptions: AsyncEntityLoadOptions
   },
 ): AbzaFormConfig {
-  const { readOnly = false, loadAttributeOptions, loadTagOptions } = options
-
   return {
-    fields: [
-      {
-        name: 'attributes',
-        label: t('positions.fields.attributes'),
-        type: 'asyncEntityTags',
-        disabled: readOnly,
-        loadOptions: loadAttributeOptions,
-      },
-      {
-        name: 'tags',
-        label: t('positions.fields.tags'),
-        type: 'asyncEntityTags',
-        disabled: readOnly,
-        loadOptions: loadTagOptions,
-        allowCreateOptions: !readOnly,
-      },
-    ],
+    fields: createPositionRelationFields(t, options),
   }
 }

@@ -1,7 +1,6 @@
-import { isAxiosError } from 'axios'
 import type { ProfileAttributeDto } from '@shared/types'
 import { apiClient } from '@shared/api'
-import { parseApiError, throwParsedApiError } from '@shared/lib/errors'
+import { withApiError } from '@shared/lib/errors'
 
 type FetchOptions = {
   signal?: AbortSignal
@@ -15,18 +14,12 @@ export async function fetchMeInfo(
   candidateId: string,
   options?: FetchOptions,
 ): Promise<ProfileAttributeDto[]> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.get<ProfileAttributeDto[]>(`/profile/${candidateId}/me`, {
       signal: options?.signal,
     })
     return data
-  } catch (error) {
-    if (isAxiosError(error) && error.code === 'ERR_CANCELED') {
-      throw error
-    }
-
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function setCandidateAttributeValue(
@@ -35,15 +28,13 @@ export async function setCandidateAttributeValue(
   value: string | null,
   version: number,
 ): Promise<number> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.post<SetCandidateAttributeValueResponse>(
       `/attribute/${attributeId}/candidate/${candidateId}`,
       { value, version },
     )
     return data.version
-  } catch (error) {
-    throwParsedApiError(error)
-  }
+  })
 }
 
 export type SetCandidateAttributeBatchItem = {
@@ -65,24 +56,20 @@ export async function setCandidateAttributeValuesBatch(
     return []
   }
 
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.post<SetCandidateAttributeBatchResult[]>(
       `/profile/${candidateId}/values`,
       { items },
     )
     return data
-  } catch (error) {
-    throwParsedApiError(error)
-  }
+  })
 }
 
 export async function deleteCandidateAttributeValue(
   attributeId: number,
   candidateId: string,
 ): Promise<void> {
-  try {
+  return withApiError(async () => {
     await apiClient.delete(`/attribute/${attributeId}/candidate/${candidateId}`)
-  } catch (error) {
-    throwParsedApiError(error)
-  }
+  })
 }

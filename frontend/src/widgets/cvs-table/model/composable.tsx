@@ -19,7 +19,14 @@ import type { AbzaSelectOption, SortDirection } from '@shared/types'
 import { createResume, deleteResumesBatch, fetchResumes } from '@entities/resume'
 import { fetchPositions } from '@entities/position'
 import { fetchTags, tagsToSelectOptions } from '@entities/tag'
-import { $session, fetchUsers, isAdmin, isCandidate, isRecruiter, isRecruiterOrAdmin } from '@entities/user'
+import {
+  $session,
+  isAdmin,
+  isCandidate,
+  isRecruiter,
+  isRecruiterOrAdmin,
+  loadCandidateSelectOptions,
+} from '@entities/user'
 import { parseTagIdsFromSearchParams } from '@shared/config/routes'
 import { getErrorKey } from '@shared/lib/errors'
 
@@ -203,29 +210,10 @@ export function CvsTableProvider({ candidateId, positionId, children }: CvsTable
     }))
   }, [])
 
-  const loadCandidateOptions = useCallback(async (search: string, signal?: AbortSignal) => {
-    const result = await fetchUsers(
-      {
-        page: 1,
-        size: 50,
-        search: search || undefined,
-        sortBy: 'firstName',
-        sortDir: 'asc',
-      },
-      { signal },
-    )
-
-    return result.items
-      .filter((item) => item.role === 'Candidate')
-      .slice(0, 20)
-      .map((item) => {
-        const fullName = [item.firstName, item.lastName].filter(Boolean).join(' ').trim()
-        return {
-          value: item.id,
-          label: fullName || item.email,
-        }
-      })
-  }, [])
+  const loadCandidateOptions = useCallback(
+    (search: string, signal?: AbortSignal) => loadCandidateSelectOptions(search, signal),
+    [],
+  )
 
   const loadResumes = useCallback(
     async (signal?: AbortSignal) => {

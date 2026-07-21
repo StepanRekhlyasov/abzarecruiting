@@ -18,27 +18,26 @@ import type {
   AttributeConditionDraft,
   SortDirection,
 } from '@shared/types'
-import { fetchAttributes } from '@entities/attribute'
+import { loadAttributeOptions as fetchAttributeOptions } from '@entities/attribute'
 import {
   createPosition,
   deletePositionsBatch,
   duplicatePositionsBatch,
   fetchPosition,
   fetchPositions,
-  updatePosition,
 } from '@entities/position'
 import { fetchRestrictionsByPosition } from '@entities/restriction'
 import { createResume, createResumesBatch, fetchResumePositionIds } from '@entities/resume'
 import { fetchTags, tagsToSelectOptions } from '@entities/tag'
 import { $session, isCandidate, isRecruiterOrAdmin } from '@entities/user'
 import { parseTagIdsFromSearchParams } from '@shared/config/routes'
-import { ASYNC_ENTITY_TAGS_PAGE_SIZE } from '@shared/ui/inputs'
 import { getErrorKey } from '@shared/lib/errors'
 import { notificationsSocket } from '@shared/lib/websocket'
 import type { PositionFormSubmitPayload } from '../ui/PositionFormModal'
 import { restrictionsToDrafts } from './lib'
 import {
   optionsFromPayload,
+  savePositionFromFormPayload,
   syncPositionRelations,
   syncPositionRestrictions,
   toPositionSubmitValues,
@@ -191,27 +190,10 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
     return () => controller.abort()
   }, [])
 
-  const loadAttributeOptions = useCallback(async (search: string, signal?: AbortSignal, page = 1) => {
-    const result = await fetchAttributes(
-      {
-        page,
-        size: ASYNC_ENTITY_TAGS_PAGE_SIZE,
-        search: search || undefined,
-        sortBy: 'name',
-        sortDir: 'asc',
-      },
-      { signal },
-    )
-
-    return {
-      options: result.items.map((item) => ({
-        value: String(item.id),
-        label: item.name,
-        valueType: item.valueType,
-      })),
-      hasMore: result.page * result.size < result.totalCount,
-    }
-  }, [])
+  const loadAttributeOptions = useCallback(
+    (search: string, signal?: AbortSignal, page = 1) => fetchAttributeOptions(search, signal, page),
+    [],
+  )
 
   const loadResumePositionIds = useCallback(async (signal?: AbortSignal) => {
     if (!canCreateResumes) {
@@ -375,26 +357,7 @@ export function PositionsTableProvider({ children }: PropsWithChildren) {
       setIsLoading(true)
 
       try {
-        await updatePosition(editingPosition.id, {
-          ...toPositionSubmitValues(payload.info),
-          version: editingPosition.version,
-        })
-        const { attributeIds, tagIds } = await optionsFromPayload(payload)
-        await syncPositionRelations(
-          editingPosition.id,
-          attributeIds,
-          tagIds,
-          editingPosition.attributes.map((item) => item.attributeId),
-          editingPosition.tags.map((item) => item.tagId),
-        )
-        await syncPositionRestrictions(
-          editingPosition.id,
-          payload.requiredTags,
-          payload.attributeConditions,
-          payload.initialTagRestrictionIds,
-          payload.initialAttributeRestrictionIds,
-        )
-        const refreshed = await fetchPosition(editingPosition.id)
+        const refreshed = await savePositionFromFormPayload(editingPosition, payload)
         setRows((currentRows) =>
           currentRows.map((row) => (row.id === refreshed.id ? refreshed : row)),
         )

@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios'
 import type {
   CreateProjectRequest,
   PagedResult,
@@ -7,7 +6,7 @@ import type {
   UpdateProjectRequest,
 } from '@shared/types'
 import { apiClient, serializeListQueryParams } from '@shared/api'
-import { parseApiError } from '@shared/lib/errors'
+import { withApiError } from '@shared/lib/errors'
 
 type FetchProjectsOptions = {
   signal?: AbortSignal
@@ -20,7 +19,7 @@ export async function fetchProjects(
   params: PaginationParams,
   options?: FetchProjectsOptions,
 ): Promise<PagedResult<ProjectDto>> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.get<PagedResult<ProjectDto>>('/project', {
       params: {
         ...params,
@@ -32,78 +31,56 @@ export async function fetchProjects(
       signal: options?.signal,
     })
     return data
-  } catch (error) {
-    if (isAxiosError(error) && error.code === 'ERR_CANCELED') {
-      throw error
-    }
-
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function fetchProject(id: number): Promise<ProjectDto> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.get<ProjectDto>(`/project/${id}`)
     return data
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function createProject(request: CreateProjectRequest): Promise<ProjectDto> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.post<ProjectDto>('/project', request)
     return data
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function updateProject(id: number, request: UpdateProjectRequest): Promise<ProjectDto> {
-  try {
+  return withApiError(async () => {
     const { data } = await apiClient.post<ProjectDto>(`/project/${id}`, request)
     return data
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function deleteProject(id: number): Promise<void> {
-  try {
+  return withApiError(async () => {
     await apiClient.delete(`/project/${id}`)
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function deleteProjectsBatch(ids: number[]): Promise<void> {
-  try {
+  return withApiError(async () => {
     await apiClient.delete('/project/delete', { data: { ids } })
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function syncProjectTags(projectId: number, tagIds: number[]): Promise<void> {
-  try {
+  return withApiError(async () => {
     await apiClient.put(`/project/${projectId}/tags`, { tagIds })
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function upsertProjectTag(projectId: number, tagId: number): Promise<void> {
-  try {
+  return withApiError(async () => {
     await apiClient.post(`/project/${projectId}/tags/${tagId}`)
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }
 
 export async function deleteProjectTag(projectId: number, tagId: number): Promise<void> {
-  try {
+  return withApiError(async () => {
     await apiClient.delete(`/project/${projectId}/tags/${tagId}`)
-  } catch (error) {
-    throw new Error(parseApiError(error))
-  }
+  })
 }

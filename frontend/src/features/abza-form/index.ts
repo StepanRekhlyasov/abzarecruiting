@@ -6,6 +6,8 @@ export {
   attributesToFormValues,
   mapAttributeInputType,
 } from './lib/attributeFields'
+export { createAbzaValidationMessages, validateAbzaForm } from './lib/validate'
+export type { AbzaValidationMessages } from './lib/validate'
 export type {
   AbzaFieldConfig,
   AbzaFieldType,

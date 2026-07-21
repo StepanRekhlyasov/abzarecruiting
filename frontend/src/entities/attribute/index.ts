@@ -15,6 +15,10 @@ export {
   INPUT_TYPES_BY_VALUE_TYPE,
 } from './model/constants'
 export {
+  attributesToSelectOptions,
+  loadAttributeOptions,
+} from './lib/attributeOptions'
+export {
   createAttribute,
   deleteAttribute,
   deleteAttributesBatch,

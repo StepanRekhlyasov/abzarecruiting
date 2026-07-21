@@ -15,14 +15,11 @@ import {
   updateResume,
   type ResumeDto,
 } from '@entities/resume'
-import {
-  setCandidateAttributeValuesBatch,
-} from '@entities/profile'
+import { saveCandidateAttributeDrafts } from '@entities/profile'
 import { $session, isAdmin, isRecruiter } from '@entities/user'
 import { i18n } from '@shared/config/i18n'
 import { getErrorKey } from '@shared/lib/errors'
 import {
-  toPersistedAttributeValue,
   type AttributeDraftValue,
   type ProfileAttributeDto,
   type ProjectDto,
@@ -120,22 +117,7 @@ export function ResumeDetailProvider({ resumeId, children }: ResumeDetailProvide
         throw new Error('error.resumes.load')
       }
 
-      const results = await setCandidateAttributeValuesBatch(
-        resume.candidateId,
-        items.map((item) => {
-          const attribute = resume.attributes.find((attr) => attr.id === item.attributeId)
-          return {
-            attributeId: item.attributeId,
-            value: toPersistedAttributeValue(item.value, {
-              valueType: attribute?.valueType,
-              inputType: attribute?.inputType,
-            }),
-            version: item.version,
-          }
-        }),
-      )
-
-      return Object.fromEntries(results.map((item) => [item.attributeId, item.version]))
+      return saveCandidateAttributeDrafts(resume.candidateId, resume.attributes, items)
     },
     [resume],
   )

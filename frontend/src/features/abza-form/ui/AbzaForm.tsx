@@ -5,7 +5,7 @@ import Button from '@mui/material/Button'
 import { AbzaError } from '@features/abza-error'
 import { parseApiError, resolveErrorMessage } from '@shared/lib/errors'
 import type { AbzaFieldConfig, AbzaFormConfig, AbzaFormValue, AbzaFormValues } from '@shared/types'
-import { validateAbzaForm } from '../lib/validate'
+import { validateAbzaForm, createAbzaValidationMessages } from '../lib/validate'
 import { isFieldVisible } from '../lib/fieldVisibility'
 import { AbzaField } from './AbzaField'
 
@@ -68,16 +68,7 @@ export function AbzaForm({
 
   const values = isControlled ? controlledValues : internalValues
 
-  const validationMessages = {
-    required: t('form.errors.required'),
-    minLength: (min: number) => t('form.errors.minLength', { min }),
-    maxLength: (max: number) => t('form.errors.maxLength', { max }),
-    min: (min: number) => t('form.errors.min', { min }),
-    max: (max: number) => t('form.errors.max', { max }),
-    email: t('form.errors.email'),
-    number: t('form.errors.number'),
-    pattern: (key?: string) => (key ? t(key) : t('form.errors.pattern')),
-  }
+  const validationMessages = createAbzaValidationMessages(t)
 
   const setValue = (name: string, value: AbzaFormValue) => {
     let next: AbzaFormValues = { ...values, [name]: value }
