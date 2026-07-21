@@ -26,6 +26,16 @@ public static class UserSeeder
         ($"user-8@{EmailDomain}", "Igor", "Novikov", Roles.Recruiter),
         ($"user-9@{EmailDomain}", "Julia", "Fedorova", Roles.Recruiter),
         ($"user-10@{EmailDomain}", "Kirill", "Orlov", Roles.Recruiter),
+        ($"user-11@{EmailDomain}", "Laura", "Nowak", Roles.Candidate),
+        ($"user-12@{EmailDomain}", "Marek", "Wisniewski", Roles.Candidate),
+        ($"user-13@{EmailDomain}", "Nina", "Kowalska", Roles.Candidate),
+        ($"user-14@{EmailDomain}", "Oskar", "Lewandowski", Roles.Candidate),
+        ($"user-15@{EmailDomain}", "Paula", "Zielinska", Roles.Candidate),
+        ($"user-16@{EmailDomain}", "Quinn", "Andersson", Roles.Candidate),
+        ($"user-17@{EmailDomain}", "Rita", "Bergstrom", Roles.Candidate),
+        ($"user-18@{EmailDomain}", "Stefan", "Novak", Roles.Candidate),
+        ($"user-19@{EmailDomain}", "Tanya", "Horvat", Roles.Candidate),
+        ($"user-20@{EmailDomain}", "Umut", "Yilmaz", Roles.Candidate),
     ];
 
     private static readonly Dictionary<string, (string Phone, string Bio, string Location)> CandidateProfiles =
@@ -51,6 +61,46 @@ public static class UserSeeder
                 "+48 501 100 005",
                 "Product-minded .NET developer with FinTech and compliance-aware delivery experience.",
                 "Stockholm, Sweden"),
+            [$"user-11@{EmailDomain}"] = (
+                "+48 501 100 011",
+                "Junior backend developer learning ASP.NET Core, SQL, and clean code practices.",
+                "Krakow, Poland"),
+            [$"user-12@{EmailDomain}"] = (
+                "+48 501 100 012",
+                "React engineer focused on performance, testing, and accessible UI components.",
+                "Gdansk, Poland"),
+            [$"user-13@{EmailDomain}"] = (
+                "+48 501 100 013",
+                "Full-stack developer with TypeScript, Node.js, and cloud deployment experience.",
+                "Wroclaw, Poland"),
+            [$"user-14@{EmailDomain}"] = (
+                "+48 501 100 014",
+                "Go developer interested in microservices, observability, and API design.",
+                "Poznan, Poland"),
+            [$"user-15@{EmailDomain}"] = (
+                "+48 501 100 015",
+                "Python developer with Django/FastAPI background and data scripting skills.",
+                "Lodz, Poland"),
+            [$"user-16@{EmailDomain}"] = (
+                "+48 501 100 016",
+                "UI engineer crafting design systems, responsive layouts, and motion details.",
+                "Vienna, Austria"),
+            [$"user-17@{EmailDomain}"] = (
+                "+48 501 100 017",
+                "Mobile engineer building React Native apps with strong TypeScript habits.",
+                "Budapest, Hungary"),
+            [$"user-18@{EmailDomain}"] = (
+                "+48 501 100 018",
+                "Flutter developer shipping cross-platform apps with clean architecture.",
+                "Bratislava, Slovakia"),
+            [$"user-19@{EmailDomain}"] = (
+                "+48 501 100 019",
+                "Data engineer working with Spark, dbt, and warehouse modeling.",
+                "Zagreb, Croatia"),
+            [$"user-20@{EmailDomain}"] = (
+                "+48 501 100 020",
+                "Platform engineer focused on Kubernetes, CI/CD, and secure cloud setups.",
+                "Istanbul, Turkey"),
         };
 
     public static async Task SeedAsync(

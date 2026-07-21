@@ -19,7 +19,7 @@ import type {
   PositionMessageDto,
 } from '@shared/types'
 import { fetchAttributes } from '@entities/attribute'
-import { fetchPosition, updatePosition } from '@entities/position'
+import { fetchPosition, updatePosition, downloadPositionResumesCsv } from '@entities/position'
 import {
   createPositionMessage,
   deletePositionMessage,
@@ -80,6 +80,7 @@ type PositionDetailContextValue = {
   isRestrictionsLoading: boolean
   isRestrictionsDirty: boolean
   isRestrictionsSaving: boolean
+  isDownloadingCsv: boolean
   tab: string
   messages: PositionMessageDto[]
   isMessagesLoading: boolean
@@ -96,6 +97,7 @@ type PositionDetailContextValue = {
   handleDescriptionSubmit: (values: AbzaFormValues) => Promise<void>
   handleRestrictionsSubmit: () => Promise<void>
   handleResumeAction: () => Promise<void>
+  handleDownloadCsv: () => Promise<void>
   handleCreateMessage: (content: string) => Promise<void>
   handleDeleteMessage: (messageId: number) => Promise<void>
   loadAttributeOptions: AsyncEntityLoadOptions
@@ -124,6 +126,7 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
   const [restrictionsLoadedForId, setRestrictionsLoadedForId] = useState<number | null>(null)
   const [isRestrictionsLoading, setIsRestrictionsLoading] = useState(false)
   const [isRestrictionsSaving, setIsRestrictionsSaving] = useState(false)
+  const [isDownloadingCsv, setIsDownloadingCsv] = useState(false)
   const [existingResumeId, setExistingResumeId] = useState<number | null>(null)
   const [tab, setTab] = useState('description')
   const [messages, setMessages] = useState<PositionMessageDto[]>([])
@@ -574,6 +577,23 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
     }
   }, [canCreateResume, existingResumeId, navigate, position])
 
+  const handleDownloadCsv = useCallback(async () => {
+    if (!canEdit || !position) {
+      return
+    }
+
+    setIsDownloadingCsv(true)
+    setActionError(null)
+
+    try {
+      await downloadPositionResumesCsv(position.id)
+    } catch (downloadError) {
+      setActionError(getErrorKey(downloadError, 'error.positions.downloadCsv'))
+    } finally {
+      setIsDownloadingCsv(false)
+    }
+  }, [canEdit, position])
+
   const handleCreateMessage = useCallback(
     async (content: string) => {
       if (!canPostMessage) {
@@ -647,6 +667,7 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
       isRestrictionsLoading,
       isRestrictionsDirty,
       isRestrictionsSaving,
+      isDownloadingCsv,
       tab,
       messages,
       isMessagesLoading,
@@ -663,6 +684,7 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
       handleDescriptionSubmit,
       handleRestrictionsSubmit,
       handleResumeAction,
+      handleDownloadCsv,
       handleCreateMessage,
       handleDeleteMessage,
       loadAttributeOptions,
@@ -685,6 +707,7 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
       isRestrictionsLoading,
       isRestrictionsDirty,
       isRestrictionsSaving,
+      isDownloadingCsv,
       tab,
       messages,
       isMessagesLoading,
@@ -697,6 +720,7 @@ export function PositionDetailProvider({ positionId, children }: PositionDetailP
       handleDescriptionSubmit,
       handleRestrictionsSubmit,
       handleResumeAction,
+      handleDownloadCsv,
       handleCreateMessage,
       handleDeleteMessage,
       loadAttributeOptions,

@@ -121,6 +121,41 @@ export async function syncPositionRelations(
   }
 }
 
+export async function downloadPositionResumesCsv(positionId: number): Promise<void> {
+  try {
+    const { data, headers } = await apiClient.get<Blob>(`/position/${positionId}/resumes/csv`, {
+      responseType: 'blob',
+    })
+
+    const disposition = headers['content-disposition'] as string | undefined
+    const fileNameMatch = disposition?.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i)
+    const fileName = fileNameMatch
+      ? decodeURIComponent(fileNameMatch[1].replace(/"/g, ''))
+      : `position-${positionId}-resumes.csv`
+
+    const url = URL.createObjectURL(data)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.data instanceof Blob) {
+      const text = await error.response.data.text()
+      try {
+        const parsed = JSON.parse(text) as { message?: string }
+        throw new Error(parsed.message ?? parseApiError(error))
+      } catch {
+        throw new Error(parseApiError(error))
+      }
+    }
+
+    throw new Error(parseApiError(error))
+  }
+}
+
 export async function upsertPositionAttribute(
   positionId: number,
   attributeId: number,

@@ -14,6 +14,7 @@ export {
   deletePositionAttribute,
   deletePositionsBatch,
   deletePositionTag,
+  downloadPositionResumesCsv,
   duplicatePosition,
   duplicatePositionsBatch,
   fetchPosition,

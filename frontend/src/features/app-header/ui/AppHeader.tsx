@@ -48,7 +48,7 @@ export function AppHeader({ sx }: { sx?: SxProps<Theme> }) {
                   noWrap
                   sx={{ mr: 1, display: { xs: 'none', md: 'block' } }}
                 >
-                  {t('common.greeting', { name: getSessionDisplayName(session) })}
+                  {t('common.greeting', { name: getSessionDisplayName(session) })} {t('common.yourRole', { role: session?.roles.join(', ') })}
                 </Typography>
                 <Button color="inherit" variant="outlined" onClick={handleLogout} sx={{height: '40px', borderColor: 'rgba(255,255,255,0.5)' }}>
                   <LogoutIcon />

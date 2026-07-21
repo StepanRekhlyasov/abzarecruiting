@@ -3,6 +3,7 @@ using Backend.Api.Extensions;
 using Backend.Api.Models.Common;
 using Backend.Api.Models.Position;
 using Backend.Api.Services.Position;
+using Backend.Api.Services.Resume;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,7 +11,7 @@ namespace Backend.Api.Controllers;
 
 [ApiController]
 [Route("api/position")]
-public class PositionController(IPositionService positionService) : ControllerBase
+public class PositionController(IPositionService positionService, IResumeService resumeService) : ControllerBase
 {
     [AllowAnonymous]
     [HttpGet]
@@ -84,6 +85,23 @@ public class PositionController(IPositionService positionService) : ControllerBa
     {
         var position = await positionService.GetByIdAsync(id, User, cancellationToken);
         return position is null ? NotFound() : Ok(position);
+    }
+
+    [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]
+    [HttpGet("{id:int}/resumes/csv")]
+    public async Task<IActionResult> DownloadResumesCsv(int id, CancellationToken cancellationToken)
+    {
+        var result = await resumeService.ExportPositionResumesCsvAsync(
+            id,
+            User.IsInRole(Roles.Admin),
+            cancellationToken);
+
+        if (result.NotFound)
+        {
+            return NotFound();
+        }
+
+        return File(result.Content!, "text/csv; charset=utf-8", result.FileName);
     }
 
     [Authorize(Roles = $"{Roles.Recruiter},{Roles.Admin}")]

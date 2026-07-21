@@ -785,7 +785,7 @@ public static class MockDataSeeder
         }
 
         var valueMapper = new AttributeValueMapper();
-        var planned = new List<(ApplicationUser Candidate, Position Position)>();
+        var planned = new List<(ApplicationUser Candidate, Position Position, bool ForcePublished)>();
 
         foreach (var assignment in MockResumeDefinitions.All)
         {
@@ -804,7 +804,7 @@ public static class MockDataSeeder
                     continue;
                 }
 
-                planned.Add((candidate, position));
+                planned.Add((candidate, position, assignment.ForcePublished));
             }
         }
 
@@ -814,8 +814,8 @@ public static class MockDataSeeder
 
         for (var index = 0; index < planned.Count; index++)
         {
-            var (candidate, position) = planned[index];
-            var shouldPublish = index % 2 == 1;
+            var (candidate, position, forcePublished) = planned[index];
+            var shouldPublish = forcePublished || index % 2 == 1;
 
             var resume = await db.Resumes
                 .FirstOrDefaultAsync(item =>

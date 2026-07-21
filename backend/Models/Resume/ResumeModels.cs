@@ -138,3 +138,24 @@ public sealed class ResumePdfResult
     public static ResumePdfResult Ok(byte[] content, string fileName) =>
         new(content, fileName, false, false, false);
 }
+
+public sealed class ResumeCsvResult
+{
+    private ResumeCsvResult(byte[]? content, string? fileName, bool notFound)
+    {
+        Content = content;
+        FileName = fileName;
+        NotFound = notFound;
+    }
+
+    public byte[]? Content { get; }
+
+    public string? FileName { get; }
+
+    public bool NotFound { get; }
+
+    public static ResumeCsvResult NotFoundResult() => new(null, null, true);
+
+    public static ResumeCsvResult Ok(byte[] content, string fileName) =>
+        new(content, fileName, false);
+}

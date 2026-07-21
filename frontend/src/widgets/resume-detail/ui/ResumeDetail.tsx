@@ -22,7 +22,7 @@ import {
 import { useAttributeAutosave } from '@shared/lib/autosave'
 import { getErrorKey } from '@shared/lib/errors'
 import { positionDetailPath } from '@shared/config/routes'
-import { AutosaveButton } from '@shared/ui'
+import { AutosaveButton, CandidateProfileLink } from '@shared/ui'
 import { AttributeSection } from '@widgets/candidate-profile'
 import { ResumeDetailProvider, useResumeDetail } from '../model'
 import { ResumeProjectsSection } from '../parts/ResumeProjectsSection'
@@ -185,6 +185,13 @@ function ResumeDetailContent() {
               />
             ) : null}
           </Box>
+          <Typography variant="body1" color="text.secondary" sx={{ minWidth: 0 }}>
+            <CandidateProfileLink candidateId={resume.candidateId}>
+              {t('cvs.detail.candidate', {
+                name: resume.candidateName || resume.candidateId,
+              })}
+            </CandidateProfileLink>
+          </Typography>
           <ResumeLike
             resumeId={resume.id}
             likesCount={resume.likesCount}

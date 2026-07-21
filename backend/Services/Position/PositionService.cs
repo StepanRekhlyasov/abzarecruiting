@@ -117,8 +117,8 @@ public class PositionService(
         else if (string.Equals(pagination.NormalizedSortBy, "resumescount", StringComparison.Ordinal))
         {
             query = pagination.IsDescending
-                ? query.OrderByDescending(position => position.Resumes.Count)
-                : query.OrderBy(position => position.Resumes.Count);
+                ? query.OrderByDescending(position => position.Resumes.Count(resume => resume.Published))
+                : query.OrderBy(position => position.Resumes.Count(resume => resume.Published));
         }
         else
         {
@@ -769,7 +769,7 @@ public class PositionService(
 
         var resumeCounts = await db.Resumes
             .AsNoTracking()
-            .Where(resume => ids.Contains(resume.PositionId))
+            .Where(resume => ids.Contains(resume.PositionId) && resume.Published)
             .GroupBy(resume => resume.PositionId)
             .Select(group => new { PositionId = group.Key, Count = group.Count() })
             .ToDictionaryAsync(item => item.PositionId, item => item.Count, cancellationToken);

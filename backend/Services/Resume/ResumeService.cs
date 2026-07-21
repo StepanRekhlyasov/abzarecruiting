@@ -84,6 +84,11 @@ public interface IResumeService
         string? frontendBaseUrl = null,
         CancellationToken cancellationToken = default);
 
+    Task<ResumeCsvResult> ExportPositionResumesCsvAsync(
+        int positionId,
+        bool isAdmin,
+        CancellationToken cancellationToken = default);
+
     bool CanView(ResumeEntity resume, string? userId, bool isAdmin, bool isRecruiter);
 
     bool CanModify(ResumeEntity resume, string? userId, bool isAdmin);
@@ -639,6 +644,121 @@ public class ResumeService(
         var content = ResumePdfGenerator.Generate(result.Dto, photoBytes, locale, resumeUrl);
         var fileName = ResumePdfGenerator.BuildFileName(result.Dto, locale);
         return ResumePdfResult.Ok(content, fileName);
+    }
+
+    public async Task<ResumeCsvResult> ExportPositionResumesCsvAsync(
+        int positionId,
+        bool isAdmin,
+        CancellationToken cancellationToken = default)
+    {
+        var position = await db.Positions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Id == positionId, cancellationToken);
+        if (position is null)
+        {
+            return ResumeCsvResult.NotFoundResult();
+        }
+
+        var resumes = await db.Resumes
+            .AsNoTracking()
+            .Where(resume => resume.PositionId == positionId && resume.Published)
+            .OrderBy(resume => resume.Id)
+            .ToListAsync(cancellationToken);
+
+        IReadOnlyList<ResumeEntity> filtered = resumes;
+        if (!isAdmin && resumes.Count > 0)
+        {
+            var restrictions = await restrictionEvaluator.GetRestrictionsForPositionAsync(positionId, cancellationToken);
+            if (restrictions.Count > 0)
+            {
+                var candidateIds = resumes.Select(resume => resume.CandidateId).Distinct().ToList();
+                var contexts = await restrictionEvaluator.LoadCandidateContextsAsync(candidateIds, cancellationToken);
+                filtered = restrictionEvaluator.FilterByRestrictions(
+                    restrictions,
+                    resumes,
+                    resume => resume.CandidateId,
+                    contexts);
+            }
+        }
+
+        var positionAttributeIds = await db.PositionAttributes
+            .AsNoTracking()
+            .Where(item => item.PositionId == positionId)
+            .Select(item => item.AttributeId)
+            .ToListAsync(cancellationToken);
+
+        var defaultAttributes = await LoadDefaultAttributesAsync(cancellationToken);
+        var defaultIds = defaultAttributes.Select(attribute => attribute.Id).ToHashSet();
+        var allAttributeIds = defaultIds
+            .Concat(positionAttributeIds)
+            .Distinct()
+            .ToList();
+
+        var columns = await db.Attributes
+            .AsNoTracking()
+            .Where(attribute => allAttributeIds.Contains(attribute.Id))
+            .ToListAsync(cancellationToken);
+
+        columns = columns
+            .OrderBy(attribute => DefaultAttributes.IsDefaultName(attribute.Name) ? 0 : 1)
+            .ThenBy(attribute => attribute.Category)
+            .ThenBy(attribute => attribute.Name)
+            .ToList();
+
+        var filteredCandidateIds = filtered.Select(resume => resume.CandidateId).Distinct().ToList();
+        var profileAttributes = await LoadProfileAttributesAsync(filteredCandidateIds, cancellationToken);
+        var profileByCandidate = profileAttributes
+            .GroupBy(item => item.CandidateId, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.ToDictionary(item => item.AttributeId),
+                StringComparer.Ordinal);
+
+        var builder = new System.Text.StringBuilder();
+        var header = new List<string> { "ResumeId", "CandidateId" };
+        header.AddRange(columns.Select(attribute => attribute.Name));
+        builder.AppendLine(string.Join(',', header.Select(EscapeCsv)));
+
+        foreach (var resume in filtered)
+        {
+            profileByCandidate.TryGetValue(resume.CandidateId, out var valuesByAttributeId);
+            var row = new List<string>
+            {
+                resume.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                resume.CandidateId,
+            };
+
+            foreach (var attribute in columns)
+            {
+                ProfileAttribute? profileAttribute = null;
+                valuesByAttributeId?.TryGetValue(attribute.Id, out profileAttribute);
+                row.Add(valueMapper.GetComparableValue(profileAttribute, attribute) ?? string.Empty);
+            }
+
+            builder.AppendLine(string.Join(',', row.Select(EscapeCsv)));
+        }
+
+        var utf8 = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+        var bytes = utf8.GetBytes(builder.ToString());
+        var safeName = SanitizeFileName(position.Name);
+        return ResumeCsvResult.Ok(bytes, $"{safeName}-resumes.csv");
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        if (value.Contains('"') || value.Contains(',') || value.Contains('\n') || value.Contains('\r'))
+        {
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        }
+
+        return value;
+    }
+
+    private static string SanitizeFileName(string name)
+    {
+        var invalid = System.IO.Path.GetInvalidFileNameChars();
+        var sanitized = new string(name.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray()).Trim();
+        return string.IsNullOrWhiteSpace(sanitized) ? "position" : sanitized;
     }
 
     private async Task<byte[]?> TryLoadPhotoBytesAsync(ResumeDto resume, CancellationToken cancellationToken)

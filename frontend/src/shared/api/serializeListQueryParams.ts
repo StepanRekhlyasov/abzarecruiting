@@ -6,6 +6,7 @@ type ListQueryParams = PaginationParams & {
   tagIds?: number[]
   candidateId?: string
   candidateIds?: string[]
+  positionId?: number
   category?: string
   valueType?: string
 }
@@ -36,6 +37,9 @@ export function serializeListQueryParams(params: ListQueryParams): string {
   }
   if (params.candidateId) {
     searchParams.set('candidateId', params.candidateId)
+  }
+  if (params.positionId != null && Number.isFinite(params.positionId) && params.positionId > 0) {
+    searchParams.set('positionId', String(params.positionId))
   }
 
   for (const id of params.ids ?? []) {

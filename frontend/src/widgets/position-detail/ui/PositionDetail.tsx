@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import DownloadIcon from '@mui/icons-material/Download'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
+import IconButton from '@mui/material/IconButton'
 import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { AbzaError } from '@features/abza-error'
 import { AbzaForm } from '@features/abza-form'
@@ -72,6 +75,8 @@ function PositionDetailContent() {
     handleDescriptionSubmit,
     handleRestrictionsSubmit,
     handleResumeAction,
+    handleDownloadCsv,
+    isDownloadingCsv,
     loadAttributeOptions,
     messages,
     isMessagesLoading,
@@ -274,7 +279,7 @@ function PositionDetailContent() {
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
           {canEdit ? (
             <Button
               variant="contained"
@@ -284,6 +289,21 @@ function PositionDetailContent() {
             >
               {t('positions.detail.edit')}
             </Button>
+          ) : null}
+
+          {canEdit ? (
+            <Tooltip title={t('positions.detail.downloadCsv')}>
+              <span>
+                <IconButton
+                  color="primary"
+                  onClick={() => void handleDownloadCsv()}
+                  disabled={isDownloadingCsv || isMutating}
+                  aria-label={t('positions.detail.downloadCsv')}
+                >
+                  {isDownloadingCsv ? <CircularProgress size={20} /> : <DownloadIcon />}
+                </IconButton>
+              </span>
+            </Tooltip>
           ) : null}
 
           {canCreateResume ? (

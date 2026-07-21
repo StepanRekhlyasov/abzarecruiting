@@ -7,6 +7,7 @@
     "register": "Sign up",
     "logout": "Log out",
     "greeting": "Hello, {{name}}!",
+    "yourRole": "You are a {{role}}",
     "menu": "Menu",
     "attributes": "Attributes",
     "tags": "Tags",
@@ -462,6 +463,7 @@
       "postedAt": "Posted on: {{date}}",
       "unknownAuthor": "Unknown",
       "edit": "Edit",
+      "downloadCsv": "Download resumes CSV",
       "generateResume": "Generate resume",
       "viewResume": "View resume",
       "tabs": {
@@ -482,7 +484,7 @@
       "delete": "Delete message"
     },
     "toolbar": {
-      "createResume": "Create resume",
+      "createResume": "Generate resume",
       "duplicate": "Duplicate"
     },
     "form": {
@@ -524,6 +526,7 @@
     },
     "detail": {
       "forPosition": "Resume for position: {{name}}",
+      "candidate": "Candidate: {{name}}",
       "attributes": "Info",
       "attributesEmpty": "No attributes for this position",
       "personalEmpty": "No personal data",
@@ -665,7 +668,8 @@
       "create": "Failed to create position",
       "update": "Failed to update position",
       "delete": "Failed to delete positions",
-      "duplicate": "Failed to duplicate positions"
+      "duplicate": "Failed to duplicate positions",
+      "downloadCsv": "Failed to download resumes CSV"
     },
     "messages": {
       "load": "Failed to load messages",
