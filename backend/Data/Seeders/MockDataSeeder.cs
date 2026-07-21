@@ -1,6 +1,7 @@
 using Backend.Api.Data.Entities;
 using Backend.Api.Data.Relations;
 using Backend.Api.Data.Seeders.MockData;
+using Backend.Api.Services.Attributes;
 using AttributeEntity = Backend.Api.Data.Entities.Attribute;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -29,10 +30,12 @@ public static class MockDataSeeder
         var createdAt = DateTime.UtcNow;
 
         var attributesByName = await SeedAttributesAsync(db, adminId, createdAt, logger);
+        await SeedAttributeValidationsAsync(db, attributesByName, logger);
         var tagsByName = await SeedTagsAsync(db, adminId, createdAt, logger);
         await SeedPositionsAsync(db, adminId, createdAt, attributesByName, tagsByName, logger);
         await SeedProjectsAsync(db, userManager, createdAt, tagsByName, logger);
         await SeedMessagesAsync(db, userManager, createdAt, logger);
+        await SeedResumesAsync(db, userManager, createdAt, logger);
     }
 
     private static async Task<Dictionary<string, AttributeEntity>> SeedAttributesAsync(
@@ -135,6 +138,99 @@ public static class MockDataSeeder
         await db.SaveChangesAsync();
         logger.LogInformation("Mock attributes seeded ({Count}).", definitions.Count);
         return byName;
+    }
+
+    private static async Task SeedAttributeValidationsAsync(
+        ApplicationDbContext db,
+        IReadOnlyDictionary<string, AttributeEntity> attributesByName,
+        ILogger logger)
+    {
+        var definitions = MockAttributeValidationDefinitions.All;
+        var attributeIds = definitions
+            .Select(definition => attributesByName.TryGetValue(definition.AttributeName, out var attribute)
+                ? attribute.Id
+                : (int?)null)
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        if (attributeIds.Count == 0)
+        {
+            logger.LogWarning("Mock attribute validations skipped: target attributes were not found.");
+            return;
+        }
+
+        var attributes = await db.Attributes
+            .Include(attribute => attribute.Validations)
+            .Where(attribute => attributeIds.Contains(attribute.Id))
+            .ToListAsync();
+        var attributesById = attributes.ToDictionary(attribute => attribute.Id);
+
+        var created = 0;
+        var updated = 0;
+
+        foreach (var group in definitions.GroupBy(definition => definition.AttributeName, StringComparer.Ordinal))
+        {
+            if (!attributesByName.TryGetValue(group.Key, out var attributeRef)
+                || !attributesById.TryGetValue(attributeRef.Id, out var attribute))
+            {
+                continue;
+            }
+
+            var expected = group
+                .GroupBy(definition => definition.ValidationType, StringComparer.Ordinal)
+                .Select(item => item.Last())
+                .ToList();
+            var expectedTypes = expected.Select(item => item.ValidationType).ToHashSet(StringComparer.Ordinal);
+
+            var stale = attribute.Validations
+                .Where(validation => !expectedTypes.Contains(validation.ValidationType))
+                .ToList();
+            if (stale.Count > 0)
+            {
+                db.AttributeValidations.RemoveRange(stale);
+            }
+
+            foreach (var definition in expected)
+            {
+                var existing = attribute.Validations
+                    .FirstOrDefault(validation => validation.ValidationType == definition.ValidationType);
+                if (existing is null)
+                {
+                    attribute.Validations.Add(new AttributeValidation
+                    {
+                        AttributeId = attribute.Id,
+                        ValidationType = definition.ValidationType,
+                        ValidationValue = definition.ValidationValue,
+                    });
+                    created++;
+                    continue;
+                }
+
+                if (existing.ValidationValue != definition.ValidationValue)
+                {
+                    existing.ValidationValue = definition.ValidationValue;
+                    updated++;
+                }
+            }
+        }
+
+        if (created > 0 || updated > 0)
+        {
+            await db.SaveChangesAsync();
+        }
+
+        var attributeCount = definitions
+            .Select(definition => definition.AttributeName)
+            .Distinct(StringComparer.Ordinal)
+            .Count(name => attributesByName.ContainsKey(name));
+
+        logger.LogInformation(
+            "Mock attribute validations seeded ({AttributeCount} attributes, created: {Created}, updated: {Updated}).",
+            attributeCount,
+            created,
+            updated);
     }
 
     private static async Task<Dictionary<string, Tag>> SeedTagsAsync(
@@ -661,5 +757,211 @@ public static class MockDataSeeder
             created,
             updated,
             removed);
+    }
+
+    private static async Task SeedResumesAsync(
+        ApplicationDbContext db,
+        UserManager<ApplicationUser> userManager,
+        DateTime createdAt,
+        ILogger logger)
+    {
+        var positionNameSet = MockResumeDefinitions.All
+            .SelectMany(assignment => assignment.PositionNames)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var positions = (await db.Positions
+                .Include(position => position.PositionAttributes)
+                .ThenInclude(link => link.Attribute)
+                .ThenInclude(attribute => attribute.Options)
+                .ToListAsync())
+            .Where(position => positionNameSet.Contains(position.Name))
+            .ToList();
+        var positionsByName = positions.ToDictionary(position => position.Name, StringComparer.Ordinal);
+
+        if (positionsByName.Count == 0)
+        {
+            logger.LogWarning("Mock resumes skipped: seeded positions were not found.");
+            return;
+        }
+
+        var valueMapper = new AttributeValueMapper();
+        var planned = new List<(ApplicationUser Candidate, Position Position)>();
+
+        foreach (var assignment in MockResumeDefinitions.All)
+        {
+            var candidate = await userManager.FindByEmailAsync(assignment.CandidateEmail);
+            if (candidate is null)
+            {
+                logger.LogWarning("Mock resumes skipped for missing candidate '{Email}'.", assignment.CandidateEmail);
+                continue;
+            }
+
+            foreach (var positionName in assignment.PositionNames)
+            {
+                if (!positionsByName.TryGetValue(positionName, out var position))
+                {
+                    logger.LogWarning("Mock resume skipped: position '{Name}' was not found.", positionName);
+                    continue;
+                }
+
+                planned.Add((candidate, position));
+            }
+        }
+
+        var created = 0;
+        var published = 0;
+        var unpublished = 0;
+
+        for (var index = 0; index < planned.Count; index++)
+        {
+            var (candidate, position) = planned[index];
+            var shouldPublish = index % 2 == 1;
+
+            var resume = await db.Resumes
+                .FirstOrDefaultAsync(item =>
+                    item.CandidateId == candidate.Id && item.PositionId == position.Id);
+
+            if (resume is null)
+            {
+                resume = new Resume
+                {
+                    CandidateId = candidate.Id,
+                    PositionId = position.Id,
+                    Published = false,
+                    CreatedAt = createdAt.AddMinutes(-index),
+                };
+                db.Resumes.Add(resume);
+                created++;
+            }
+
+            await EnsurePositionAttributesLinkedAsync(db, candidate.Id, position);
+
+            if (shouldPublish)
+            {
+                FillPositionAttributeValues(db, valueMapper, candidate.Id, position, index);
+                resume.Published = true;
+                published++;
+            }
+            else
+            {
+                resume.Published = false;
+                unpublished++;
+            }
+
+            await db.SaveChangesAsync();
+        }
+
+        logger.LogInformation(
+            "Mock resumes seeded (created: {Created}, published: {Published}, unpublished: {Unpublished}, total: {Total}).",
+            created,
+            published,
+            unpublished,
+            planned.Count);
+    }
+
+    private static async Task EnsurePositionAttributesLinkedAsync(
+        ApplicationDbContext db,
+        string candidateId,
+        Position position)
+    {
+        var attributeIds = position.PositionAttributes
+            .Select(link => link.AttributeId)
+            .Distinct()
+            .ToList();
+
+        if (attributeIds.Count == 0)
+        {
+            return;
+        }
+
+        var existingIds = await db.ProfileAttributes
+            .Where(item => item.CandidateId == candidateId && attributeIds.Contains(item.AttributeId))
+            .Select(item => item.AttributeId)
+            .ToHashSetAsync();
+
+        foreach (var attributeId in attributeIds)
+        {
+            if (existingIds.Contains(attributeId))
+            {
+                continue;
+            }
+
+            var attribute = position.PositionAttributes
+                .Select(link => link.Attribute)
+                .First(item => item.Id == attributeId);
+
+            var profileAttribute = new ProfileAttribute
+            {
+                CandidateId = candidateId,
+                AttributeId = attributeId,
+            };
+
+            var defaultValue = string.Equals(attribute.ValueType, "boolean", StringComparison.OrdinalIgnoreCase)
+                ? "false"
+                : string.Empty;
+            new AttributeValueMapper().SetValue(profileAttribute, attribute, defaultValue);
+            db.ProfileAttributes.Add(profileAttribute);
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    private static void FillPositionAttributeValues(
+        ApplicationDbContext db,
+        IAttributeValueMapper valueMapper,
+        string candidateId,
+        Position position,
+        int seed)
+    {
+        var attributeIds = position.PositionAttributes
+            .Select(link => link.AttributeId)
+            .Distinct()
+            .ToList();
+
+        var profileAttributes = db.ProfileAttributes
+            .Where(item => item.CandidateId == candidateId && attributeIds.Contains(item.AttributeId))
+            .ToList();
+        var profileByAttributeId = profileAttributes.ToDictionary(item => item.AttributeId);
+
+        foreach (var link in position.PositionAttributes)
+        {
+            var attribute = link.Attribute;
+            if (!profileByAttributeId.TryGetValue(attribute.Id, out var profileAttribute))
+            {
+                profileAttribute = new ProfileAttribute
+                {
+                    CandidateId = candidateId,
+                    AttributeId = attribute.Id,
+                };
+                db.ProfileAttributes.Add(profileAttribute);
+                profileByAttributeId[attribute.Id] = profileAttribute;
+            }
+
+            valueMapper.SetValue(profileAttribute, attribute, BuildSampleAttributeValue(attribute, seed));
+        }
+    }
+
+    private static string BuildSampleAttributeValue(AttributeEntity attribute, int seed)
+    {
+        var valueType = attribute.ValueType.ToLowerInvariant();
+        return valueType switch
+        {
+            "number" => ((seed % 9) + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            "boolean" => seed % 2 == 0 ? "true" : "false",
+            "date" => "2024-06-15",
+            "select" => attribute.Options
+                .OrderBy(option => option.Id)
+                .Select(option => option.InputOption)
+                .FirstOrDefault()
+                ?? "Beginner",
+            "text" => "Seeded professional notes for the mock CV attribute value used in demos.",
+            "period" => "2021-01-01|2024-12-01",
+            "string" when attribute.Name.Contains("URL", StringComparison.OrdinalIgnoreCase)
+                => "https://www.linkedin.com/in/seeded-candidate",
+            "string" when attribute.Name.Contains("GitHub", StringComparison.OrdinalIgnoreCase)
+                => "seeded-dev",
+            "string" => $"Seeded {attribute.Name} {seed + 1}",
+            _ => $"seeded-{seed + 1}",
+        };
     }
 }

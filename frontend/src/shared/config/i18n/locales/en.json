@@ -533,6 +533,7 @@
       "publish": "Publish",
       "unpublish": "Unpublish",
       "publishHint": "Fill in all required attributes to publish",
+      "unpublishHint": "To edit, unpublish the resume",
       "downloadPdf": "Download PDF",
       "tabs": {
         "personal": "Personal data",

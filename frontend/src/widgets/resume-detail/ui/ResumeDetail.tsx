@@ -202,7 +202,11 @@ function ResumeDetailContent() {
                 <Tooltip title={t('cvs.detail.publishHint')}>
                   <InfoOutlinedIcon color="action" fontSize="small" sx={{ mr: 0.5 }} />
                 </Tooltip>
-              ) : null}
+              ) : (
+                <Tooltip title={t('cvs.detail.unpublishHint')}>
+                  <InfoOutlinedIcon color="action" fontSize="small" sx={{ mr: 0.5 }} />
+                </Tooltip>
+              )}
               <Button
                 variant="contained"
                 onClick={() => void handlePublishClick()}
