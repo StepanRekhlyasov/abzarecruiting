@@ -279,8 +279,8 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 await DatabaseStartup.MigrateAsync(app.Services);
-await DatabaseStartup.RebuildSearchIndexAsync(app.Services);
-await DatabaseSeeder.RunAsync(app);
+// await DatabaseStartup.RebuildSearchIndexAsync(app.Services);
+// await DatabaseSeeder.RunAsync(app);
 
 if (app.Environment.IsDevelopment())
 {
