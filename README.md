@@ -91,10 +91,9 @@ docker compose up -d --build backend
 
 1. Миграции  
 2. Роли Identity  
-3. `AttributeSeeder` — системные (default) атрибуты + Admin  
+3. `AttributeSeeder` — системные (default) атрибуты + профиль Admin  
 4. `UserSeeder` — демо-пользователи  
-5. `MockDataSeeder` — атрибуты/теги/вакансии/проекты/сообщения/резюме/лайки  
-6. Rebuild Lucene  
+5. Rebuild Lucene  
 
 ### Роли и пароль демо-пользователей
 
@@ -113,4 +112,42 @@ docker compose up -d --build backend
 | `user-9@fexpost.com` | Julia Fedorova | Recruiter |
 | `user-10@fexpost.com` | Kirill Orlov | Recruiter |
 
-У кандидатов заполнены default-атрибуты профиля: имя, фамилия, email, телефон, bio, location, фото (общий дефолтный аватар). На каждое опубликованное резюме рекрутеры ставят от 3 до 5 лайков.
+У кандидатов заполнены default-атрибуты профиля: имя, фамилия, email, телефон, bio, location, фото (общий дефолтный аватар).
+
+## Типичные проблемы
+
+### Backend: `Unable to connect to any of the specified MySQL hosts` / `The host name or IP address is invalid`
+
+В Docker хост БД — имя сервиса **`mysql`**, не `localhost` и не публичный IP EC2.
+
+1. В `backend/.env` должно быть примерно так (пароль как в compose или свой):
+
+```bash
+ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=camp_project;User=app;Password=app;SslMode=Disabled;AllowPublicKeyRetrieval=True;ConnectionTimeout=60
+```
+
+2. На сервере проверьте, что контейнеры в одной сети и MySQL жив:
+
+```bash
+docker compose ps
+docker compose exec backend printenv ConnectionStrings__DefaultConnection
+docker compose logs mysql --tail 50
+docker compose logs backend --tail 80
+```
+
+В `printenv` в `Server=` должно быть именно `mysql`.
+
+3. Перезапуск после правки `.env` / compose:
+
+```bash
+docker compose up -d --force-recreate backend
+```
+
+### AWS (например `http://44.194.248.98:8000`)
+
+В `backend/.env` добавьте публичный origin:
+
+```bash
+App__FrontendBaseUrl=http://44.194.248.98:8000
+Cors__AllowedOrigins__0=http://44.194.248.98:8000
+```

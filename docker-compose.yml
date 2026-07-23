@@ -37,11 +37,12 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:8080
-      - DOTNET_USE_POLLING_FILE_WATCHER=true
-      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=camp_project;User=app;Password=app;SslMode=Disabled;AllowPublicKeyRetrieval=True;Connection Timeout=60;
-      - Lucene__IndexPath=/app/lucene-index
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+      # Host must be the Compose service name `mysql` (not localhost). Quote the whole value.
+      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=camp_project;User=app;Password=app;SslMode=Disabled;AllowPublicKeyRetrieval=True;ConnectionTimeout=60"
+      Lucene__IndexPath: /app/lucene-index
     volumes:
       - lucene_data:/app/lucene-index
     depends_on:

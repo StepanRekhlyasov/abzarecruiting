@@ -1,5 +1,4 @@
 using Backend.Api.Configuration;
-using Backend.Api.Services.Attribute;
 using Backend.Api.Services.Files;
 using Backend.Api.Services.Profile;
 using Microsoft.AspNetCore.Identity;
@@ -40,7 +39,6 @@ public static class DatabaseSeeder
             fileStorageService,
             app.Environment,
             logger);
-        await MockDataSeeder.SeedAsync(db, userManager, logger);
         await DatabaseStartup.RebuildSearchIndexAsync(app.Services);
 
         logger.LogInformation("Database seeding completed.");
